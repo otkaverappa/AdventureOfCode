@@ -78,7 +78,7 @@ class FireTruckTest( unittest.TestCase ):
 
 	def test_pathList( self ):
 		fireTruckList = list()
-		with open( 'firetruck.in' ) as inputFile:
+		with open( 'tests/firetruck.in' ) as inputFile:
 			while True:
 				header = inputFile.readline().strip()
 				if len( header ) == 0:
@@ -93,7 +93,7 @@ class FireTruckTest( unittest.TestCase ):
 				fireTruckList.append( FireTruck( adjacentLocations, destination ) )
 
 		index = 0
-		with open( 'firetruck.ans' ) as solutionFile:
+		with open( 'tests/firetruck.ans' ) as solutionFile:
 			currentPathList = list()
 			for line in solutionFile.readlines():
 				line = line.strip()
