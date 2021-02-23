@@ -137,12 +137,12 @@ class DominoEffectTest( unittest.TestCase ):
 
 	def test_assemble_sample( self ):
 		pipGridList = self._readAllPipGrids( 'tests/sample.in' )
-		allSolutionList = self._readSolutionFile( 'tests/sample.out' )
+		allSolutionList = self._readSolutionFile( 'tests/sample.ans' )
 		self._test( pipGridList, allSolutionList )
 
 	def test_assemble( self ):
 		pipGridList = self._readAllPipGrids( 'tests/dominoeffect.in' )
-		allSolutionList = self._readSolutionFile( 'tests/dominoeffect.out' )
+		allSolutionList = self._readSolutionFile( 'tests/dominoeffect.ans' )
 		self._test( pipGridList, allSolutionList )
 
 if __name__ == '__main__':
