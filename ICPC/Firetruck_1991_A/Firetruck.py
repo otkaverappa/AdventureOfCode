@@ -67,6 +67,15 @@ class FireTruckTest( unittest.TestCase ):
 		]
 		self._compare( FireTruck( adjacentLocations, destination ).pathList(), expectedPathList )
 
+		adjacentLocations = [ (1, 8), (2, 11), (3, 4), (3, 6), (4, 14), (5, 6), (5, 8), (6, 11), (6, 12), (8, 14), (9, 14), (10, 14), (11, 14) ]
+		destination = 14
+		expectedPathList = [
+		[ 1, 8, 5, 6, 3, 4, 14 ],
+		[ 1, 8, 5, 6, 11, 14 ],
+		[ 1, 8, 14 ]
+		]
+		self._compare( FireTruck( adjacentLocations, destination ).pathList(), expectedPathList )
+
 	def test_pathList( self ):
 		fireTruckList = list()
 		with open( 'firetruck.in' ) as inputFile:
