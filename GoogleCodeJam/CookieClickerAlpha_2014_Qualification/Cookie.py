@@ -1,5 +1,4 @@
 import unittest
-import heapq
 
 class Cookie:
 	def __init__( self, C, F, X ):
@@ -12,32 +11,25 @@ class Cookie:
 	def minimumTime( self ):
 		timeTaken, cookieCount, cookiePerSecond = 0, 0, 2
 
-		q = list()
-		q.append( (timeTaken, cookieCount, cookiePerSecond ) )
+		if self._equal( cookieCount, self.X ):
+			return timeTaken
 
-		while len( q ) > 0:
-			currentTimeTaken, currentCookieCount, currentCookiePerSecond = heapq.heappop( q )
-			if self._equal( currentCookieCount, self.X ):
-				return currentTimeTaken
+		while True:
+			cookiesRequired = self.X - cookieCount
 
-			possibleStates = list()
-			
 			# Don't buy any cookie farm.
-			cookiesRequired = self.X - currentCookieCount
-			time = currentTimeTaken + ( cookiesRequired / currentCookiePerSecond )
-			possibleStates.append( (time, self.X, currentCookiePerSecond) )
+			A = ( cookiesRequired / cookiePerSecond )
 
-			# Buy a cookie farm if currentCookieCount >= self.C
-			if currentCookieCount >= self.C:
-				possibleStates.append( (currentTimeTaken, currentCookieCount - self.C, currentCookiePerSecond + self.F ) )
-			# Wait until we have enough cookies to buy a cookie farm
-			else:
-				cookiesRequired = self.C - currentCookieCount
-				time = currentTimeTaken + ( cookiesRequired / currentCookiePerSecond )
-				possibleStates.append( (time, self.C, currentCookiePerSecond) )
+			# Buy a cookie farm.
+			B1 = ( self.C - cookieCount ) / cookiePerSecond
+			# Then buy the required number of cookies.
+			B2 = cookiesRequired / ( cookiePerSecond + self.F )
 
-			for (newTimeTaken, newCookieCount, newCookiePerSecond) in possibleStates:
-				heapq.heappush( q, (newTimeTaken, newCookieCount, newCookiePerSecond) )
+			if A < B1 + B2:
+				timeTaken += A
+				return timeTaken
+			timeTaken += B1
+			cookiePerSecond += self.F
 
 class CookieTest( unittest.TestCase ):
 	def test_cookie( self ):
