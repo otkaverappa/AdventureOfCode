@@ -1,0 +1,47 @@
+Maze
+A friend of yours is very excited about a new game that he downloaded on his cell phone. The game consists of a kind of labyrinth that can be represented by a grid of square cells with N rows and M columns. Each cell in the labyrinth contains a platform that is at a certain height from the floor, which can be represented by an integer ranging from 0 (the lowest) to 9 (the highest). You start at the cell (1, 1) (top left) and the goal is to get to the exit of the maze that is in the cell (N, M) (bottom right).
+
+To get out of the maze, you must make moves between adjacent cells. The problem is that your little doll cannot jump very high, so if the target cell is two or more units above its current height, you cannot move it. More specifically, each shift you can move to one of the 4 adjacent cells (up, down, right, left) if the height of the target cell is less than or equal to the height of your current cell plus one unit. That is, if the height of your cell is A, you can only move to an adjacent cell if its height is less than or equal to A + 1.
+
+To complicate the game a little more, each turn, after the player performs his action, each cell increases its height by one unit, up to the maximum value of 9. If the height of a given cell is 9, it becomes 0 Note that, in a given turn, the player is not obliged to move, he can simply wait for the platforms to go up or down. Also, note that not all cells have 4 neighbors, as the player is not allowed to move outside the boundaries of the maze.
+
+You, as a good programmer, decide to write a program that calculates the least amount of shifts possible to reach the exit of a given maze.
+
+Assignment
+Write a program that, given a maze, returns the least amount of turns needed to get to the exit, according to the restrictions given.
+
+Input
+The input contains a single set of tests, which must be read from the standard input device (usually the keyboard). The first line of the entry contains two integers N and M (2 ≤ N, M ≤ 50) separated by a blank space, which represent, respectively, the number of rows and columns in the maze. The next N lines each contain M integers that represent the initial height (in turn 0) of the respective platform. Heights are always between 0 and 9 (inclusive).
+
+Output
+Your program should print, on standard output, a single line, containing the least amount of shifts possible to get out of the maze.
+
+EXAMPLES
+
+Input:
+4 3
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+
+Output:
+5
+
+Input:
+3 3
+1 2 3
+4 5 6
+7 8 9
+
+Output:
+12
+
+Input:
+3 5
+1 3 1 1 1
+1 3 1 3 1
+1 1 1 3 1
+
+Output:
+10
