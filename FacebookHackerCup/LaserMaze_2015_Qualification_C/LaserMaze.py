@@ -100,7 +100,7 @@ class LaserMazeTest( unittest.TestCase ):
 		print()
 
 	def test_move( self ):
-		for testcaseFile in ('sample', 'maze'):
+		for testcaseFile in ('sample', 'maze', 'bigmaze'):
 			self._verify( testcaseFile )
 
 	def _verify( self, testcaseFile ):
