@@ -1,0 +1,29 @@
+Map 1
+islands: 1
+bridges: 0
+buses needed: 1
+
+Map 2
+islands: 1600
+bridges: 3120
+buses needed: 1
+
+Map 3
+islands: 77
+bridges: 76
+buses needed: 1
+
+Map 4
+islands: 76
+bridges: 76
+buses needed: 19
+
+Map 5
+islands: 3200
+bridges: 0
+buses needed: 3200
+
+Map 6
+islands: 12
+bridges: 10
+buses needed: 4
