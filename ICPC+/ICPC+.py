@@ -2084,5 +2084,53 @@ class RobotTurtleTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# VirginiaTechHighSchoolProgrammingContest_2016 - Problem C: TurtleMaster
+################################################################################
+
+class TurtleMaster:
+	@staticmethod
+	def go( boardData, program ):
+		return 'Diamond!' if RobotTurtle( boardData ).verifyProgram( program ) else 'Bug!'
+
+class TurtleMasterTest( unittest.TestCase ):
+	def test_TurtleMaster_Sample( self ):
+		boardData = [
+		'........',
+		'........',
+		'........',
+		'...CC...',
+		'..C.DC..',
+		'.C..C...',
+		'C.IC....',
+		'T.C.....'
+		]
+		self.assertEqual( TurtleMaster.go( boardData, 'FLFRXFLFRFLFRF' ), 'Diamond!' )
+		self.assertEqual( TurtleMaster.go( boardData, 'FLFRFLFRFLFRF' ), 'Bug!' )
+		self.assertEqual( TurtleMaster.go( boardData, 'FLFRXFLFRFLFFR' ), 'Bug!' )
+
+	def test_TurtleMaster( self ):
+		for testfile in getTestFileList( tag='turtlemaster' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/turtlemaster/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/turtlemaster/{}.ans'.format( testfile ) ) as solutionFile:
+
+			boardData = [ readString( inputFile ) for _ in range( 8 ) ]
+			program = readString( inputFile )
+			state = readString( solutionFile )
+
+			print( 'Testcase {} program = {} state = {}'.format( testfile, program, state ) )
+			for boardDataRow in boardData:
+				print( boardDataRow )
+			self.assertEqual( TurtleMaster.go( boardData, program ), state )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
