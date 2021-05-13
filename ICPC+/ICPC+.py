@@ -1856,5 +1856,233 @@ class BigTruckTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# VirginiaTechHighSchoolProgrammingContest_2016 - Problem H: RobotTurtles
+################################################################################
+
+def builtin_popcount( x ):
+	count = 0
+	while x > 0:
+		x = x & (x - 1)
+		count += 1
+	return count
+
+class RobotTurtle:
+	def __init__( self, boardData ):
+		self.rows = self.cols = 8
+		self.boardData = boardData
+
+		self.emptyCell, self.rockCell, self.iceCell, self.diamondCell = '.', 'C', 'I', 'D'
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+		self.startLocation = self.rows - 1, 0
+		self.startDirection = 'E'
+		self.leftTurn = {
+		'N' : 'W', 'W' : 'S', 'S' : 'E', 'E' : 'N'
+		}
+		self.rightTurn = {
+		'N' : 'E', 'E' : 'S', 'S' : 'W', 'W' : 'N'
+		}
+		self.directionDelta = {
+		'N' : (-1, 0), 'S' : (1, 0), 'E' : (0, 1), 'W' : (0, -1)
+		}
+
+		self.iceCastleId = dict()
+		index = 0
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.boardData[ row ][ col ] == self.iceCell:
+				self.iceCastleId[ (row, col) ] = index
+				index += 1
+
+		self.noSolution = 'no solution'
+
+	def _setBitnumber( self, bitmap, bitNumber ):
+		return bitmap | ( 1 << bitNumber )
+
+	def _isBitnumberSet( self, bitmap, bitNumber ):
+		return ( bitmap & ( 1 << bitNumber ) ) > 0
+
+	def _isOutside( self, location ):
+		r, c = location
+		return not 0 <= r < self.rows or not 0 <= c < self.cols
+
+	def go( self ):
+		startState = (self.startLocation, self.startDirection, 0)
+		
+		q = deque()
+		q.append( (startState, str()) )
+
+		visited = set()
+		visited.add( startState )
+
+		while len( q ) > 0:
+			(currentLocation, currentDirection, iceCastleBitmap), program = q.popleft()
+
+			u, v = currentLocation
+			if self.boardData[ u ][ v ] == self.diamondCell:
+				return program
+			
+			stateList = list()
+			# We have to generate all possible state transitions.
+			
+			# Turn left, turn right !
+			stateList.append( (currentLocation, self.leftTurn[ currentDirection ], iceCastleBitmap, program + 'L') )
+			stateList.append( (currentLocation, self.rightTurn[ currentDirection ], iceCastleBitmap, program + 'R') )
+
+			# Move forward !
+			du, dv = self.directionDelta[ currentDirection ]
+			newLocation = r, c = u + du, v + dv
+			_isOutside = self._isOutside( newLocation ) 
+
+			if not _isOutside and self.boardData[ r ][ c ] != self.rockCell:
+				# If we are moving into an ice castle, then ensure that it is already destroyed.
+				validState = True
+				if self.boardData[ r ][ c ] == self.iceCell and not self._isBitnumberSet( iceCastleBitmap, self.iceCastleId[ newLocation ] ):
+					validState = False
+				if validState:
+					stateList.append( (newLocation, currentDirection, iceCastleBitmap, program + 'F') )
+
+			# Can we shoot an ice castle ?
+			if not _isOutside and self.boardData[ r ][ c ] == self.iceCell and not self._isBitnumberSet( iceCastleBitmap, self.iceCastleId[ newLocation ] ):
+				newIceCastleBitmap = self._setBitnumber( iceCastleBitmap, self.iceCastleId[ newLocation ] )
+				stateList.append( (currentLocation, currentDirection, newIceCastleBitmap, program + 'X') )
+
+			for (location, direction, iceCastleBitmap, program) in stateList:
+				cacheKey = location, direction, iceCastleBitmap
+				if cacheKey not in visited:
+					visited.add( cacheKey )
+					q.append( (cacheKey, program) )
+		return self.noSolution
+
+	def verifyProgram( self, programString ):
+		location, direction = self.startLocation, self.startDirection
+		destroyedIceCastles = set()
+
+		for token in programString:
+			if token == 'F':
+				u, v = location
+				du, dv = self.directionDelta[ direction ]
+				location = r, c = u + du, v + dv
+				if self._isOutside( location ) or self.boardData[ r ][ c ] == self.rockCell:
+					return False
+				if self.boardData[ r ][ c ] == self.iceCell and location not in destroyedIceCastles:
+					return False
+			elif token == 'R':
+				direction = self.rightTurn[ direction ]
+			elif token == 'L':
+				direction = self.leftTurn[ direction ]
+			elif token == 'X':
+				u, v = location
+				du, dv = self.directionDelta[ direction ]
+				shotLocation = r, c = u + du, v + dv
+				if self._isOutside( shotLocation ):
+					return False
+				if self.boardData[ r ][ c ] in (self.rockCell, self.emptyCell):
+					return False
+				if shotLocation in destroyedIceCastles:
+					return False
+				destroyedIceCastles.add( shotLocation )
+			else:
+				return False
+		r, c = location
+		return self.boardData[ r ][ c ] == self.diamondCell
+				
+class RobotTurtleTest( unittest.TestCase ):
+	def test_RobotTurtle( self ):
+		for testfile in getTestFileList( tag='roboturtle' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/roboturtle/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/roboturtle/{}.ans'.format( testfile ) ) as solutionFile:
+
+			boardData = [ readString( inputFile ) for _ in range( 8 ) ]
+			program = readString( solutionFile )
+			robotTurtle = RobotTurtle( boardData )
+			generatedProgram = robotTurtle.go()
+
+			if program == generatedProgram:
+				print( 'Testcase {} [{}]'.format( testfile, program ) )
+			else:
+				print( 'Testcase {} [{}] [{}]'.format( testfile, program, generatedProgram ) )
+				self.assertEqual( len( program ), len( generatedProgram ) )
+				self.assertTrue( robotTurtle.verifyProgram( generatedProgram ) )
+
+	def test_RobotTurtle_Sample( self ):
+		boardData = [
+		'........',
+		'........',
+		'........',
+		'...CC...',
+		'..C.DC..',
+		'.C..C...',
+		'C.IC....',
+		'T.C.....'
+		]
+		program = 'FLFRXFLFRFLFRF'
+		robotTurtle = RobotTurtle( boardData )
+		self.assertTrue( robotTurtle.verifyProgram( program ) )
+		
+		generatedProgram = robotTurtle.go()
+		if program != generatedProgram:
+			self.assertEqual( len( program ), len( generatedProgram ) )
+			self.assertTrue( robotTurtle.verifyProgram( generatedProgram ) )
+
+		boardData = [
+		'........',
+		'........',
+		'........',
+		'...CC...',
+		'..CIDC..',
+		'.CI.C...',
+		'C.IC....',
+		'T.C.....'
+		]
+		program = 'FLFRXFLXFRFLXFRF'
+		robotTurtle = RobotTurtle( boardData )
+		self.assertTrue( robotTurtle.verifyProgram( program ) )
+		
+		generatedProgram = robotTurtle.go()
+		if program != generatedProgram:
+			self.assertEqual( len( program ), len( generatedProgram ) )
+			self.assertTrue( robotTurtle.verifyProgram( generatedProgram ) )
+
+		boardData = [
+		'........',
+		'........',
+		'........',
+		'...CCD..',
+		'..C..C..',
+		'.C..I...',
+		'C.IC....',
+		'T.C.....'
+		]
+		program = 'FLFRXFLFRFXFFFLFFLF'
+		robotTurtle = RobotTurtle( boardData )
+		self.assertTrue( robotTurtle.verifyProgram( program ) )
+		
+		generatedProgram = robotTurtle.go()
+		if program != generatedProgram:
+			self.assertEqual( len( program ), len( generatedProgram ) )
+			self.assertTrue( robotTurtle.verifyProgram( generatedProgram ) )
+
+		boardData = [
+		'........',
+		'........',
+		'........',
+		'CCCCC...',
+		'..C.DC..',
+		'..C.C...',
+		'C.IC....',
+		'T.C.....'
+		]
+		self.assertEqual( RobotTurtle( boardData ).go(), 'no solution' )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
