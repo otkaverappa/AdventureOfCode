@@ -1653,5 +1653,117 @@ class HarbourTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+# BAPC2013.pdf
+################################################################################
+
+class Administrative:
+	def __init__( self, carInfoList, logList ):
+		self.carInfoDict = dict()
+		for carInfoString in carInfoList:
+			carType, price, pickupCost, costPerKM = carInfoString.split()
+			price, pickupCost, costPerKM = int( price ), int( pickupCost ), int( costPerKM )
+			self.carInfoDict[ carType ] = (price, pickupCost, costPerKM)
+
+		self.logList = logList
+
+	def analyze( self ):
+		costDict = defaultdict( lambda : 0 )
+		inconsistentSpies = set()
+		spyToBookedCar = dict()
+
+		for statusString in self.logList:
+			timeStamp, spyName, command, commandInfo = statusString.split()
+
+			# Ensure that any referenced spy has an entry in costDict.
+			costDict[ spyName ] += 0
+			if spyName in inconsistentSpies:
+				# Once an inconsistent event is detected, do not process subsequent events for the spy.
+				continue
+
+			if command == 'p':
+				# Pick-up !
+				# Ensure that the spy hasn't already booked a car.
+				carType = commandInfo
+				if spyName in spyToBookedCar:
+					inconsistentSpies.add( spyName )
+					continue
+				_, pickupCost, _ = self.carInfoDict[ carType ]
+				costDict[ spyName ] += pickupCost
+				spyToBookedCar[ spyName ] = carType
+			elif command == 'r':
+				# Return !
+				# Ensure that the spy is not attempting to return a car which hasn't been booked.
+				if spyName not in spyToBookedCar:
+					inconsistentSpies.add( spyName )
+					continue
+				distanceCovered = int( commandInfo )
+				_, _, costPerKM = self.carInfoDict[ spyToBookedCar[ spyName ] ]
+				costDict[ spyName ] += ( distanceCovered * costPerKM )
+				del spyToBookedCar[ spyName ]
+			elif command == 'a':
+				# Accident !
+				# Ensure that the spy is not claiming an accident on a car which hasn't been booked.
+				if spyName not in spyToBookedCar:
+					inconsistentSpies.add( spyName )
+					continue
+				accidentSeverity = int( commandInfo )
+				price, _, _ = self.carInfoDict[ spyToBookedCar[ spyName ] ]
+				costDict[ spyName ] += math.ceil( (price * accidentSeverity) / 100 )
+
+		# If there are spies who haven't returned their cars, mark them as inconsistent.
+		inconsistentSpies.update( spyToBookedCar.keys() )
+
+		statusList = list()
+		for spyName in sorted( costDict.keys() ):
+			status = 'INCONSISTENT' if spyName in inconsistentSpies else costDict[ spyName ]
+			statusList.append( '{} {}'.format( spyName, status) )
+		return statusList
+
+class AdministrativeTest( unittest.TestCase ):
+	def test_Administrative( self ):
+		with open( 'tests/administrative/A.in' ) as inputFile, \
+		     open( 'tests/administrative/A.out' ) as solutionFile:
+
+			T = readInteger( inputFile )
+			for index in range( T ):
+				carCount, logSize = readIntegers( inputFile )
+				carInfoList = [ readString( inputFile ) for _ in range( carCount ) ]
+				logList = [ readString( inputFile ) for _ in range( logSize ) ]
+
+				print( 'Testcase #{} Number of cars = {} Log size = {}'.format( index + 1, len( carInfoList ), len( logList ) ) )
+
+				statusList = Administrative( carInfoList, logList ).analyze()
+				for status in statusList:
+					self.assertEqual( status, readString( solutionFile ) )
+
+	def test_Administrative_Sample( self ):
+		carInfoList = [
+		'bmw 5000 150 10',
+		'jaguar 7000 200 25'
+		]
+		logList = [
+		'10 mallory p bmw',
+		'15 jb p jaguar',
+		'20 jb r 500',
+		'35 badluckbrian a 100',
+		'50 mallory a 10',
+		'55 silva p jaguar',
+		'60 mallory r 100',
+		'110 silva a 30'
+		]
+		statusList = [
+		'badluckbrian INCONSISTENT',
+		'jb 12700',
+		'mallory 1650',
+		'silva INCONSISTENT'
+		]
+		self.assertEqual( Administrative( carInfoList, logList ).analyze(), statusList )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
