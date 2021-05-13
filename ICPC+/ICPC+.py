@@ -1765,5 +1765,96 @@ class AdministrativeTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# ICPC_2016_NorthAmerican_Qualification.pdf - Problem C : Big Truck
+################################################################################
+
+class BigTruck:
+	def __init__( self, locationCount, itemList, roadInfo ):
+		self.locationCount = locationCount
+		self.itemList = [ None ] + itemList
+
+		self.roadNetwork = [ list() for _ in range( self.locationCount + 1 ) ]
+		for (fromLocation, toLocation, distance) in roadInfo:
+			self.roadNetwork[ fromLocation ].append( (toLocation, distance) )
+			self.roadNetwork[ toLocation ].append( (fromLocation, distance) )
+
+	def go( self ):
+		startLocation, targetLocation = 1, self.locationCount
+		# The best weight has the lowest cost, and highest number of items. Hence multiply the number
+		# of items collected by -1, so that we can use the default tuple comparator.
+		weight = (0, - self.itemList[ startLocation ])
+
+		q = list()
+		q.append( (weight, startLocation) )
+
+		bestWeightDict = dict()
+		bestWeightDict[ startLocation ] = weight
+
+		while len( q ) > 0:
+			currentWeight, currentLocation = heapq.heappop( q )
+			cost, itemCount = currentWeight
+
+			if currentLocation == targetLocation:
+				return cost, abs( itemCount )
+
+			for toLocation, distance in self.roadNetwork[ currentLocation ]:
+				newWeight = cost + distance, itemCount - self.itemList[ toLocation ]
+				if toLocation not in bestWeightDict or bestWeightDict[ toLocation ] > newWeight:
+					bestWeightDict[ toLocation ] = newWeight
+					heapq.heappush( q, (newWeight, toLocation) )
+		return 'impossible'
+
+class BigTruckTest( unittest.TestCase ):
+	def test_BigTruck( self ):
+		for testfile in getTestFileList( tag='bigtruck' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/bigtruck/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/bigtruck/{}.ans'.format( testfile ) ) as solutionFile:
+
+			locationCount = readInteger( inputFile )
+			itemList = list( readIntegers( inputFile ) )
+			
+			roadCount = readInteger( inputFile )
+			roadInfo = list()
+			for _ in range( roadCount ):
+				fromLocation, toLocation, distance = readIntegers( inputFile )
+				roadInfo.append( (fromLocation, toLocation, distance) )
+
+			state = readString( solutionFile )
+			if state != 'impossible':
+				state = tuple( map( int, state.split() ) )
+
+			print( 'Testcase {} locations = {} roads = {} state = {}'.format( testfile, locationCount, roadCount, state ) )
+			self.assertEqual( BigTruck( locationCount, itemList, roadInfo ).go(), state )
+
+	def test_BigTruck_Sample( self ):
+		locationCount = 6
+		itemList = [ 1, 1, 2, 3, 1, 0 ]
+		roadInfo = [
+		(1, 2, 2), (2, 3, 3), (3, 6, 4), (1, 4, 4), (4, 3, 2), (4, 5, 3), (5, 6, 2)
+		]
+		self.assertEqual( BigTruck( locationCount, itemList, roadInfo ).go(), (9, 5) )
+
+		locationCount = 9
+		itemList = [ 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+		roadInfo = [
+		(1, 2, 3), (2, 5, 3), (1, 6, 2), (6, 7, 2), (7, 5, 2), (5, 3, 1), (3, 4, 2), (4, 9, 3), (5, 8, 2), (8, 9, 4)
+		]
+		self.assertEqual( BigTruck( locationCount, itemList, roadInfo ).go(), (12, 7) )
+
+		locationCount = 2
+		itemList = [ 5, 5 ]
+		roadInfo = [ ]
+		self.assertEqual( BigTruck( locationCount, itemList, roadInfo ).go(), 'impossible' )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
