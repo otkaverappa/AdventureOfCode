@@ -2313,5 +2313,164 @@ class AdventureTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+# BAPC2015_Preliminaries.pdf - "Problem G Pac-Man"
+################################################################################
+
+class PacMan:
+	def __init__( self, gameMap ):
+		self.rows, self.cols = len( gameMap ), len( gameMap[ 0 ] )
+		self.gameMap = gameMap
+		self.directionDelta = {
+		'N' : (-1, 0), 'S' : (1, 0), 'E' : (0, 1), 'W' : (0, -1)
+		}
+		self.directionAttemptOrder = 'WNES'
+
+		self.pacmanCell, self.emptyCell, self.ghostCell, self.blockedCell = 'P', '.', 'G', 'X'
+		
+		self.pacman1Location = self.pacman2Location = None
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			cellType = self.gameMap[ row ][ col ]
+			if cellType == self.pacmanCell and self.pacman1Location is None:
+				self.pacman1Location = row, col
+			elif cellType == self.pacmanCell and self.pacman2Location is None:
+				self.pacman2Location = row, col
+				break 
+
+	def _tryMove( self, location, direction ):
+		row, col = location
+		du, dv = self.directionDelta[ direction ]
+		return ( row + du ) % self.rows, ( col + dv ) % self.cols
+
+	def play( self ):
+		startState = self.pacman1Location, self.pacman2Location
+
+		q = deque()
+		q.append( (startState, str()) )
+
+		visited = set()
+		visited.add( startState )
+
+		while len( q ) > 0:
+			( pacman1Location, pacman2Location ), movementString = q.popleft()
+			r1, c1 = pacman1Location
+			r2, c2 = pacman2Location
+
+			if r1 == r2 and c1 == c2:
+				return movementString
+
+			for directionToken in self.directionAttemptOrder:
+				du, dv = self.directionDelta[ directionToken ]
+				# Try to move pacman1 and pacman2.
+				newPacman1Location = pacman1Location
+				newPacman2Location = pacman2Location
+
+				r, c = self._tryMove( pacman1Location, directionToken )
+				if self.gameMap[ r ][ c ] == self.ghostCell:
+					continue
+				if self.gameMap[ r ][ c ] != self.blockedCell:
+					newPacman1Location = r, c
+
+				r, c = self._tryMove( pacman2Location, directionToken )
+				if self.gameMap[ r ][ c ] == self.ghostCell:
+					continue
+				if self.gameMap[ r ][ c ] != self.blockedCell:
+					newPacman2Location = r, c
+
+				newState = newPacman1Location, newPacman2Location
+				if newState not in visited:
+					visited.add( newState )
+					q.append( (newState, movementString + directionToken) )
+
+		return None
+
+	def playPrettyPrint( self ):
+		movementString = self.play()
+		if movementString is None:
+			return 'IMPOSSIBLE'
+		else:
+			return '{} {}'.format( len( movementString ), movementString )
+
+	def cheat( self, movementString ):
+		r1, c1 = self.pacman1Location
+		r2, c2 = self.pacman2Location
+		
+		for movementToken in movementString:
+			# Try to move pacman1.
+			r, c = self._tryMove( (r1, c1), movementToken )
+			if self.gameMap[ r ][ c ] == self.ghostCell:
+				return False
+			if self.gameMap[ r ][ c ] != self.blockedCell:
+				r1, c1 = r, c
+			# Try to move pacman2.
+			r, c = self._tryMove( (r2, c2), movementToken )
+			if self.gameMap[ r ][ c ] == self.ghostCell:
+				return False
+			if self.gameMap[ r ][ c ] != self.blockedCell:
+				r2, c2 = r, c
+		return r1 == r2 and c1 == c2
+
+class PacManTest( unittest.TestCase ):
+	def test_PacMan( self ):
+		with open( 'tests/pacman/test.in' ) as inputFile, \
+		     open( 'tests/pacman/test.out' ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				rows, cols = readIntegers( inputFile )
+				gameMap = [ readString( inputFile ) for _ in range( rows ) ]
+
+				state = readString( solutionFile )
+
+				print( 'Testcase {} rows = {} cols = {} state = {}'.format( index + 1, rows, cols, state ) )
+				game = PacMan( gameMap )
+				generatedState = game.playPrettyPrint()
+				if generatedState != state:
+					l1, generatedMoveString = generatedState.split()
+					l2, moveString = state.split()
+					print( 'Generated moves : [{}]'.format( generatedMoveString ) )
+					self.assertEqual( l1, l2 )
+					self.assertTrue( game.cheat( generatedMoveString ) )
+
+	def test_PacMan_Sample( self ):
+		gameMap = [
+		'.P...',
+		'XG.P.'
+		]
+		movementString = 'WSEESEE'
+		game = PacMan( gameMap )
+		string = game.play()
+		if string != movementString:
+			self.assertEqual( len( string ), len( movementString ) )
+			self.assertTrue( game.cheat( string ) )
+
+		gameMap = [
+		'X...X.X.',
+		'X.......',
+		'.XXP...X',
+		'..X..X..',
+		'.PXXXX..',
+		'.......X',
+		'........',
+		'XXXXXXX.'
+		]
+		movementString = 'EEESSWWWSS'
+		game = PacMan( gameMap )
+		string = game.play()
+		if string != movementString:
+			self.assertEqual( len( string ), len( movementString ) )
+			self.assertTrue( game.cheat( string ) )
+
+		gameMap = [
+		'P.',
+		'GP'
+		]
+		self.assertEqual( PacMan( gameMap ).play(), None )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
