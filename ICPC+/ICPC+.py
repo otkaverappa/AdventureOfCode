@@ -2255,5 +2255,63 @@ class HauntedTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# VirginiaTechHighSchoolProgrammingContest_2018.pdf - Problem I : The Grand Adventure
+################################################################################
+
+class Adventure:
+	def __init__( self, string ):
+		self.string = string
+
+		trader, jeweler, banker = 't', 'j', 'b'
+		money, incense, gem = '$', '|', '*'
+		
+		self.collectorDict = {
+		banker  : money,
+		trader  : incense,
+		jeweler : gem
+		}
+		self.emptyCell = '.'
+
+	def go( self ):
+		stack = list()
+		for token in self.string:
+			if token in self.collectorDict:
+				item = self.collectorDict[ token ]
+				if len( stack ) == 0 or stack.pop() != item:
+					return 'NO'
+			elif token == self.emptyCell:
+				pass
+			else:
+				stack.append( token )
+		return 'YES' if len( stack ) == 0 else 'NO'
+
+class AdventureTest( unittest.TestCase ):
+	def test_Adventure_Sample( self ):
+		self.assertEqual( Adventure( '.......$....$......*....*.....|......t........j...j.....b..b........' ).go(), 'YES' )
+		self.assertEqual( Adventure( '...$.$.$..*..*..*...*..|..*..b.....*******...' ).go(), 'NO' )
+
+	def test_Adventure( self ):
+		for testfile in getTestFileList( tag='adventure' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/adventure/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/adventure/{}.ans'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				string = readString( inputFile )
+				result = readString( solutionFile )
+
+				print( 'Testcase {}#{} adventureString = {} Result = {}'.format( testfile, index + 1, string, result ) )
+				self.assertEqual( Adventure( string ).go(), result )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
