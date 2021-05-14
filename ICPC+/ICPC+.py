@@ -1862,12 +1862,22 @@ class BigTruckTest( unittest.TestCase ):
 # VirginiaTechHighSchoolProgrammingContest_2016 - Problem H: RobotTurtles
 ################################################################################
 
-def builtin_popcount( x ):
-	count = 0
-	while x > 0:
-		x = x & (x - 1)
-		count += 1
-	return count
+class Bitmap:
+	@staticmethod
+	def builtin_popcount( x ):
+		count = 0
+		while x > 0:
+			x = x & (x - 1)
+			count += 1
+		return count
+
+	@staticmethod
+	def setBitnumber( bitmap, bitNumber ):
+			return bitmap | ( 1 << bitNumber )
+
+	@staticmethod
+	def isBitnumberSet( bitmap, bitNumber ):
+			return ( bitmap & ( 1 << bitNumber ) ) > 0
 
 class RobotTurtle:
 	def __init__( self, boardData ):
@@ -1897,12 +1907,6 @@ class RobotTurtle:
 				index += 1
 
 		self.noSolution = 'no solution'
-
-	def _setBitnumber( self, bitmap, bitNumber ):
-		return bitmap | ( 1 << bitNumber )
-
-	def _isBitnumberSet( self, bitmap, bitNumber ):
-		return ( bitmap & ( 1 << bitNumber ) ) > 0
 
 	def _isOutside( self, location ):
 		r, c = location
@@ -1939,14 +1943,14 @@ class RobotTurtle:
 			if not _isOutside and self.boardData[ r ][ c ] != self.rockCell:
 				# If we are moving into an ice castle, then ensure that it is already destroyed.
 				validState = True
-				if self.boardData[ r ][ c ] == self.iceCell and not self._isBitnumberSet( iceCastleBitmap, self.iceCastleId[ newLocation ] ):
+				if self.boardData[ r ][ c ] == self.iceCell and not Bitmap.isBitnumberSet( iceCastleBitmap, self.iceCastleId[ newLocation ] ):
 					validState = False
 				if validState:
 					stateList.append( (newLocation, currentDirection, iceCastleBitmap, program + 'F') )
 
 			# Can we shoot an ice castle ?
-			if not _isOutside and self.boardData[ r ][ c ] == self.iceCell and not self._isBitnumberSet( iceCastleBitmap, self.iceCastleId[ newLocation ] ):
-				newIceCastleBitmap = self._setBitnumber( iceCastleBitmap, self.iceCastleId[ newLocation ] )
+			if not _isOutside and self.boardData[ r ][ c ] == self.iceCell and not Bitmap.isBitnumberSet( iceCastleBitmap, self.iceCastleId[ newLocation ] ):
+				newIceCastleBitmap = Bitmap.setBitnumber( iceCastleBitmap, self.iceCastleId[ newLocation ] )
 				stateList.append( (currentLocation, currentDirection, newIceCastleBitmap, program + 'X') )
 
 			for (location, direction, iceCastleBitmap, program) in stateList:
@@ -2127,6 +2131,125 @@ class TurtleMasterTest( unittest.TestCase ):
 			for boardDataRow in boardData:
 				print( boardDataRow )
 			self.assertEqual( TurtleMaster.go( boardData, program ), state )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# SouthWesternEuropeanRegionalContest_2009.pdf - Problem F : Haunted Graveyard
+################################################################################
+
+class Haunted:
+	def __init__( self, width, height, stoneList, hauntedList ):
+		self.width, self.height = width, height
+		self.blockedCells = set( stoneList )
+
+		self.hauntedCells = dict()
+		for (x1, y1, x2, y2, timeTaken) in hauntedList:
+			self.hauntedCells[ (x1, y1) ] = (x2, y2, timeTaken)
+		self.startCell = 0, 0
+		self.targetCell = self.width - 1, self.height - 1
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+		self.adjacencyList = [ [ list() for _ in range( self.height ) ] for _ in range( self.width ) ]
+		
+		for (x, y) in itertools.product( range( self.width ), range( self.height ) ):
+			self._populateAdjacencyList( x, y )
+
+	def _populateAdjacencyList( self, x, y ):
+		# What are the cells adjacent to x, y ?
+		listToPopulate = self.adjacencyList[ x ][ y ]
+
+		if (x, y) in self.hauntedCells:
+			listToPopulate.append( self.hauntedCells[ (x, y) ] )
+		elif (x, y) in self.blockedCells or (x, y) == self.targetCell:
+			# No outgoing paths from blocked cells. Also, no outgoing paths from the target cell.
+			pass
+		else:
+			for du, dv in self.adjacentCellDelta:
+				u, v = x + du, y + dv
+				if 0 <= u < self.width and 0 <= v < self.height and (u, v) not in self.blockedCells:
+					listToPopulate.append( (u, v, 1) )
+
+	def go( self ):
+		# Index by x distance, and then by y distance.
+		distanceList = [ [ float( 'inf' ) for _ in range( self.height ) ] for _ in range( self.width ) ]
+
+		x, y = self.startCell
+		distanceList[ x ][ y ] = 0
+
+		for iterationCount in range( self.width * self.height ):
+			nomoreRelaxations = True
+			
+			for (x1, y1) in itertools.product( range( self.width ), range( self.height ) ):
+				for (x2, y2, timeTaken) in self.adjacencyList[ x1 ][ y1 ]:
+					# There is a path from (x1, y1) to (x2, y2) taking "timeTaken" seconds.
+					currentTimeTaken = distanceList[ x2 ][ y2 ]
+					newTimeTaken = distanceList[ x1 ][ y1 ] + timeTaken
+					if newTimeTaken < currentTimeTaken:
+						distanceList[ x2 ][ y2 ] = newTimeTaken
+						nomoreRelaxations = False
+			# Optimization.
+			# If there are no more relaxations, then we can terminate the loop.
+			if nomoreRelaxations:
+				break
+
+		# If there is a negative loop, return 'Never'
+		if not nomoreRelaxations:
+			return 'Never'
+		x, y = self.targetCell
+		distanceToExit = distanceList[ x ][ y ]
+		return 'Impossible' if distanceToExit == float( 'inf' ) else distanceToExit
+
+class HauntedTest( unittest.TestCase ):
+	def test_Haunted_Sample( self ):
+		width, height = 3, 3
+		stoneList = [ (2, 1), (1, 2) ]
+		hauntedList = []
+		self.assertEqual( Haunted( width, height, stoneList, hauntedList ).go(), 'Impossible' )
+
+		width, height = 4, 3
+		stoneList = [ (2, 1), (3, 1) ]
+		hauntedList = [ (3, 0, 2, 2, 0) ]
+		self.assertEqual( Haunted( width, height, stoneList, hauntedList ).go(), 4 )
+
+		width, height = 4, 2
+		stoneList = []
+		hauntedList = [ (2, 0, 1, 0, -3) ]
+		self.assertEqual( Haunted( width, height, stoneList, hauntedList ).go(), 'Never' )
+
+	def test_Haunted( self ):
+		with open( 'tests/haunted/labyrinth.in' ) as inputFile, \
+		     open( 'tests/haunted/labyrinth.out' ) as solutionFile:
+
+			testcaseCount = 0
+			while True:
+				width, height = readIntegers( inputFile )
+				if width == 0 and height == 0:
+					break
+
+				stoneCount = readInteger( inputFile )
+				stoneList = list()
+				for _ in range( stoneCount ):
+					x, y = readIntegers( inputFile )
+					stoneList.append( (x, y) )
+
+				hauntedCount = readInteger( inputFile )
+				hauntedList = list()
+				for _ in range( hauntedCount ):
+					x1, y1, x2, y2, timeTaken = readIntegers( inputFile )
+					hauntedList.append( (x1, y1, x2, y2, timeTaken) )
+
+				state = readString( solutionFile )
+				if state != 'Impossible' and state != 'Never':
+					state = int( state )
+
+				testcaseCount += 1
+				print( 'Testcase #{} width = {} height = {} state = {}'.format( testcaseCount, width, height, state ) )
+				self.assertEqual( Haunted( width, height, stoneList, hauntedList ).go(), state )
 
 ################################################################################
 ################################################################################
