@@ -2315,7 +2315,7 @@ class AdventureTest( unittest.TestCase ):
 
 ################################################################################
 ################################################################################
-# BAPC2015_Preliminaries.pdf - "Problem G Pac-Man"
+# BAPC2015_Preliminaries.pdf - "Problem G : Pac-Man"
 ################################################################################
 
 class PacMan:
@@ -2467,6 +2467,92 @@ class PacManTest( unittest.TestCase ):
 		'GP'
 		]
 		self.assertEqual( PacMan( gameMap ).play(), None )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# BAPC2015_Preliminaries.pdf - "Problem D : Ga"
+################################################################################
+
+class Ga:
+	def __init__( self, gameBoard ):
+		self.size = len( gameBoard )
+		self.gameBoard = [ list( gameBoardRow ) for gameBoardRow in gameBoard ]
+		self.blackStone, self.whiteStone, self.emptyCell = 'b', 'w', '-'
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1) ]
+
+	def _whiteStoneIsAdjacent( self, location ):
+		u, v = location
+		for du, dv in self.adjacentCellDelta:
+			r, c = u + du, v + dv
+			if 0 <= r < self.size and 0 <= c < self.size and self.gameBoard[ r ][ c ] == self.whiteStone:
+				return True
+		return False
+
+	def _floodFill( self, location ):
+		q = deque()
+		q.append( location )
+
+		count = 0
+		while len( q ) > 0:
+			u, v = q.popleft()
+			if self.gameBoard[ u ][ v ] != self.emptyCell:
+				continue
+			count += 1
+			self.gameBoard[ u ][ v ] = self.whiteStone
+
+			for du, dv in self.adjacentCellDelta:
+				r, c = adjacentLocation = u + du, v + dv
+				if 0 <= r < self.size and 0 <= c < self.size and self.gameBoard[ r ][ c ] == self.emptyCell:
+					q.append( adjacentLocation )
+		return count
+ 
+	def ga( self ):
+		count = 0
+
+		for row, col in itertools.product( range( self.size ), range( self.size ) ):
+			location = row, col
+			if self.gameBoard[ row ][ col ] == self.emptyCell and self._whiteStoneIsAdjacent( location ):
+				count += self._floodFill( location )
+
+		return count
+
+class GaTest( unittest.TestCase ):
+	def test_Ga_Sample( self ):
+		gameBoard = [
+		'bbb',
+		'bwb',
+		'bbb'
+		]
+		self.assertEqual( Ga( gameBoard ).ga(), 0 )
+
+		gameBoard = [
+		'--b---',
+		'bbww--',
+		'-bbbw-',
+		'---bbb',
+		'---b--',
+		'------'
+		]
+		self.assertEqual( Ga( gameBoard ).ga(), 8 )
+
+	def test_Ga( self ):
+		with open( 'tests/ga/test.in' ) as inputFile, \
+		     open( 'tests/ga/test.out' ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				size = readInteger( inputFile )
+				gameBoard = [ readString( inputFile ) for _ in range( size ) ]
+
+				count = readInteger( solutionFile )
+
+				print( 'Testcase {} size = {} Maximum stones = {}'.format( testcaseCount, size, count ) )
+				self.assertEqual( Ga( gameBoard ).ga(), count )
 
 ################################################################################
 ################################################################################
