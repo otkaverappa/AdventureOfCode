@@ -2558,5 +2558,154 @@ class GaTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+class Curse:
+	def __init__( self, cavernMap ):
+		self.rows, self.cols = len( cavernMap ), len( cavernMap[ 0 ] )
+		self.cavernMap = cavernMap
+
+		self.emptyCell, self.wallCell, self.stoneCell, self.startCell, self.buttonCell = '.', '#', 'X', 'S', 'B'
+		self.exitCell = 'E'
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (-1, 0), (1, 0) ]
+		self.startLocation = None
+		self.escapeImpossible = False
+		
+		stoneALocation = stoneBLocation = None
+		buttonALocation = buttonBLocation = None
+		
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			cellType = self.cavernMap[ row ][ col ]
+			if cellType == self.startCell:
+				self.startLocation = row, col
+			elif cellType == self.stoneCell and stoneALocation is None:
+				stoneALocation = row, col
+			elif cellType == self.stoneCell:
+				stoneBLocation = row, col
+			elif cellType == self.buttonCell and buttonALocation is None:
+				buttonALocation = row, col
+			elif cellType == self.buttonCell and buttonBLocation is None:
+				buttonBLocation = row, col
+			elif cellType == self.buttonCell:
+				# If there are more than two buttons, then escape is impossible.
+				self.escapeImpossible = True
+
+		self.stoneLocationTuple = stoneALocation, stoneBLocation
+		self.buttonLocationTuple = buttonALocation, buttonBLocation
+
+	def _stonesPlacedCorrectly( self, stoneLocationTuple ):
+		S1, S2 = stoneLocationTuple
+		buttonALocation, buttonBLocation = self.buttonLocationTuple
+		
+		if buttonALocation is None and buttonBLocation is None:
+			return True
+		elif buttonBLocation is None:
+			return S1 == buttonALocation or S2 == buttonALocation
+		else:
+			return (S1, S2) == self.buttonLocationTuple or (S2, S1) == self.buttonLocationTuple
+
+	def _isOutside( self, location ):
+		r, c = location
+		return not 0 <= r < self.rows or not 0 <= c < self.cols
+
+	def escape( self ):
+		startState = self.stoneLocationTuple, self.startLocation
+
+		q = deque()
+		if not self.escapeImpossible:
+			q.append( startState )
+
+		visited = set()
+		visited.add( startState )
+
+		stepCount = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				stoneLocationTuple, location = q.popleft()
+
+				stoneALocation, stoneBLocation = stoneLocationTuple
+				u, v = location
+
+				if self.cavernMap[ u ][ v ] == self.exitCell and self._stonesPlacedCorrectly( stoneLocationTuple ):
+					return stepCount
+
+				for du, dv in self.adjacentCellDelta:
+					newStoneALocation, newStoneBLocation = stoneALocation, stoneBLocation
+					r, c = newLocation = u + du, v + dv
+					
+					if self._isOutside( newLocation ) or self.cavernMap[ r ][ c ] == self.wallCell:
+						continue
+					
+					if newLocation == stoneALocation or newLocation == stoneBLocation:
+						# Check whether we can move the sarcophagus.
+						newStoneLocation = row, col = r + du, c + dv
+						if self._isOutside( newStoneLocation ) or self.cavernMap[ row ][ col ] == self.wallCell:
+							continue
+						if newLocation == stoneALocation and newStoneLocation != stoneBLocation:
+							newStoneALocation = newStoneLocation
+						elif newLocation == stoneBLocation and newStoneLocation != stoneALocation:
+							newStoneBLocation = newStoneLocation
+						else:
+							continue
+
+					adjacentState = (newStoneALocation, newStoneBLocation), newLocation
+					equivalentState = (newStoneBLocation, newStoneALocation), newLocation
+					if adjacentState in visited or equivalentState in visited:
+						continue
+					visited.add( adjacentState )
+					q.append( adjacentState )
+
+			stepCount += 1
+		return 'impossible'
+
+class CurseTest( unittest.TestCase ):
+	def test_Curse_Sample( self ):
+		cavernMap = [
+		'########',
+		'#..S...#',
+		'#.####.#',
+		'#.#.XB.#',
+		'#.####.#',
+		'#......E',
+		'########'
+		]
+		self.assertEqual( Curse( cavernMap ).escape(), 'impossible' )
+
+		cavernMap = [
+		'########',
+		'#..S...#',
+		'#.####.#',
+		'#.#.BX.#',
+		'#.####.#',
+		'#......E',
+		'########'
+		]
+		self.assertEqual( Curse( cavernMap ).escape(), 10 )
+
+		cavernMap = [
+		'##E#####',
+		'#...####',
+		'#SX.XBB#',
+		'########'
+		]
+		self.assertEqual( Curse( cavernMap ).escape(), 19 )
+
+	def test_Curse( self ):
+		with open( 'tests/curse/testdata.in' ) as inputFile, \
+		     open( 'tests/curse/testdata.out' ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				rows, cols = readIntegers( inputFile )
+				cavernMap = [ readString( inputFile ) for _ in range( rows ) ]
+
+				state = readString( solutionFile )
+				if state != 'impossible':
+					state = int( state )
+
+				print( 'Testcase {} rows = {} cols = {} state= {}'.format( testcaseCount, rows, cols, state ) )
+				self.assertEqual( Curse( cavernMap ).escape(), state )
+
 if __name__ == '__main__':
 	unittest.main()
