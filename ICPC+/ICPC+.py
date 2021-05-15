@@ -6,6 +6,7 @@ from collections import deque
 import heapq
 from collections import defaultdict
 import math
+import operator
 
 def getTestFileList( tag ):
 	return set( [ pathlib.Path( filename ).stem for filename in os.listdir( 'tests/{}'.format( tag ) ) ] )
@@ -2551,7 +2552,7 @@ class GaTest( unittest.TestCase ):
 
 				count = readInteger( solutionFile )
 
-				print( 'Testcase {} size = {} Maximum stones = {}'.format( testcaseCount, size, count ) )
+				print( 'Testcase {} size = {} Maximum stones = {}'.format( index + 1, size, count ) )
 				self.assertEqual( Ga( gameBoard ).ga(), count )
 
 ################################################################################
@@ -2709,8 +2710,134 @@ class CurseTest( unittest.TestCase ):
 				if state != 'impossible':
 					state = int( state )
 
-				print( 'Testcase {} rows = {} cols = {} state= {}'.format( testcaseCount, rows, cols, state ) )
+				print( 'Testcase {} rows = {} cols = {} state= {}'.format( index + 1, rows, cols, state ) )
 				self.assertEqual( Curse( cavernMap ).escape(), state )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# BAPC2013_Preliminaries.pdf - "Problem K : Keys"
+################################################################################
+
+class Key:
+	def __init__( self, buildingMap, keyString ):
+		rows, cols = len( buildingMap ), len( buildingMap[ 0 ] )
+		
+		self.emptyCell, self.blockedCell, self.documentCell = '.', '*', '$'
+		
+		self.buildingMap = list()
+		# Add a layer of empty cells around the building.
+		emptyRow = self.emptyCell * ( cols + 2 )
+		self.buildingMap.append( emptyRow )
+		for buildingMapRow in buildingMap:
+			self.buildingMap.append( self.emptyCell + buildingMapRow + self.emptyCell )
+		self.buildingMap.append( emptyRow )
+
+		self.rows, self.cols = rows + 2, cols + 2
+		
+		self.keyString = str() if keyString == '0' else keyString
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def _key( self, keyString ):
+		# We don't want repeated characters in the keyString.
+		return ''.join( sorted( set( keyString ) ) )
+
+	def _withinBuilding( self, location ):
+		u, v = location
+		return 0 <= u < self.rows and 0 <= v < self.cols
+
+	def go( self ):
+		startCell = 0, 0
+		globalKeyString = self._key( self.keyString )
+
+		documentLocations = set()
+
+		stack = list()
+		stack.append( startCell )
+
+		visited = dict()
+
+		while len( stack ) > 0:
+			u, v = location = stack.pop()
+
+			if location in visited and visited[ location ] == globalKeyString:
+				continue
+
+			if self.buildingMap[ u ][ v ] == self.documentCell:
+				documentLocations.add( location )
+
+			for du, dv in self.adjacentCellDelta:
+				r, c = newLocation = u + du, v + dv
+				if not self._withinBuilding( newLocation ):
+					continue
+				cellType = self.buildingMap[ r ][ c ]
+				if cellType == self.blockedCell:
+					continue
+
+				if cellType.isalpha() and cellType.isupper() and cellType.lower() not in globalKeyString:
+					continue
+
+				if cellType.isalpha() and cellType.islower():
+					globalKeyString = self._key( globalKeyString + cellType )
+
+				stack.append( newLocation )
+
+			visited[ location ] = globalKeyString
+
+		return len( documentLocations )
+
+class KeyTest( unittest.TestCase ):
+	def test_Key_Sample( self ):
+		buildingMap = [
+		'*****************',
+		'.............**$*',
+		'*B*A*P*C**X*Y*.X.',
+		'*y*x*a*p**$*$**$*',
+		'*****************'
+		]
+		keyString = 'cz'
+		self.assertEqual( Key( buildingMap, keyString ).go(), 3 )
+
+		buildingMap = [
+		'*.*********',
+		'*...*...*x*',
+		'*X*.*.*.*.*',
+		'*$*...*...*',
+		'***********'
+		]
+		keyString = '0'
+		self.assertEqual( Key( buildingMap, keyString ).go(), 1 )
+
+		buildingMap = [
+		'*ABCDE*',
+		'X.....F',
+		'W.$$$.G',
+		'V.$$$.H',
+		'U.$$$.J',
+		'T.....K',
+		'*SQPML*'
+		]
+		keyString = 'irony'
+		self.assertEqual( Key( buildingMap, keyString ).go(), 0 )
+
+	def test_Key( self ):
+		with open( 'tests/keys/K.in' ) as inputFile, \
+		     open( 'tests/keys/K.out' ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				rows, cols = readIntegers( inputFile )
+				buildingMap = [ readString( inputFile ) for _ in range( rows ) ]
+				keyString = readString( inputFile )
+
+				documentCount = readInteger( solutionFile )
+
+				print( 'Testcase {} rows = {} cols = {} documentCount = {}'.format( index + 1, rows, cols, documentCount ) )
+				self.assertEqual( Key( buildingMap, keyString ).go(), documentCount )
 
 ################################################################################
 ################################################################################
