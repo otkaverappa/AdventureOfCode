@@ -2843,5 +2843,144 @@ class KeyTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# BAPC2016.pdf - "Problem C: Brexit"
+################################################################################
+
+class Brexit:
+	def __init__( self, numberOfCountries, homeCountry, leavingCountry, tradeList ):
+		self.emptySet = set()
+		self.tradingPartnersList = [ set() for _ in range( numberOfCountries + 1 ) ]
+		self.homeCountry, self.leavingCountry = homeCountry, leavingCountry
+
+		for (c1, c2) in tradeList:
+			self.tradingPartnersList[ c1 ].add( c2 )
+			self.tradingPartnersList[ c2 ].add( c1 )
+		self.tradingPartnersCountList = [ len( tradingPartners ) for tradingPartners in self.tradingPartnersList ]
+
+	def _isLeaving( self, country, leavingCountry ):
+		self.tradingPartnersList[ country ].remove( leavingCountry )
+		return self.tradingPartnersCountList[ country ] >= 2 * len( self.tradingPartnersList[ country ] )
+
+	def eval( self ):
+		evaluationSet = set()
+		evaluationSet.add( self.leavingCountry )
+
+		while len( evaluationSet ) > 0:
+			leavingCountry = evaluationSet.pop()
+
+			if leavingCountry == self.homeCountry:
+				return 'leave'
+
+			for tradingPartner in self.tradingPartnersList[ leavingCountry ]:
+				if self._isLeaving( tradingPartner, leavingCountry ):
+					evaluationSet.add( tradingPartner )
+			self.tradingPartnersList[ leavingCountry ] = self.emptySet
+		return 'stay'
+
+class BrexitTest( unittest.TestCase ):
+	def test_Brexit_Sample( self ):
+		numberOfCountries = 4
+		homeCountry, leavingCountry = 4, 1
+		tradeList = [ (2, 3), (2, 4), (1, 2) ]
+		self.assertEqual( Brexit( numberOfCountries, homeCountry, leavingCountry, tradeList ).eval(), 'stay' )
+
+		numberOfCountries = 5
+		homeCountry, leavingCountry = 1, 1
+		tradeList = [ (3, 4), (1, 2), (2, 3), (1, 3), (2, 5) ]
+		self.assertEqual( Brexit( numberOfCountries, homeCountry, leavingCountry, tradeList ).eval(), 'leave' )
+
+		numberOfCountries = 4
+		homeCountry, leavingCountry = 3, 1
+		tradeList = [ (1, 2), (1, 3), (2, 3), (2, 4), (3, 4) ]
+		self.assertEqual( Brexit( numberOfCountries, homeCountry, leavingCountry, tradeList ).eval(), 'stay' )
+
+		numberOfCountries = 10
+		homeCountry, leavingCountry = 1, 10
+		tradeList = [ (1, 2), (1, 3), (1, 4), (2, 5), (3, 5), (4, 5), (5, 6), (5, 7), (5, 8), (5, 9), (6, 10),
+		(7, 10), (8, 10), (9, 10) ]
+		self.assertEqual( Brexit( numberOfCountries, homeCountry, leavingCountry, tradeList ).eval(), 'leave' )
+
+	def test_Brexit( self ):
+		for testfile in getTestFileList( tag='brexit' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/brexit/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/brexit/{}.ans'.format( testfile ) ) as solutionFile:
+
+			numberOfCountries, tradeListLength, homeCountry, leavingCountry = readIntegers( inputFile )
+			tradeList = list()
+			for _ in range( tradeListLength ):
+				c1, c2 = readIntegers( inputFile )
+				tradeList.append( (c1, c2) )
+
+			leaveOrStay = readString( solutionFile )
+
+			formatString = 'Testcase {} numberOfCountries = {} homeCountry = {} leavingCountry = {} leaveOrStay = {}'
+			print( formatString.format( testfile, numberOfCountries, homeCountry, leavingCountry, leaveOrStay ) )
+			self.assertEqual( Brexit( numberOfCountries, homeCountry, leavingCountry, tradeList ).eval(), leaveOrStay )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# BAPC2016.pdf - "Problem B: Battle Simulation"
+################################################################################
+
+class Battle:
+	def __init__( self, battleString ):
+		self.battleString = battleString
+		self.counterMoveDict = {
+		'R' : 'S', 'B' : 'K', 'L' : 'H',
+		}
+		self.comboMoveSet = set( [ 'RBL', 'RLB', 'BRL', 'BLR', 'LRB', 'LBR' ] )
+		self.comboCounterMove = 'C'
+
+	def fight( self ):
+		counterMoveList = list()
+		i = 0
+		j = i + 3
+
+		while i < len( self.battleString ):
+			if j <= len( self.battleString ) and self.battleString[ i : j ] in self.comboMoveSet:
+				counterMoveList.append( self.comboCounterMove )
+				i = j
+				j = i + 3
+			else:
+				counterMoveList.append( self.counterMoveDict[ self.battleString[ i ] ] )
+				i, j = i + 1, j + 1
+		return ''.join( counterMoveList )
+
+class BattleTest( unittest.TestCase ):
+	def test_Battle_Sample( self ):
+		self.assertEqual( Battle( 'RRBBBLLR' ).fight(), 'SSKKKHHS' )
+		self.assertEqual( Battle( 'RBLLLBRR' ).fight(), 'CHCS' )
+		self.assertEqual( Battle( 'RBLBR' ).fight(), 'CKS' )
+
+	def test_Battle( self ):
+		for testfile in getTestFileList( tag='battle' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/battle/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/battle/{}.ans'.format( testfile ) ) as solutionFile:
+
+			battleString = readString( inputFile )
+			counterMoveString = readString( solutionFile )
+
+			formatString = 'Testcase {} Battle string length = {} Counter move string length = {}'
+			print( formatString.format( testfile, len( battleString ), len( counterMoveString ) ) )
+			self.assertEqual( Battle( battleString ).fight(), counterMoveString )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
