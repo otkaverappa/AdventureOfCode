@@ -3181,5 +3181,115 @@ class BuggyRobotTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Mid-CentralUSARegional2014_Fun.pdf - "Problem B : Fun House"
+################################################################################
+
+class FunHouse:
+	def __init__( self, carnivalRoom ):
+		self.rows, self.cols = len( carnivalRoom ), len( carnivalRoom[ 0 ] )
+		self.carnivalRoom = carnivalRoom
+
+		self.startCell, self.emptyCell, self.wallCell, self.exitCell = '*', '.', 'x', '&'
+		self.forwardMirrorCell, self.backwardMirrorCell = '/', '\\'
+
+		# When a ray of light is traveling in direction d1, and hits the mirror type m, then
+		# it gets reflected onto direction d2.
+		# (d1, m) is mapped to d2 using the following dictionary.
+		self.reflectionDirectionDict = {
+		('E', '/') : 'N', ('E', '\\') : 'S',
+		('W', '/') : 'S', ('W', '\\') : 'N',
+		('N', '/') : 'E', ('N', '\\') : 'W',
+		('S', '/') : 'W', ('S', '\\') : 'E'
+		}
+		self.directionDelta = {
+		'N' : (-1, 0), 'S' : (1, 0), 'E' : (0, 1), 'W' : (0, -1)
+		}
+
+	def mark( self ):
+		startLocation = None
+		direction = None
+
+		# We have to set up the startLocation and direction. Scan the horizontal edge.
+		# If the startLocation is on row 0, direction is South; else direction is North.
+		for row, col in itertools.product( [ 0, self.rows - 1 ], range( self.cols ) ):
+			if self.carnivalRoom[ row ][ col ] == self.startCell:
+				startLocation = row, col
+				direction = 'S' if row == 0 else 'N'
+				break
+		for row, col in itertools.product( range( self.rows ), [ 0, self.cols - 1 ] ):
+			if self.carnivalRoom[ row ][ col ] == self.startCell:
+				startLocation = row, col
+				direction = 'E' if col == 0 else 'W'
+
+		location = startLocation
+		exitLocation = None
+		
+		while True:
+			u, v = location
+			cellType = self.carnivalRoom[ u ][ v ]
+
+			if cellType == self.wallCell:
+				exitLocation = location
+				break
+			elif cellType == self.forwardMirrorCell or cellType == self.backwardMirrorCell:
+				direction = self.reflectionDirectionDict[ (direction, cellType) ]
+			du, dv = self.directionDelta[ direction ]
+			location = u + du, v + dv
+
+		# Fix the carnivalRoom so that exitLocation is marked by "self.exitCell".
+		row, col = exitLocation
+		replaceRow = list( self.carnivalRoom[ row ] )
+		replaceRow[ col ] = self.exitCell
+		self.carnivalRoom[ row ] = ''.join( replaceRow )
+		return self.carnivalRoom
+
+class FunHouseTest( unittest.TestCase ):
+	def test_FunHouse_Sample( self ):
+		carnivalRoom = [
+		'xxxxxxxxxxx',
+		'x../..\\...x', # We have to use \\ because \ is a an escape character.
+		'x..../....x',
+		'*../......x',
+		'x.........x',
+		'xxxxxxxxxxx'
+		]
+		carnivalRoomWithExit = [
+		'xxxxxxxxxxx',
+		'x../..\\...x',
+		'x..../....x',
+		'*../......x',
+		'x.........x',
+		'xxxxxx&xxxx'
+		]
+		self.assertEqual( FunHouse( carnivalRoom ).mark(), carnivalRoomWithExit )
+
+	def test_FunHouse( self ):
+		with open( 'tests/fun/fun.in' ) as inputFile, \
+		     open( 'tests/fun/fun.out' ) as solutionFile:
+
+			testcaseCount = 0
+			while True:
+				cols, rows = readIntegers( inputFile )
+				if rows == 0 and cols == 0:
+					break
+				carnivalRoom = [ readString( inputFile ) for _ in range( rows ) ]
+
+				readString( solutionFile )
+				carnivalRoomWithExit = [ readString( solutionFile ) for _ in range( rows ) ]
+
+				testcaseCount += 1
+				print( 'Testcase #{} rows = {} cols = {}'.format( testcaseCount, rows, cols ) )
+
+				self.assertEqual( FunHouse( carnivalRoom ).mark(), carnivalRoomWithExit )
+				for carnivalRoomRow, carnivalRoomWithExitRow in zip( carnivalRoom, carnivalRoomWithExit ):
+					print( carnivalRoomRow, ' ' * 24, carnivalRoomWithExitRow )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
