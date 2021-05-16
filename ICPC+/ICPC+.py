@@ -3059,5 +3059,127 @@ class NineKnightsTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Mid-CentralUSARegional2016.pdf - "Problem D : Buggy Robot"
+################################################################################
+
+class BuggyRobot:
+	def __init__( self, areaMap ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = areaMap
+
+		self.commandTokenToDelta = {
+		'U' : (-1, 0), 'D' : (1, 0), 'L' : (0, -1), 'R' : (0, 1)
+		}
+		self.emptyCell, self.blockedCell, self.startCell, self.goalCell = '.', '#', 'S', 'G'
+		self.startLocation = None
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.areaMap[ row ][ col ] == self.startCell:
+				self.startLocation = row, col
+
+	def _applyCommand( self, location, commandToken ):
+		u, v = location
+		du, dv = self.commandTokenToDelta[ commandToken ]
+		r, c = newLocation = u + du, v + dv
+		if 0 <= r < self.rows and 0 <= c < self.cols and self.areaMap[ r ][ c ] != self.blockedCell:
+			return newLocation
+		else:
+			return location
+
+	def correct( self, commandString ):
+		startIndex, endIndex = 0, len( commandString )
+
+		q = deque()
+		q.append( (self.startLocation, startIndex, 0) )
+
+		visited = set()
+
+		while len( q ) > 0:
+			location, currentIndex, correctionCount = q.popleft()
+			u, v = location
+
+			if (location, currentIndex) in visited:
+				continue
+			visited.add( (location, currentIndex) )
+
+			if self.areaMap[ u ][ v ] == self.goalCell:
+				return correctionCount
+
+			stateList = list()
+			# Generate all possible state transitions from the current state.
+			# 1. Apply the command at the currentIndex if currentIndex < endIndex.
+			if currentIndex < endIndex:
+				newLocation = self._applyCommand( location, commandString[ currentIndex ] )
+				stateList.append( (newLocation, currentIndex + 1, False) )
+			# 2. Insert a new command token.
+			for commandToken in self.commandTokenToDelta.keys():
+				newLocation = self._applyCommand( location, commandToken )
+				stateList.append( (newLocation, currentIndex, True) )
+			# 3. Delete the current command token (equivalent to ignoring the current command token, and
+			#    incrementing the currentIndex).
+			if currentIndex < endIndex:
+				stateList.append( (location, currentIndex + 1, True) )
+
+			for location, index, correctionMade in stateList:
+				if (location, index) in visited:
+					continue
+				if correctionMade:
+					q.append( (location, index, correctionCount + 1) )
+				else:
+					q.appendleft( (location, index, correctionCount) )
+
+class BuggyRobotTest( unittest.TestCase ):
+	def test_BuggyRobot( self ):
+		for testfile in getTestFileList( tag='buggyrobot' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/buggyrobot/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/buggyrobot/{}.ans'.format( testfile ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			areaMap = [ readString( inputFile ) for _ in range( rows ) ]
+			commandString = readString( inputFile )
+
+			corrections = readInteger( solutionFile )
+
+			formatString = 'Testcase {} rows = {} cols = {} commandString = [{}] corrections = {}'
+			print( formatString.format( testfile, rows, cols, commandString, corrections ) )
+			self.assertEqual( BuggyRobot( areaMap ).correct( commandString ), corrections )
+
+	def test_BuggyRobot_Sample( self ):
+		areaMap = [
+		'S..',
+		'.#.',
+		'..G'
+		]
+		self.assertEqual( BuggyRobot( areaMap ).correct( 'DRRDD'), 1 )
+
+		areaMap = [
+		'.......',
+		'.G.#.S.',
+		'.......'
+		]
+		self.assertEqual( BuggyRobot( areaMap ).correct( 'LDLDLLDR'), 1 )
+
+		areaMap = [
+		'.#.....',
+		'.G.##S.',
+		'.......'
+		]
+		self.assertEqual( BuggyRobot( areaMap ).correct( 'LDLDLLDR'), 2 )
+
+		areaMap = [
+		'S.#.',
+		'#..G'
+		]
+		self.assertEqual( BuggyRobot( areaMap ).correct( 'RRUUDDRRUUUU'), 0 )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
