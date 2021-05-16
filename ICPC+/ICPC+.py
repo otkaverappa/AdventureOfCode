@@ -119,7 +119,7 @@ class AmoebaTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 ################################################################################
-# mcpc2017.pdf - Problem G
+# Mid-CentralUSARegional2017.pdf - "Problem G : Faulty Robot"
 ################################################################################
 
 class FaultyRobot:
@@ -2977,6 +2977,83 @@ class BattleTest( unittest.TestCase ):
 			formatString = 'Testcase {} Battle string length = {} Counter move string length = {}'
 			print( formatString.format( testfile, len( battleString ), len( counterMoveString ) ) )
 			self.assertEqual( Battle( battleString ).fight(), counterMoveString )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Mid-CentralUSARegional2017.pdf - "Problem A : Nine Knights"
+################################################################################
+
+class NineKnights:
+	def __init__( self, layout ):
+		self.expectedKnightCount = 9
+		self.knight = 'k'
+		self.knightLocations = set()
+		self.adjacentCellDelta = [ (1, 2), (1, -2), (2, 1), (2, -1), (-1, 2), (-1, -2), (-2, 1), (-2, -1) ]
+
+		rows, cols = len( layout ), len( layout[ 0 ] )
+		for row, col in itertools.product( range( rows ), range( cols ) ):
+			if layout[ row ][ col ] == self.knight:
+				self.knightLocations.add( (row, col) )
+
+	def analyze( self ):
+		if len( self.knightLocations ) != self.expectedKnightCount:
+			return 'invalid'
+		for u, v in self.knightLocations:
+			for du, dv in self.adjacentCellDelta:
+				attackedLocation = u + du, v + dv
+				if attackedLocation in self.knightLocations:
+					return 'invalid'
+		return 'valid'
+
+class NineKnightsTest( unittest.TestCase ):
+	def test_NineKnights( self ):
+		for testfile in getTestFileList( tag='nineknights' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/nineknights/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/nineknights/{}.ans'.format( testfile ) ) as solutionFile:
+
+			layout = [ readString( inputFile ) for _ in range( 5 ) ]
+			state = readString( solutionFile )
+
+			print( 'Testcase {} [{}]'.format( testfile, state ) )
+			for layoutRow in layout:
+				print( layoutRow )
+			self.assertEqual( NineKnights( layout ).analyze(), state )
+
+	def test_NineKnights_Sample( self ):
+		layout = [
+		'...k.',
+		'...k.',
+		'k.k..',
+		'.k.k.',
+		'k.k.k'
+		]
+		self.assertEqual( NineKnights( layout ).analyze(), 'invalid' )
+
+		layout = [
+		'.....',
+		'...k.',
+		'k.k.k',
+		'.k.k.',
+		'k.k.k'
+		]
+		self.assertEqual( NineKnights( layout ).analyze(), 'valid' )
+
+		layout = [
+		'.....',
+		'...k.',
+		'k.k.k',
+		'.k.k.',
+		'k...k'
+		]
+		self.assertEqual( NineKnights( layout ).analyze(), 'invalid' )
 
 ################################################################################
 ################################################################################
