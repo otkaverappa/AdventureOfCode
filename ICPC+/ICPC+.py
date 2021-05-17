@@ -11,6 +11,9 @@ import operator
 def getTestFileList( tag ):
 	return set( [ pathlib.Path( filename ).stem for filename in os.listdir( 'tests/{}'.format( tag ) ) ] )
 
+def getTestFileSuffixList( tag ):
+	return set( [ pathlib.Path( filename ).suffix for filename in os.listdir( 'tests/{}'.format( tag ) ) ] )
+
 def readString( file ):
 	return file.readline().strip()
 
@@ -3283,9 +3286,107 @@ class FunHouseTest( unittest.TestCase ):
 				testcaseCount += 1
 				print( 'Testcase #{} rows = {} cols = {}'.format( testcaseCount, rows, cols ) )
 
-				self.assertEqual( FunHouse( carnivalRoom ).mark(), carnivalRoomWithExit )
 				for carnivalRoomRow, carnivalRoomWithExitRow in zip( carnivalRoom, carnivalRoomWithExit ):
 					print( carnivalRoomRow, ' ' * 24, carnivalRoomWithExitRow )
+				self.assertEqual( FunHouse( carnivalRoom ).mark(), carnivalRoomWithExit )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Croatian_Open_Competition_In_Informatics_2020_Round1.pdf - "Task Patkice"
+################################################################################
+
+class Patkice:
+	def __init__( self, seaMap ):
+		self.rows, self.cols = len( seaMap ), len( seaMap[ 0 ] )
+		self.seaMap = seaMap
+
+		self.calmSea, self.startIsland, self.targetIsland = '.', 'o', 'x'
+		self.oceanCurrents = {
+		'^' : (-1, 0), 'v' : (1, 0), '<' : (0, -1), '>' : (0, 1)
+		}
+		self.directions = {
+		'N' : (-1, 0), 'S' : (1, 0), 'W' : (0, -1), 'E' : (0, 1)
+		}
+
+		self.startLocation = None
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.seaMap[ row ][ col ] == self.startIsland:
+				self.startLocation = row, col 
+
+	def go( self ):
+		bestDirection = bestDistance = None
+
+		for direction in sorted( self.directions.keys() ):
+			u, v = self.startLocation
+			du, dv = self.directions[ direction ]
+			u, v = u + du, v + dv
+			stepCount = 1
+
+			while True:
+				currentCellType = self.seaMap[ u ][ v ]
+				if currentCellType == self.targetIsland:
+					if bestDistance is None or stepCount < bestDistance:
+						bestDistance = stepCount
+						bestDirection = direction
+					break
+				if currentCellType in (self.calmSea, self.startIsland):
+					break
+				du, dv = self.oceanCurrents[ currentCellType ]
+				u, v = u + du, v + dv
+				stepCount += 1
+		return ':(' if bestDirection is None else ':) {}'.format( bestDirection )
+
+class PatkiceTest( unittest.TestCase ):
+	def test_Patkice( self ):
+		for suffix in getTestFileSuffixList( tag='patkice' ):
+			self._verify( suffix )
+
+	def _verify( self, suffix ):
+		with open( 'tests/patkice/patkice.in{}'.format( suffix ) ) as inputFile, \
+		     open( 'tests/patkice/patkice.out{}'.format( suffix ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			seaMap = [ readString( inputFile ) for _ in range( rows ) ]
+
+			state = readString( solutionFile )
+			if state == ':)':
+				direction = readString( solutionFile )
+				state = '{} {}'.format( state, direction )
+
+			print( 'Testcase {} rows = {} cols = {} state = {}'.format( suffix, rows, cols, state ) )
+			self.assertEqual( Patkice( seaMap ).go(), state )
+
+	def test_Patkice_Sample( self ):
+		seaMap = [
+		'..>>>v',
+		'.o^..v',
+		'.v.<.v',
+		'.>>^.v',
+		'.x<<<<',
+		'......'
+		]
+		self.assertEqual( Patkice( seaMap ).go(), ":) E" )
+
+		seaMap = [
+		'v<<<<',
+		'>v.>^',
+		'v<.o.',
+		'>>v>v',
+		'..>>x'
+		]
+		self.assertEqual( Patkice( seaMap ).go(), ":) S" )
+
+		seaMap = [
+		'x>.',
+		'.o^',
+		'^<.'
+		]
+		self.assertEqual( Patkice( seaMap ).go(), ":(" )
 
 ################################################################################
 ################################################################################
