@@ -3316,7 +3316,7 @@ class Patkice:
 		self.startLocation = None
 		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
 			if self.seaMap[ row ][ col ] == self.startIsland:
-				self.startLocation = row, col 
+				self.startLocation = row, col
 
 	def go( self ):
 		bestDirection = bestDistance = None
@@ -3387,6 +3387,181 @@ class PatkiceTest( unittest.TestCase ):
 		'^<.'
 		]
 		self.assertEqual( Patkice( seaMap ).go(), ":(" )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Croatian_Open_Competition_In_Informatics_2020_Round4.pdf - "Task Patkice II"
+################################################################################
+
+class PatkiceV2( Patkice ):
+	def __init__( self, seaMap ):
+		Patkice.__init__( self, seaMap )
+
+	def _isWithInSeaMap( self, location ):
+		r, c = location
+		return 0 <= r < self.rows and 0 <= c < self.cols
+
+	def isValidCorrection( self, correctedSeaMap, count ):
+		diffCount = 0
+		for r, c in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.seaMap[ r ][ c ] == self.startIsland and correctedSeaMap[ r ][ c ] != self.startIsland:
+				return False
+			if self.seaMap[ r ][ c ] == self.targetIsland and correctedSeaMap[ r ][ c ] != self.targetIsland:
+				return False
+			if self.seaMap[ r ][ c ] != correctedSeaMap[ r ][ c ]:
+				diffCount += 1
+		return diffCount == count 
+
+	def go( self ):
+		# Can we go from the startLocation to targetIsland ? Return True or False !
+		# A visited set is required because vortexes may exist.
+		for direction in self.directions.keys():
+			u, v = self.startLocation
+			du, dv = self.directions[ direction ]
+			u, v = u + du, v + dv
+
+			visited = set()
+			while True:
+				location = u, v
+				if not self._isWithInSeaMap( location ) or location in visited:
+					break
+				visited.add( location )
+				currentCellType = self.seaMap[ u ][ v ]
+				if currentCellType == self.targetIsland:
+					return True
+				if currentCellType in (self.calmSea, self.startIsland):
+					break
+				du, dv = self.oceanCurrents[ currentCellType ]
+				u, v = u + du, v + dv
+		return False
+
+	def correct( self ):
+		q = deque()
+		visited = [ [ None for _ in range( self.cols ) ] for _ in range( self.rows ) ]
+
+		u, v = self.startLocation
+		for direction, (du, dv) in self.directions.items():
+			r, c = location = u + du, v + dv
+			if self._isWithInSeaMap( location ):
+				q.append( (location, 0, None, None) )
+
+		while len( q ) > 0:
+			location, correctionCount, fromLocation, oceanCurrentType = q.popleft()
+			u, v = location
+
+			if self.seaMap[ u ][ v ] == self.targetIsland:
+				break
+
+			# If we have visited this state, then continue
+			if visited[ u ][ v ] is not None:
+				continue
+			visited[ u ][ v ] = (fromLocation, oceanCurrentType)
+
+			# We cannot modify the cell in the start location; hence do not explore this state.
+			if location == self.startLocation:
+				continue
+
+			stateList = list()
+			for oceanCurrentType, (du, dv) in self.oceanCurrents.items():
+				r, c = newLocation = u + du, v + dv
+				if not self._isWithInSeaMap( newLocation ):
+					continue
+
+				if self.seaMap[ u ][ v ] == oceanCurrentType:
+					stateList.append( (newLocation, False, None) )
+				else:
+					stateList.append( (newLocation, True, oceanCurrentType) )
+
+			for newLocation, correctionDone, oceanCurrentType in stateList:
+				r, c = newLocation
+				if visited[ r ][ c ] is not None:
+					continue
+				if correctionDone:
+					q.append( (newLocation, correctionCount + 1, location, oceanCurrentType) )
+				else:
+					q.appendleft( (newLocation, correctionCount, location, oceanCurrentType) )
+
+		# (location, correctionCount) contains target location and the minimum correction count.
+		# fromLocation and oceanCurrentType are set for the target location. Traverse the path
+		# in reverse, to gather the corrections that need to be applied.
+		correctedSeaMap = [ list( seaMapRow ) for seaMapRow in self.seaMap ]
+		while fromLocation is not None:
+			if oceanCurrentType is not None:
+				r, c = fromLocation
+				correctedSeaMap[ r ][ c ] = oceanCurrentType
+			location = u, v = fromLocation
+			fromLocation, oceanCurrentType = visited[ u ][ v ]
+		return correctionCount, [ ''.join( correctedSeaMapRow ) for correctedSeaMapRow in correctedSeaMap ]
+
+class PatkiceV2Test( unittest.TestCase ):
+	def test_PatkiceV2_Sample( self ):
+		seaMap = [
+		'>vo',
+		'vv>',
+		'x>>'
+		]
+		correctedSeaMap = [
+		'>vo',
+		'vv>',
+		'x<>'
+		]
+		self._applyVerification( seaMap, correctedSeaMap, 1 )
+
+		seaMap = [
+		'>>vv<<',
+		'^ovvx^',
+		'^<<>>^'
+		]
+		correctedSeaMap = [
+		'>>vv<<',
+		'^o>>x^',
+		'^<<>>^'
+		]
+		self._applyVerification( seaMap, correctedSeaMap, 2 )
+
+		seaMap = [
+		'x.v.',
+		'.>.<',
+		'>.<.',
+		'.^.o'
+		]
+		correctedSeaMap = [
+		'x<<.',
+		'.>^<',
+		'>.<^',
+		'.^.o'
+		]
+		self._applyVerification( seaMap, correctedSeaMap, 4 )
+
+	def test_PatkiceV2( self ):
+		for suffix in getTestFileSuffixList( tag='patkiceV2' ):
+			self._verify( suffix )
+
+	def _verify( self, suffix ):
+		with open( 'tests/patkiceV2/patkice2.in{}'.format( suffix ) ) as inputFile, \
+		     open( 'tests/patkiceV2/patkice2.out{}'.format( suffix ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			seaMap = [ list( readString( inputFile ) ) for _ in range( rows ) ]
+
+			minimumCorrections = readInteger( solutionFile )
+			correctedSeaMap = [ readString( solutionFile ) for _ in range( rows ) ]
+
+			print( 'Testcase {} rows = {} cols = {} minimumCorrections = {}'.format( suffix, rows, cols, minimumCorrections ) )
+			self._applyVerification( seaMap, correctedSeaMap, minimumCorrections )
+
+	def _applyVerification( self, seaMap, correctedSeaMap, minimumCorrections ):
+		patkice = PatkiceV2( seaMap )
+		corrections, modifiedSeaMap = patkice.correct()
+		self.assertEqual( corrections, minimumCorrections )
+		if correctedSeaMap != modifiedSeaMap:
+			self.assertTrue( patkice.isValidCorrection( modifiedSeaMap, minimumCorrections ) )
+			self.assertTrue( PatkiceV2( modifiedSeaMap ).go() )
 
 ################################################################################
 ################################################################################
