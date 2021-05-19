@@ -3774,5 +3774,161 @@ class KeyTaskTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Central Europe Regional Contest 2011
+# StackMachineExecutor.pdf - "Stack Machine Executor"
+################################################################################
+
+class StackMachineError( Exception ):
+	pass
+
+class StackMachine:
+	def __init__( self, program ):
+		self.stack = list()
+		self.program = program
+
+		self.INT_MAX = 1_000_000_000
+
+		self.instructionToMinimumStackSize = {
+		'POP' : 1, 'INV' : 1, 'DUP' : 1,
+		'SWP' : 2, 'ADD' : 2, 'SUB' : 2, 'MUL' : 2, 'DIV' : 2, 'MOD' : 2
+		}
+
+	def execute( self, initialValueList ):
+		resultList = list()
+
+		for initialValue in initialValueList:
+			try:
+				self.stack.append( initialValue )
+				for instructionString in self.program:
+					self._execute( instructionString )
+				if len( self.stack ) != 1:
+					resultList.append( 'ERROR' )
+				else:
+					resultList.append( self.stack.pop() )
+			except StackMachineError as e:
+				resultList.append( 'ERROR' )
+			self.stack.clear()
+
+		return resultList
+
+	def _ensureStackSize( self, size ):
+		if len( self.stack ) < size:
+			raise StackMachineError( 'STACK UNDERFLOW' )
+
+	def _ensureNoOverflow( self, result ):
+		if abs( result ) > self.INT_MAX:
+			raise StackMachineError( 'INTEGER OVERFLOW' )
+
+	def _getOperands( self ):
+		B = self.stack.pop()
+		A = self.stack.pop()
+		return A, B
+
+	def _execute( self, instructionString ):
+		self._ensureStackSize( self.instructionToMinimumStackSize.get( instructionString, 0 ) )
+
+		if instructionString == 'POP':
+			self.stack.pop()
+		elif instructionString == 'INV':
+			self.stack[ -1 ] = - self.stack[ -1 ]
+		elif instructionString == 'DUP':
+			self.stack.append( self.stack[ -1 ] )
+		elif instructionString == 'SWP':
+			A, B = self._getOperands()
+			self.stack.append( B )
+			self.stack.append( A )
+		elif instructionString == 'ADD':
+			A, B = self._getOperands()
+			result = A + B
+			self._ensureNoOverflow( result )
+			self.stack.append( result )
+		elif instructionString == 'SUB':
+			A, B = self._getOperands()
+			result = A - B
+			self._ensureNoOverflow( result )
+			self.stack.append( result )
+		elif instructionString == 'MUL':
+			A, B = self._getOperands()
+			result = A * B
+			self._ensureNoOverflow( result )
+			self.stack.append( result )
+		elif instructionString == 'DIV':
+			A, B = self._getOperands()
+			if B == 0:
+				raise StackMachineError( 'DIVISION BY ZERO' )
+			result = abs( A ) // abs( B )
+			if A * B < 0:
+				result = - result
+			self.stack.append( result )
+		elif instructionString == 'MOD':
+			A, B = self._getOperands()
+			if B == 0:
+				raise StackMachineError( 'DIVISION BY ZERO' )
+			result = abs( A ) % abs( B )
+			if A < 0:
+				result = - result
+			self.stack.append( result )
+		else:
+			instruction, operand = instructionString.split()
+			assert instruction == 'NUM'
+			self.stack.append( int( operand ) )
+
+class StackMachineTest( unittest.TestCase ):
+	def test_StackMachine( self ):
+		with open( 'tests/stackmachine/execute.in' ) as inputFile, \
+		     open( 'tests/stackmachine/execute.out' ) as solutionFile:
+
+			testcaseCount = 0
+			while True:
+				instructionString = readString( inputFile )
+				if instructionString == 'QUIT':
+					break
+
+				testcaseCount += 1
+				program = list()
+				while True:
+					if instructionString == 'END':
+						break
+					program.append( instructionString )
+					instructionString = readString( inputFile )
+				N = readInteger( inputFile )
+				initialValueList = [ readInteger( inputFile ) for _ in range( N ) ]
+
+				print( 'Testcase #{} Program size = {} Program runs = {}'.format( testcaseCount, len( program ), len( initialValueList ) ) )
+
+				expectedSolution = list()
+				for _ in range( N ):
+					result = readString( solutionFile )
+					expectedSolution.append( result if result == 'ERROR' else int( result ) )
+
+				# Discard the blank line between testcases.
+				readString( inputFile )
+				readString( solutionFile )
+
+				self.assertEqual( StackMachine( program ).execute( initialValueList ), expectedSolution )
+
+	def test_StackMachine_Sample( self ):
+		program = [ 'DUP', 'MUL', 'NUM 2', 'ADD' ]
+		initialValueList = [ 1, 10, 50 ]
+		
+		self.assertEqual( StackMachine( program ).execute( initialValueList ), [ 3, 102, 2502 ] )
+
+		program = [ 'NUM 1', 'NUM 1', 'ADD' ]
+		initialValueList = [ 42, 43 ]
+		
+		self.assertEqual( StackMachine( program ).execute( initialValueList ), [ 'ERROR', 'ERROR' ] )
+
+		program = [ 'NUM 600000000', 'ADD' ]
+		initialValueList = [ 0, 600000000, 1 ]
+		
+		self.assertEqual( StackMachine( program ).execute( initialValueList ), [ 600000000, 'ERROR', 600000001 ] )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
