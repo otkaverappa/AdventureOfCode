@@ -7,6 +7,7 @@ import heapq
 from collections import defaultdict
 import math
 import operator
+import string
 
 def getTestFileList( tag ):
 	return set( [ pathlib.Path( filename ).stem for filename in os.listdir( 'tests/{}'.format( tag ) ) ] )
@@ -16,6 +17,10 @@ def getTestFileSuffixList( tag ):
 
 def readString( file ):
 	return file.readline().strip()
+
+def readRawString( file ):
+	newline = '\n'
+	return file.readline().strip( newline )
 
 def readTokens( file ):
 	return readString( file ).split()
@@ -3552,7 +3557,7 @@ class PatkiceV2Test( unittest.TestCase ):
 			minimumCorrections = readInteger( solutionFile )
 			correctedSeaMap = [ readString( solutionFile ) for _ in range( rows ) ]
 
-			print( 'Testcase {} rows = {} cols = {} minimumCorrections = {}'.format( suffix, rows, cols, minimumCorrections ) )
+			print( 'Testcase patkice2{} rows = {} cols = {} minimumCorrections = {}'.format( suffix, rows, cols, minimumCorrections ) )
 			self._applyVerification( seaMap, correctedSeaMap, minimumCorrections )
 
 	def _applyVerification( self, seaMap, correctedSeaMap, minimumCorrections ):
@@ -3562,6 +3567,208 @@ class PatkiceV2Test( unittest.TestCase ):
 		if correctedSeaMap != modifiedSeaMap:
 			self.assertTrue( patkice.isValidCorrection( modifiedSeaMap, minimumCorrections ) )
 			self.assertTrue( PatkiceV2( modifiedSeaMap ).go() )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Croatian_Open_Competition_In_Informatics_2007_Round1.pdf - "Peg"
+################################################################################
+
+class Peg:
+	def __init__( self, boardLayout ):
+		rows, cols = len( boardLayout ), len( boardLayout[ 0 ] )
+		assert rows == cols == 7
+		self.rows, self.cols = rows, cols
+		self.boardLayout = boardLayout
+		self.emptySlot, self.piece = '.', 'o'
+
+		self.movementDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def _isInsideBoard( self, r, c ):
+		return 0 <= r < self.rows and 0 <= c < self.cols
+
+	def moveCount( self ):
+		count = 0
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.boardLayout[ row ][ col ] == self.piece:
+				# If there is a piece at (row, col) then check whether there is a piece and an empty slot at
+				# (row + du, col + dv) and (row + 2 * du, col + 2 * dv) respectively, for all valid values of
+				# (du, dv).
+				for du, dv in self.movementDelta:
+					r1, c1 = row + du, col + dv
+					r2, c2 = r1 + du, c1 + dv
+					if self._isInsideBoard( r1, c1 ) and self._isInsideBoard( r2, c2 ) and self.boardLayout[ r1 ][ c1 ] == self.piece \
+					   and self.boardLayout[ r2 ][ c2 ] == self.emptySlot:
+						count += 1
+		return count
+
+class PegTest( unittest.TestCase ):
+	def test_Peg( self ):
+		for suffix in getTestFileSuffixList( tag='peg' ):
+			self._verify( suffix )
+
+	def _verify( self, suffix ):
+		with open( 'tests/peg/peg.in{}'.format( suffix ) ) as inputFile, \
+		     open( 'tests/peg/peg.out{}'.format( suffix ) ) as solutionFile:
+
+		     boardLayout = [ readRawString( inputFile ) for _ in range( 7 ) ]
+		     count = readInteger( solutionFile )
+
+		     print( 'Testcase peg{} Valid moves = {}'.format( suffix, count ) )
+		     for boardLayoutRow in boardLayout:
+		     	print( boardLayoutRow )
+		     self.assertEqual( Peg( boardLayout ).moveCount(), count )
+
+	def test_Peg_Sample( self ):
+		boardLayout = [
+		'  ooo  ',
+		'  ooo  ',
+		'ooooooo',
+		'ooo.ooo',
+		'ooooooo',
+		'  ooo  ',
+		'  ooo  '
+		]
+		self.assertEqual( Peg( boardLayout ).moveCount(), 4 )
+
+		boardLayout = [
+		'  ooo  ',
+		'  ooo  ',
+		'..ooo..',
+		'oo...oo',
+		'..ooo..',
+		'  ooo  ',
+		'  ooo  '
+		]
+		self.assertEqual( Peg( boardLayout ).moveCount(), 12 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Central Europe Regional Contest 2007
+# KeyTask.pdf - "Key Task"
+################################################################################
+
+class KeyTask:
+	def __init__( self, areaMap ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.wallCell, self.emptyCell, self.startCell = '#', '.', '*'
+		self.exitCell = 'X'
+		self.doors = 'BYRG'
+		self.keys = 'byrg'
+		self.doorBitmapMask = {
+		'B' : 0x1, 'Y' : 0x2, 'R' : 0x4, 'G' : 0x8
+		}
+		self.keyBitmapMask = {
+		'b' : 0x1, 'y' : 0x2, 'r' : 0x4, 'g' : 0x8
+		}
+
+		self.areaMap = areaMap
+		self.startLocation = None
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.areaMap[ row ][ col ] == self.startCell:
+				self.startLocation = row, col
+				break
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+		self.searchSuccess = 'Escape possible in {} steps.'
+		self.searchFail = 'The poor student is trapped!'
+
+	def _go( self ):
+		state = self.startLocation, 0
+		
+		q = deque()
+		q.append( state )
+
+		visited = set()
+		visited.add( state )
+
+		stepCount = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				location, keyBitmap = q.popleft()
+				u, v = location
+
+				if self.areaMap[ u ][ v ] == self.exitCell:
+					return stepCount
+
+				for du, dv in self.adjacentCellDelta:
+					r, c = newLocation = u + du, v + dv
+					if not 0 <= r < self.rows or not 0 <= c < self.cols:
+						continue
+					cellType = self.areaMap[ r ][ c ]
+					if cellType == self.wallCell:
+						continue
+
+					if cellType in self.doorBitmapMask and ( keyBitmap & self.doorBitmapMask[ cellType ] == 0 ):
+						continue
+					newKeyBitmap = keyBitmap
+					if cellType in self.keyBitmapMask:
+						newKeyBitmap = newKeyBitmap | ( self.keyBitmapMask[ cellType ] )
+
+					newState = newLocation, newKeyBitmap
+					if newState not in visited:
+						visited.add( newState )
+						q.append( newState )
+			stepCount += 1
+		return None
+
+	def analyze( self ):
+		steps = self._go()
+		if steps is None:
+			return self.searchFail
+		else:
+			return self.searchSuccess.format( steps )
+
+class KeyTaskTest( unittest.TestCase ):
+	def test_KeyTask( self ):
+		with open( 'tests/keytask/k.in' ) as inputFile, \
+		     open( 'tests/keytask/k.out' ) as solutionFile:
+
+			testcaseCount = 0
+			while True:
+				rows, cols = readIntegers( inputFile )
+				if rows == 0 and cols == 0:
+					break
+
+				testcaseCount += 1
+				areaMap = [ readString( inputFile ) for _ in range( rows ) ]
+				state = readString( solutionFile )
+
+				# Discard the blank line between testcases.
+				readString( inputFile )
+
+				print( 'Testcase #{} rows = {} cols = {} [{}]'.format( testcaseCount, rows, cols, state ) )
+				self.assertEqual( KeyTask( areaMap ).analyze(), state )
+
+	def test_KeyTask_Sample( self ):
+		areaMap = [
+		'*........X'
+		]
+		self.assertEqual( KeyTask( areaMap ).analyze(), 'Escape possible in 9 steps.' )
+
+		areaMap = [
+		'*#X'
+		]
+		self.assertEqual( KeyTask( areaMap ).analyze(), 'The poor student is trapped!' )
+
+		areaMap = [
+		'####################',
+		'#XY.gBr.*.Rb.G.GG.y#',
+		'####################'
+		]
+		self.assertEqual( KeyTask( areaMap ).analyze(), 'Escape possible in 45 steps.' )
 
 ################################################################################
 ################################################################################
