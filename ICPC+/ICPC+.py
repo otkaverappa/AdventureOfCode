@@ -22,6 +22,9 @@ def readRawString( file ):
 	newline = '\n'
 	return file.readline().strip( newline )
 
+def readAllStrings( file ):
+	return [ line.strip() for line in file.readlines() ]
+
 def readTokens( file ):
 	return readString( file ).split()
 
@@ -3925,6 +3928,136 @@ class StackMachineTest( unittest.TestCase ):
 		initialValueList = [ 0, 600000000, 1 ]
 		
 		self.assertEqual( StackMachine( program ).execute( initialValueList ), [ 600000000, 'ERROR', 600000001 ] )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# VirginiaTechHighSchoolProgrammingContest_2019.pdf - "Problem C : Spelling Bee"
+################################################################################
+
+class SpellingBee:
+	def __init__( self, letters, dictionary ):
+		self.hexLetter, * _ = letters
+		self.letters = set( letters )
+		self.dictionary = dictionary
+
+	def go( self ):
+		def isValidWord( word ):
+			return len( word ) >= 4 and self.hexLetter in word and set.issubset( set( word ), self.letters )
+		return list( filter( isValidWord, self.dictionary ) )
+
+class SpellingBeeTest( unittest.TestCase ):
+	def test_SpellingBee( self ):
+		for testfile in getTestFileList( tag='spellingbee' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/spellingbee/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/spellingbee/{}.ans'.format( testfile ) ) as solutionFile:
+
+		     letters = readString( inputFile )
+		     wordCount = readInteger( inputFile )
+		     dictionary = [ readString( inputFile ) for _ in range( wordCount ) ]
+
+		     validWordList = readAllStrings( solutionFile )
+
+		     print( 'Testcase {} wordCount = {} valid words = {}'.format( testfile, wordCount, len( validWordList ) ) )
+		     self.assertEqual( SpellingBee( letters, dictionary ).go(), validWordList )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# VirginiaTechHighSchoolProgrammingContest_2019.pdf - "Problem B : Escape Wall Maria"
+################################################################################
+
+class EscapeWallMaria:
+	def __init__( self, areaMap, maximumTime ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = areaMap
+		self.maximumTime = maximumTime
+
+		self.startCell, self.safeCell, self.unsafeCell = 'S', '0', '1'
+		self.adjacentCellDelta = {
+		(0, 1) : 'L', (0, -1) : 'R', (1, 0) : 'U', (-1, 0) : 'D'
+		}
+
+		self.startLocation = None
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.areaMap[ row ][ col ] == self.startCell:
+				self.startLocation = row, col
+				break
+
+	def _isOnBoundary( self, location ):
+		u, v = location
+		return u == 0 or u == self.rows - 1 or v == 0 or v == self.cols - 1
+
+	def escape( self ):
+		timeTaken = 0
+
+		q = deque()
+		q.append( self.startLocation )
+
+		visited = set()
+		visited.add( self.startLocation )
+
+		while len( q ) > 0 and timeTaken <= self.maximumTime:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentLocation = q.popleft()
+				if self._isOnBoundary( currentLocation ):
+					return timeTaken
+
+				u, v = currentLocation
+				for (du, dv), allowedCellType in self.adjacentCellDelta.items():
+					r, c = newLocation = u + du, v + dv
+					cellType = self.areaMap[ r ][ c ]
+
+					if cellType == self.unsafeCell:
+						continue
+					if ( cellType == self.safeCell or cellType == allowedCellType ) and newLocation not in visited:
+						visited.add( newLocation )
+						q.append( newLocation )
+			timeTaken += 1
+		return 'NOT POSSIBLE'
+
+class EscapeWallMariaTest( unittest.TestCase ):
+	def test_EscapeWallMaria_Sample( self ):
+		maximumTime = 2
+		areaMap = [
+		'1111',
+		'1S01',
+		'1011',
+		'0U11'
+		]
+		self.assertEqual( EscapeWallMaria( areaMap, maximumTime ).escape(), 2 )
+
+	def test_EscapeWallMaria( self ):
+		for testfile in getTestFileList( tag='escapewallmaria' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/escapewallmaria/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/escapewallmaria/{}.ans'.format( testfile ) ) as solutionFile:
+
+			maximumTime, rows, cols = readIntegers( inputFile )
+			areaMap = [ readString( inputFile ) for _ in range( rows ) ]
+
+			escapeState = readString( solutionFile )
+			if escapeState != 'NOT POSSIBLE':
+				escapeState = int( escapeState )
+
+			print( 'Testcase {} maximumTime = {} rows = {} cols = {}'.format( testfile, maximumTime, rows, cols ) )
+			self.assertEqual( EscapeWallMaria( areaMap, maximumTime ).escape(), escapeState )
 
 ################################################################################
 ################################################################################
