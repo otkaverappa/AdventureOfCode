@@ -4063,5 +4063,197 @@ class EscapeWallMariaTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# UCF_2014.pdf - "Jumping Frog"
+################################################################################
+
+class JumpingFrog:
+	def __init__( self, pathString, jumpDistance ):
+		self.pathString = pathString
+		self.jumpDistance = jumpDistance
+
+		self.emptySlot, self.blockedSlot = '.', 'X'
+		self.targetIndex = len( self.pathString ) - 1
+
+	def jump( self ):
+		currentIndex = 0
+		stepCount = 0
+
+		while True:
+			if currentIndex == self.targetIndex:
+				return stepCount
+			newIndex = currentIndex
+			# Jump as far as possible !
+			# stepSize decreases from self.jumpDistance to 0.
+			for stepSize in range( self.jumpDistance, -1, -1 ):
+				j = min( currentIndex + stepSize + 1, self.targetIndex )
+				if self.pathString[ j ] == self.emptySlot:
+					newIndex = j
+					stepCount += 1
+					break
+			if newIndex == currentIndex:
+				return 0
+			currentIndex = newIndex
+
+class JumpingFrogTest( unittest.TestCase ):
+	def test_JumpingFrog_Sample( self ):
+		self.assertEqual( JumpingFrog( '.XX.X.X.', 3 ).jump(), 2 )
+		self.assertEqual( JumpingFrog( '...', 1 ).jump(), 1 )
+		self.assertEqual( JumpingFrog( '...XX...', 1 ).jump(), 0 )
+		self.assertEqual( JumpingFrog( '..XXXX.XX.', 4 ).jump(), 3 )
+
+	def test_JumpingFrog( self ):
+		with open( 'tests/frog/frog.in' ) as inputFile, open( 'tests/frog/frog.out' ) as solutionFile:
+			testcaseCount = readInteger( inputFile )
+
+			for index in range( testcaseCount ):
+				_, jumpDistance = readIntegers( inputFile )
+				pathString = readString( inputFile )
+
+				# Each section of output is of the form:
+				# Day #1
+				# 8 3
+				# .XX.X.X.
+				# 2
+				# (blank line)
+				_ = readString( solutionFile )
+				_ = readString( solutionFile )
+				_ = readString( solutionFile )
+				expectedSteps = readInteger( solutionFile )
+				_ = readString( solutionFile ) # blank line
+
+				formatString = 'Testcase #{} pathString = {} d = {} steps = {}'
+				print( formatString.format( index + 1, pathString, jumpDistance, expectedSteps ) )
+				self.assertEqual( JumpingFrog( pathString, jumpDistance ).jump(), expectedSteps )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# DoraTrip.pdf - "Dora Trip"
+################################################################################
+
+class DoraTrip:
+	def __init__( self, areaMap ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = areaMap
+
+		self.startCell, self.emptyCell, self.blockedCell, self.wallCell, self.activityCell = 'S', ' ', 'X', '#', '*'
+		
+		self.startLocation = None
+		self.activityBitNumberDict = dict()
+		
+		bitNumber = 0
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.areaMap[ row ][ col ] == self.startCell:
+				self.startLocation = row, col
+			elif self.areaMap[ row ][ col ] == self.activityCell:
+				self.activityBitNumberDict[ (row, col) ] = bitNumber
+				bitNumber += 1
+
+		self.directionDelta = {
+		'N' : (-1, 0), 'S' : (1, 0), 'E' : (0, 1), 'W' : (0, -1)
+		}
+		self.directionAttemptOrder = sorted( self.directionDelta.keys() )
+		self.searchFailStatus = 'Stay home!'
+
+	def path( self ):
+		# Search state : current location, bitmap of activities, pathString, boolean which is True if Dora is heading back !
+		q = deque()
+		q.append( (self.startLocation, 0, str(), False) )
+
+		visited = set()
+		visited.add( (self.startLocation, 0, False) )
+
+		bestActivityCount, bestPath = 0, str()
+		
+		while len( q ) > 0:
+			location, bitmap, pathString, headingBack = q.popleft()
+			activityCount = Bitmap.builtin_popcount( bitmap )
+			
+			if location == self.startLocation and headingBack:
+				# We are back at the start location. Check the number of activities accumulated so that we can update
+				# bestActivityCount and bestPath.
+				if activityCount > bestActivityCount:
+					bestActivityCount = activityCount
+					bestPath = pathString
+				continue
+
+			u, v = location
+			for direction in self.directionAttemptOrder:
+				du, dv = self.directionDelta[ direction ]
+				r, c = newLocation = u + du, v + dv
+				# The areaMap is surrounded by wall cells. Hence, the newLocation is always within the areaMap.
+				if self.areaMap[ r ][ c ] in (self.blockedCell, self.wallCell):
+					continue
+				newBitmap = bitmap
+				if self.areaMap[ r ][ c ] == self.activityCell:
+					bitNumber = self.activityBitNumberDict[ newLocation ]
+					newBitmap = Bitmap.setBitnumber( bitmap, bitNumber )
+				if (newLocation, newBitmap, headingBack) not in visited:
+					visited.add( (newLocation, newBitmap, headingBack) )
+					q.append( (newLocation, newBitmap, pathString + direction, headingBack) )
+				# How about heading back from the current location ?
+				if not headingBack and (newLocation, newBitmap, True) not in visited:
+					visited.add( (newLocation, newBitmap, True) )
+					q.append( (newLocation, newBitmap, pathString + direction, True) )
+
+		return self.searchFailStatus if bestActivityCount == 0 else bestPath
+
+class DoraTripTest( unittest.TestCase ):
+	def test_DoraTrip( self ):
+		with open( 'tests/doratrip/doratrip.in' ) as inputFile, open( 'tests/doratrip/doratrip.out' ) as solutionFile:
+			testcaseCount = 0
+			while True:
+				rows, cols = readIntegers( inputFile )
+				if rows == 0 and cols == 0:
+					break
+				testcaseCount += 1
+				
+				areaMap = [ readString( inputFile ) for _ in range( rows ) ]
+				bestPath = readString( solutionFile )
+
+				print( 'Testcase {} rows = {} cols = {} bestPath = {}'.format( testcaseCount, rows, cols, bestPath ) )
+				for areaMapRow in areaMap:
+					print( areaMapRow )
+				self.assertEqual( DoraTrip( areaMap ).path(), bestPath )
+
+	def test_DoraTrip_Sample( self ):
+		areaMap = [
+		'#####',
+		'#  S#',
+		'# XX#',
+		'#  *#',
+		'#####'
+		]
+		self.assertEqual( DoraTrip( areaMap ).path(), 'WWSSEEWWNNEE' )
+
+		areaMap = [
+		'#####',
+		'#* X#',
+		'###X#',
+		'#S *#',
+		'#####'
+		]
+		self.assertEqual( DoraTrip( areaMap ).path(), 'EEWW' )
+
+		areaMap = [
+		'#####',
+		'#S X#',
+		'#  X#',
+		'# #*#',
+		'#####'
+		]
+		self.assertEqual( DoraTrip( areaMap ).path(), 'Stay home!' )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
