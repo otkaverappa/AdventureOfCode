@@ -4255,5 +4255,128 @@ class DoraTripTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# BlackbeardThePirate.pdf - "Blackbeard The Pirate"
+################################################################################
+
+class Pirate:
+	def __init__( self, areaMap ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = areaMap
+
+		self.landingCell, self.waterCell, self.treeCell, self.sandCell, self.nativeCell, self.treasureCell = '@~#.*!'
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+		self.adjacentDiagonalDelta = [ (1, 1), (1, -1), (-1, 1), (-1, -1) ]
+
+		bitNumber = 0
+		self.treasureToBitNumberDict = dict()
+		self.locationsToAvoid = set()
+		self.startLocation = None
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			location, cellType = (row, col), self.areaMap[ row ][ col ]
+			if cellType == self.landingCell:
+				self.startLocation = location
+			elif cellType == self.treasureCell:
+				self.treasureToBitNumberDict[ location ] = bitNumber
+				bitNumber += 1
+			elif cellType == self.nativeCell:
+				self.locationsToAvoid.add( location )
+				for du, dv in self.adjacentCellDelta + self.adjacentDiagonalDelta:
+					self.locationsToAvoid.add( (row + du, col + dv) )
+
+		self.totalTreasures = bitNumber
+
+	def go( self ):
+		startState = self.startLocation, 0
+
+		q = deque()
+		q.append( startState )
+
+		visited = set()
+		visited.add( startState )
+
+		stepCount = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				location, bitmap = q.popleft()
+
+				u, v = location
+				if location == self.startLocation and Bitmap.builtin_popcount( bitmap ) == self.totalTreasures:
+					return stepCount
+
+				for du, dv in self.adjacentCellDelta:
+					r, c = newLocation = u + du, v + dv
+					if not 0 <= r < self.rows or not 0 <= c < self.cols:
+						continue
+					# Avoid locations where natives are active.
+					if newLocation in self.locationsToAvoid:
+						continue
+					cellType = self.areaMap[ r ][ c ]
+					if cellType in (self.waterCell, self.treeCell):
+						continue
+					newBitmap = bitmap
+					if cellType == self.treasureCell:
+						newBitmap = Bitmap.setBitnumber( bitmap, self.treasureToBitNumberDict[ newLocation ] )
+					newState = newLocation, newBitmap
+					if newState not in visited:
+						visited.add( newState )
+						q.append( newState )
+			stepCount += 1
+		# It is not possible to obtain all treasures !
+		return -1
+
+class PirateTest( unittest.TestCase ):
+	def test_Pirate( self ):
+		with open( 'tests/pirate/pirate.in' ) as inputFile, open( 'tests/pirate/pirate.out' ) as solutionFile:
+			testcaseCount = 0
+			while True:
+				rows, cols = readIntegers( inputFile )
+				if rows == 0 and cols == 0:
+					break
+				testcaseCount += 1
+				
+				areaMap = [ readString( inputFile ) for _ in range( rows ) ]
+				stepCount = readInteger( solutionFile )
+
+				print( 'Testcase {} rows = {} cols = {} stepCount = {}'.format( testcaseCount, rows, cols, stepCount ) )
+				for areaMapRow in areaMap:
+					print( areaMapRow )
+				self.assertEqual( Pirate( areaMap ).go(), stepCount )
+
+	def test_Pirate_Sample( self ):
+		areaMap = [
+		'~~~~~~~',
+		'~#!###~',
+		'~...#.~',
+		'~~....~',
+		'~~~.@~~',
+		'.~~~~~~',
+		'...~~~.'
+		]
+		self.assertEqual( Pirate( areaMap ).go(), 10 )
+
+		areaMap = [
+		'~~~~~~~~~~',
+		'~~!!!###~~',
+		'~##...###~',
+		'~#....*##~',
+		'~#!..**~~~',
+		'~~....~~~~',
+		'~~~....~~~',
+		'~~..~..@~~',
+		'~#!.~~~~~~',
+		'~~~~~~~~~~'
+		]
+		self.assertEqual( Pirate( areaMap ).go(), 32 )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
