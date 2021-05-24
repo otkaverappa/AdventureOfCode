@@ -760,6 +760,10 @@ class UnionFind:
 		# Return the number of disjoint sets.
 		return self.disjointSetCount
 
+	def __iter__( self ):
+		# Return an iterator which can traverse each element and its representative.
+		return iter( [ (element, self._representative( element)) for element in self.uf ] )
+
 class IslandBuses:
 	def __init__( self, islandMap, tag ):
 		self.rows, self.cols = len( islandMap ), len( islandMap[ 0 ] )
@@ -4373,6 +4377,395 @@ class PirateTest( unittest.TestCase ):
 		'~~~~~~~~~~'
 		]
 		self.assertEqual( Pirate( areaMap ).go(), 32 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# BAPC2016_Preliminaries.pdf - "Problem H : Presidential Elections"
+################################################################################
+
+class PresidentialElection:
+	def __init__( self, stateInfoList ):
+		self.stateInfoList = stateInfoList
+		self.numberOfDelegates = 0
+		for delegatesInState, _, _, _ in self.stateInfoList:
+			self.numberOfDelegates += delegatesInState
+
+	def analyze( self ):
+		numberOfStates = len( self.stateInfoList )
+		# delegateVoteList[ i ][ d ] - Minimum number of voters we need
+		# to get exactly "d" delegates considering states upto index "i".
+		# 0 <= i < numberOfStates
+		# 0 <= d <= self.numberOfDelegates
+		delegateVoteList = [ [ float( 'inf' ) for _ in range( self.numberOfDelegates + 1 ) ] for _ in range( numberOfStates ) ]
+		for i in range( numberOfStates ):
+			delegateVoteList[ i ][ 0 ] = 0
+
+		for i in range( numberOfStates ):
+			delegatesInState, voterCount_C, voterCount_F, undecidedVoters = self.stateInfoList[ i ]
+
+			delegatesWeCanGet, votersToConvince = 0, 0
+			votesNeededToWin = ( voterCount_C + voterCount_F + undecidedVoters ) // 2 + 1
+			extraVotesNeeded = votesNeededToWin - voterCount_C
+			if extraVotesNeeded > 0 and undecidedVoters >= extraVotesNeeded:
+				votersToConvince = extraVotesNeeded
+				delegatesWeCanGet = delegatesInState
+			elif extraVotesNeeded <= 0:
+				delegatesWeCanGet = delegatesInState
+
+			if i == 0:
+				delegateVoteList[ i ][ delegatesWeCanGet ] = votersToConvince
+				continue
+
+			for d in range( self.numberOfDelegates + 1 ):
+				v1 = float( 'inf' ) if d - delegatesWeCanGet < 0 else \
+				     delegateVoteList[ i - 1 ][ d - delegatesWeCanGet ] + votersToConvince
+				v2 = delegateVoteList[ i - 1 ][ d ]
+				delegateVoteList[ i ][ d ] = min( v1, v2 )
+
+		minimumVotersToConvince = float( 'inf' )
+		for d in range( self.numberOfDelegates // 2 + 1, self.numberOfDelegates + 1 ):
+			votersToConvince = delegateVoteList[ numberOfStates - 1 ][ d ]
+			minimumVotersToConvince = min( minimumVotersToConvince, votersToConvince )
+		return 'impossible' if minimumVotersToConvince == float( 'inf' ) else minimumVotersToConvince
+
+class PresidentialElectionTest( unittest.TestCase ):
+	def test_PresidentialElection( self ):
+		for testfile in getTestFileList( tag='presidential_elections' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/presidential_elections/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/presidential_elections/{}.ans'.format( testfile ) ) as solutionFile:
+
+			numberOfStates = readInteger( inputFile )
+			stateInfoList = [ list( readIntegers( inputFile ) ) for _ in range( numberOfStates ) ]
+
+			votersToConvince = readString( solutionFile )
+			if votersToConvince != 'impossible':
+				votersToConvince = int( votersToConvince )
+
+			print( 'Testcase {} numberOfStates = {} minimumVotersToConvince = {}'.format( testfile, numberOfStates, votersToConvince ) )
+			self.assertEqual( PresidentialElection( stateInfoList ).analyze(), votersToConvince )
+
+	def test_PresidentialElection_Sample( self ):
+		stateInfoList = [
+		(7, 2401, 3299, 0), (6, 2401, 2399, 0), (2, 750, 750, 99)
+		]
+		self.assertEqual( PresidentialElection( stateInfoList ).analyze(), 50 )
+
+		stateInfoList = [
+		(7, 100, 200, 200), (8, 100, 300, 200), (9, 100, 400, 200)
+		]
+		self.assertEqual( PresidentialElection( stateInfoList ).analyze(), 'impossible' )
+
+		stateInfoList = [
+		(32, 0, 0, 20), (32, 0, 0, 20), (64, 0, 0, 41)
+		]
+		self.assertEqual( PresidentialElection( stateInfoList ).analyze(), 32 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# BAPC2016_Preliminaries.pdf - "Problem G : Millionaire Madness"
+################################################################################
+
+class Millionaire:
+	def __init__( self, vaultMap ):
+		self.rows, self.cols = len( vaultMap ), len( vaultMap[ 0 ] )
+		self.vaultMap = vaultMap
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def go( self ):
+		startLocation = 0, 0
+		targetLocation = self.rows - 1, self.cols - 1
+
+		q = list()
+		q.append( (0, startLocation) )
+
+		distanceDict = dict()
+		distanceDict[ startLocation ] = 0
+
+		while len( q ) > 0:
+			ladderLength, location = heapq.heappop( q )
+			if location == targetLocation:
+				return ladderLength
+
+			u, v = location
+			for du, dv in self.adjacentCellDelta:
+				r, c = newLocation = u + du, v + dv
+				if not 0 <= r < self.rows or not 0 <= c < self.cols:
+					continue
+				newLadderLength = max( ladderLength, self.vaultMap[ r ][ c ] - self.vaultMap[ u ][ v ] )
+				if newLocation not in distanceDict or distanceDict[ newLocation ] > newLadderLength:
+					distanceDict[ newLocation ] = newLadderLength
+					heapq.heappush( q, (newLadderLength, newLocation) )
+
+class MillionaireTest( unittest.TestCase ):
+	def test_Millionaire( self ):
+		for testfile in getTestFileList( tag='millionaire' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/millionaire/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/millionaire/{}.ans'.format( testfile ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			vaultMap = [ list( readIntegers( inputFile ) ) for _ in range( rows ) ]
+
+			ladderLength = readInteger( solutionFile )
+
+			print( 'Testcase {} rows = {} cols = {} ladderLength = {}'.format( testfile, rows, cols, ladderLength ) )
+			self.assertEqual( Millionaire( vaultMap ).go(), ladderLength )
+
+	def test_Millionaire_Sample( self ):
+		vaultMapStringList = [
+		'1 2 3',
+		'6 5 4',
+		'7 8 9'
+		]
+		vaultMap = [ list( map( int, vaultMapString.split() ) ) for vaultMapString in vaultMapStringList ]
+		self.assertEqual( Millionaire( vaultMap ).go(), 1 )
+
+		vaultMapStringList = [
+		'4 3 2 1'
+		]
+		vaultMap = [ list( map( int, vaultMapString.split() ) ) for vaultMapString in vaultMapStringList ]
+		self.assertEqual( Millionaire( vaultMap ).go(), 0 )
+
+		vaultMapStringList = [
+		'10 11 12 13 14',
+		'11 20 16 17 16',
+		'12 10 18 21 24',
+		'14 10 14 14 22',
+		'16 18 20 20 25',
+		'25 24 22 10 25',
+		'26 27 28 21 25'
+		]
+		vaultMap = [ list( map( int, vaultMapString.split() ) ) for vaultMapString in vaultMapStringList ]
+		self.assertEqual( Millionaire( vaultMap ).go(), 3 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# NorthAmericanInvitationalProgrammingContest_2014.pdf - " Problem J: Two Knight’s Poem"
+################################################################################
+
+class TwoKnights:
+	def __init__( self ):
+		self.upperKeys = [
+		'QWERTYUIOP',
+		'ASDFGHJKL:',
+		'ZXCVBNM<>?',
+		'$$      $$'
+		]
+		self.lowerKeys = [
+		'qwertyuiop',
+		'asdfghjkl;',
+		'zxcvbnm,./',
+		'$$      $$'
+		]
+
+		self.rows, self.cols = len( self.upperKeys ), len( self.upperKeys[ 0 ] )
+		self.knight1Location = self.rows - 1, 0
+		self.knight2Location = self.rows - 1, self.cols - 1
+
+		self.movementDelta = [ (1, 2), (1, -2), (2, 1), (2, -1), (-1, 2), (-1, -2), (-2, 1), (-2, -1) ]
+		self.SHIFT_KEY = '$'
+
+	def _isWithInKeyboard( self, location ):
+		r, c = location
+		return 0 <= r < self.rows and 0 <= c < self.cols
+
+	def type_01( self, stringToType ):
+		return 1 if self.type( stringToType ) else 0
+
+	def type( self, stringToType ):
+		startState = self.knight1Location, self.knight2Location, 0
+		
+		q = deque()
+		q.append( startState )
+
+		visited = set()
+		visited.add( startState )
+
+		while len( q ) > 0:
+			knight1Location, knight2Location, index = q.popleft()
+			if index == len( stringToType ):
+				return True
+
+			u1, v1 = knight1Location
+			u2, v2 = knight2Location
+
+			adjacentStateList = list()
+			
+			# Try to move knight1.
+			for du, dv in self.movementDelta:
+				r, c = newKnight1Location = u1 + du, v1 + dv
+				if not self._isWithInKeyboard( newKnight1Location ):
+					continue
+				if newKnight1Location == knight2Location:
+					continue
+				typedCharacter = self.upperKeys[ r ][ c ] if self.lowerKeys[ u2 ][ v2 ] == self.SHIFT_KEY else self.lowerKeys[ r ][ c ]
+				if typedCharacter == stringToType[ index ]:
+					adjacentStateList.append( (newKnight1Location, knight2Location, index + 1) )
+				elif typedCharacter == self.SHIFT_KEY:
+					adjacentStateList.append( (newKnight1Location, knight2Location, index) )
+
+			# Try to move knight2.
+			for du, dv in self.movementDelta:
+				r, c = newKnight2Location = u2 + du, v2 + dv
+				if not self._isWithInKeyboard( newKnight2Location ):
+					continue
+				if newKnight2Location == knight1Location:
+					continue
+				typedCharacter = self.upperKeys[ r ][ c ] if self.lowerKeys[ u1 ][ v1 ] == self.SHIFT_KEY else self.lowerKeys[ r ][ c ]
+				if typedCharacter == stringToType[ index ]:
+					adjacentStateList.append( (knight1Location, newKnight2Location, index + 1) )
+				elif typedCharacter == self.SHIFT_KEY:
+					adjacentStateList.append( (knight1Location, newKnight2Location, index) )
+
+			for newState in adjacentStateList:
+				if newState not in visited:
+					visited.add( newState )
+					q.append( newState )
+		return False
+
+class TwoKnightsTest( unittest.TestCase ):
+	def test_TwoKnights( self ):
+		with open( 'tests/twoknights/twoKnights.in' ) as inputFile, \
+		     open( 'tests/twoknights/twoKnights.out' ) as solutionFile:
+
+			testcaseCount = 0
+			while True:
+				stringToType = readString( inputFile )
+				if stringToType == '*':
+					break
+				testcaseCount += 1
+
+				possibility = readInteger( solutionFile )
+
+				print( 'Testcase #{} stringToType = [{}] state = {}'.format( testcaseCount, stringToType, possibility ) )
+				self.assertEqual( TwoKnights().type_01( stringToType ), possibility )
+
+	def test_TwoKnights_Sample( self ):
+		twoKnights = TwoKnights()
+
+		stringToType = 'S,veA,eVE,aU'
+		self.assertEqual( twoKnights.type_01( stringToType ), 1 )
+
+		stringToType = 'S,veA,eVE,aUc'
+		self.assertEqual( twoKnights.type_01( stringToType ), 0 )
+
+		stringToType = 'CAlmimg eventa'
+		self.assertEqual( twoKnights.type_01( stringToType ), 1 )
+
+		stringToType = 'CAL'
+		self.assertEqual( twoKnights.type_01( stringToType ), 1 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# ObstacleCourse.pdf
+################################################################################
+
+class ObstacleCourse:
+	def __init__( self, locationMap ):
+		self.size = len( locationMap )
+		self.locationMap = locationMap
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def minimumEnergy( self ):
+		startLocation, targetLocation = (0, 0), (self.size - 1, self.size - 1)
+		initialCost = self.locationMap[ 0 ][ 0 ]
+		
+		q = list()
+		q.append( (initialCost, startLocation) )
+
+		costDict = dict()
+		costDict[ startLocation ] = initialCost
+
+		while len( q ) > 0:
+			cost, location = heapq.heappop( q )
+			if location == targetLocation:
+				return cost
+
+			u, v = location
+			for du, dv in self.adjacentCellDelta:
+				r, c = newLocation = u + du, v + dv
+				if not 0 <= r < self.size or not 0 <= c < self.size:
+					continue
+				newCost = cost + self.locationMap[ r ][ c ]
+				if newLocation not in costDict or costDict[ newLocation ] > newCost:
+					costDict[ newLocation ] = newCost
+					heapq.heappush( q, (newCost, newLocation) )
+
+class ObstacleCourseTest( unittest.TestCase ):
+	def test_ObstacleCourse( self ):
+		with open( 'tests/obstacle/d.in' ) as inputFile, \
+		     open( 'tests/obstacle/d.out' ) as solutionFile:
+
+			testcaseCount = 0
+			while True:
+				size = readInteger( inputFile )
+				if size == 0:
+					break
+
+				testcaseCount += 1
+
+				locationMapStringList = [ readString( inputFile ) for _ in range( size ) ]
+				locationMap = [ list( map( int, locationMapStringRow.split() ) ) for locationMapStringRow in locationMapStringList ]
+
+				_, _, minimumEnergy = readString( solutionFile ).split()
+				minimumEnergy = int( minimumEnergy )
+
+				print( 'Testcase #{} size = {} minimumEnergy = {}'.format( testcaseCount, size, minimumEnergy ) )
+				self.assertEqual( ObstacleCourse( locationMap ).minimumEnergy(), minimumEnergy )
+
+	def test_ObstacleCourse_Sample( self ):
+		locationMapStringList = [
+		'5 5 4',
+		'3 9 1',
+		'3 2 7'
+		]
+		locationMap = [ list( map( int, locationMapStringRow.split() ) ) for locationMapStringRow in locationMapStringList ]
+		self.assertEqual( ObstacleCourse( locationMap ).minimumEnergy(), 20 )
+
+		locationMapStringList = [
+		'3 7 2 0 1',
+		'2 8 0 9 1',
+		'1 2 1 8 1',
+		'9 8 9 2 0',
+		'3 6 5 1 5'
+		]
+		locationMap = [ list( map( int, locationMapStringRow.split() ) ) for locationMapStringRow in locationMapStringList ]
+		self.assertEqual( ObstacleCourse( locationMap ).minimumEnergy(), 19 )
+
+		locationMapStringList = [
+		'9 0 5 1 1 5 3',
+		'4 1 2 1 6 5 3',
+		'0 7 6 1 6 8 5',
+		'1 1 7 8 3 2 3',
+		'9 4 0 7 6 4 1',
+		'5 8 3 2 4 8 3',
+		'7 4 8 4 8 3 4'
+		]
+		locationMap = [ list( map( int, locationMapStringRow.split() ) ) for locationMapStringRow in locationMapStringList ]
+		self.assertEqual( ObstacleCourse( locationMap ).minimumEnergy(), 36 )
 
 ################################################################################
 ################################################################################
