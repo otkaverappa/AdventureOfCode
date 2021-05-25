@@ -550,6 +550,9 @@ class FloweryTrails:
 			if vertex == targetVertex:
 				break
 
+			if distanceDict[ vertex ] < distance:
+				continue
+
 			for vertexIndex, (toVertex, pathLength) in enumerate( self.vertexList[ vertex ] ):
 				totalDistance = distance + pathLength
 				
@@ -1518,6 +1521,9 @@ class Bumped:
 			cost, (city, flightTaken) = heapq.heappop( q )
 			if city == destinationCity:
 				return cost
+
+			if costDict[ (city, flightTaken ) ] < cost:
+				continue
 
 			for toCity, costForSegment, transportType in self.transportGrid[ city ]:
 				if flightTaken and transportType == 'FLIGHT':
@@ -4499,6 +4505,9 @@ class Millionaire:
 			if location == targetLocation:
 				return ladderLength
 
+			if distanceDict[ location ] < ladderLength:
+				continue
+
 			u, v = location
 			for du, dv in self.adjacentCellDelta:
 				r, c = newLocation = u + du, v + dv
@@ -4705,6 +4714,9 @@ class ObstacleCourse:
 			if location == targetLocation:
 				return cost
 
+			if costDict[ location ] > cost:
+				continue
+
 			u, v = location
 			for du, dv in self.adjacentCellDelta:
 				r, c = newLocation = u + du, v + dv
@@ -4876,6 +4888,205 @@ class BoxTest( unittest.TestCase ):
 		'.5..'
 		]
 		self.assertEqual( Box( areaMap ).go(), 'He got the Box in 7 steps!' )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# HSPT2021.pdf - Alphabetic Road Trip
+################################################################################
+
+class AlphabeticRoadTrip:
+	def __init__( self, cityList, roadList ):
+		self.startCityIndices = set()
+		self.targetCityIndices = set()
+		self.startLetter, self.endLetter = 'A', 'J'
+		
+		self.cityList = cityList
+		self.cityToIndexDict = dict()
+		for index, city in enumerate( cityList ):
+			self.cityToIndexDict[ city ] = index
+			startLetter, * _ = city
+			if startLetter == self.startLetter:
+				self.startCityIndices.add( index )
+			elif startLetter == self.endLetter:
+				self.targetCityIndices.add( index )
+
+		self.roadNetwork = [ list() for _ in range( len( cityList ) ) ]
+		for city1, city2, cost in roadList:
+			city1Index = self.cityToIndexDict[ city1 ]
+			city2Index = self.cityToIndexDict[ city2 ]
+			self.roadNetwork[ city1Index ].append( (city2Index, cost) )
+			self.roadNetwork[ city2Index ].append( (city1Index, cost) )
+
+	def _nextLetter( self, letter ):
+		return chr( ord( letter ) + 1 )
+
+	def go( self  ):
+		q = list()
+		costDict = dict()
+
+		for startCityIndex in sorted( self.startCityIndices ):
+			q.append( (0, startCityIndex, self._nextLetter( self.startLetter) ) )
+			costDict[ (startCityIndex, self._nextLetter( self.startLetter ) ) ] = 0
+
+		while len( q ) > 0:
+			cost, currentCityIndex, letterToMatch = heapq.heappop( q )
+			if currentCityIndex in self.targetCityIndices and letterToMatch > self.endLetter:
+				return cost
+
+			if costDict[ (currentCityIndex, letterToMatch) ] < cost:
+				continue
+
+			for (toCityIndex, additionalCost) in self.roadNetwork[ currentCityIndex ]:
+				city = self.cityList[ toCityIndex ]
+				startLetter, * _ = city
+				
+				totalCost = cost + additionalCost
+				
+				nextLetterToMatch = letterToMatch
+				if startLetter == letterToMatch:
+					nextLetterToMatch = self._nextLetter( letterToMatch )
+
+				costDictKey = (toCityIndex, nextLetterToMatch)
+				if costDictKey not in costDict or costDict[ costDictKey ] > totalCost:
+					costDict[ costDictKey ] = totalCost
+					heapq.heappush( q,  (totalCost, toCityIndex, nextLetterToMatch) )
+
+class AlphabeticRoadTripTest( unittest.TestCase ):
+	def test_AlphabeticRoadTrip( self ):
+		with open( 'tests/roadtrip/roadtrip.in' ) as inputFile, \
+		     open( 'tests/roadtrip/roadtrip.out' ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				cityCount, roadCount = readIntegers( inputFile )
+
+				cityList = [ readString( inputFile ) for _ in range( cityCount ) ]
+				roadList = list()
+				for _ in range( roadCount ):
+					city1, city2, cost = readString( inputFile ).split()
+					roadList.append( (city1, city2, int( cost ) ) )
+
+				bestCost = readInteger( solutionFile )
+
+				formatString = 'Testcase #{} Number of cities = {}, roads = {} bestCost = {}'
+				print( formatString.format( index + 1, cityCount, roadCount, bestCost ) )
+
+				self.assertEqual( AlphabeticRoadTrip( cityList, roadList ).go(), bestCost )
+
+	def test_AlphabeticRoadTrip_Sample( self ):
+		cityList = [ 'Alabama', 'Alaska', 'Buffalo', 'Columbia', 'Delaware', 'Elfville', 'Florida', 'Georgia',
+		             'Hawaii', 'Idaho', 'Jupiter' ]
+		roadList = [
+		('Alabama', 'Jupiter', 1), ('Jupiter', 'Alaska', 2), ('Idaho', 'Jupiter', 1),
+        ('Georgia', 'Idaho', 1), ('Hawaii', 'Georgia', 1), ('Florida', 'Hawaii', 1), ('Elfville', 'Florida', 1),
+        ('Elfville', 'Delaware', 1), ('Delaware', 'Columbia', 1), ('Buffalo', 'Columbia', 1)
+		]
+		self.assertEqual( AlphabeticRoadTrip( cityList, roadList ).go(), 19 )
+
+		cityList = [ 'Avalon', 'Harrison', 'Dover', 'Bermuda', 'Gillian', 'Camelot',
+		             'Jackson', 'Elliot', 'Florida', 'Iguana' ]
+		roadList = [
+		('Dover', 'Avalon', 3), ('Avalon', 'Gillian', 10), ('Florida', 'Avalon', 71), 
+		('Avalon', 'Bermuda', 5), ('Jackson', 'Avalon', 5), ('Avalon', 'Harrison', 52), ('Elliot', 'Avalon', 6), 
+		('Iguana', 'Avalon', 4), ('Camelot', 'Avalon', 5)
+		]
+		self.assertEqual( AlphabeticRoadTrip( cityList, roadList ).go(), 317 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# HSPT2006.pdf - Su-Do-Kode
+################################################################################
+
+class SudokuChecker:
+	GRID_SIZE = 9
+
+	@staticmethod
+	def check( numberGrid ):
+		rows, cols = len( numberGrid ), len( numberGrid[ 0 ] )
+		if not rows == cols == SudokuChecker.GRID_SIZE:
+			return False
+		requisiteDigits = set( '123456789' )
+
+		# Check whether each row contains numbers from 1 to 9.
+		for numberGridRow in numberGrid:
+			if set( numberGridRow ) != requisiteDigits:
+				return False
+
+		# Check whether each column contains numbers from 1 to 9.
+		for col in range( cols ):
+			numbersInColumn = set()
+			for row in range( rows ):
+				numbersInColumn.add( numberGrid[ row ][ col ] )
+			if numbersInColumn != requisiteDigits:
+				return False
+
+		# Check whether each 3*3 grid contains numbers from 1 to 9.
+		for startRow, startCol in itertools.product( range( 0, SudokuChecker.GRID_SIZE, 3 ), range( 0, SudokuChecker.GRID_SIZE, 3 ) ):
+			numbersInGrid = set()
+			for row, col in itertools.product( range( 3 ), range( 3 ) ):
+				numbersInGrid.add( numberGrid[ startRow + row ][ startCol + col ] )
+			if numbersInGrid != requisiteDigits:
+				return False
+		return True
+
+class SuDoKode:
+	def __init__( self, numberGrid ):
+		self.numberGrid = numberGrid
+		self.messageForValidGrid = 'Dave\'s the man!'
+		self.messageForInvalidGrid = 'Try again, Dave!'
+
+	def go( self ):
+		return self.messageForValidGrid if SudokuChecker.check( self.numberGrid ) else self.messageForInvalidGrid
+
+class SuDoKodeTest( unittest.TestCase ):
+	def test_SuDoKode( self ):
+		with open( 'tests/sudokode/sudokode.in' ) as inputFile, \
+		     open( 'tests/sudokode/sudokode.out' ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				numberGrid = [ readString( inputFile ) for _ in range( 9 ) ]
+				message = readString( solutionFile )
+				readString( solutionFile ) # A blank line is present after each message.
+
+				prefix = 'Sudoku #{}:  '.format( index + 1 )
+				print( 'Testcase #{} {}'.format( index + 1, message ) )
+				self.assertEqual( prefix + SuDoKode( numberGrid ).go(), message )
+
+	def test_SuDoKode_Sample( self ):
+		numberGrid = [
+		'357648912',
+		'216539748',
+		'948712536',
+		'521486397',
+		'463197285',
+		'789325164',
+		'632974851',
+		'174853629',
+		'895261473'
+		]
+		self.assertEqual( SuDoKode( numberGrid ).go(), 'Dave\'s the man!' )
+
+		numberGrid = [
+		'263847159',
+		'514936278',
+		'987125364',
+		'645382917',
+		'139574826',
+		'872619543',
+		'658791632',
+		'791263485',
+		'326458791'
+		]
+		self.assertEqual( SuDoKode( numberGrid ).go(), 'Try again, Dave!' )
 
 ################################################################################
 ################################################################################
