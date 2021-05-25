@@ -378,7 +378,7 @@ class GridTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 ################################################################################
-# BAPC2012.pdf
+# BAPC2012.pdf - "Problem F : Fire"
 ################################################################################
 
 class Fire:
@@ -5087,6 +5087,61 @@ class SuDoKodeTest( unittest.TestCase ):
 		'326458791'
 		]
 		self.assertEqual( SuDoKode( numberGrid ).go(), 'Try again, Dave!' )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# BAPC2012.pdf - "Problem I : Integer Lists"
+################################################################################
+
+class IntegerLists:
+	def __init__( self, programString, inputListString ):
+		self.programString = programString
+		# inputListString is of the form "[1,2,3,4]"
+		inputListString = inputListString[ 1 : -1 ] # Remove the opening and closing brackets.
+
+		self.q = deque() if len( inputListString ) == 0 else deque( inputListString.split( ',' ) )
+		self.reversed = False
+
+	def apply( self ):
+		for instruction in self.programString:
+			if instruction == 'D' and len( self.q ) == 0:
+				return 'error'
+			elif instruction == 'D' and self.reversed:
+				self.q.pop()
+			elif instruction == 'D' and not self.reversed:
+				self.q.popleft()
+			elif instruction == 'R':
+				self.reversed = not self.reversed
+		if self.reversed:
+			return '[' + ','.join( reversed( self.q ) ) + ']'
+		else:
+			return '[' + ','.join( self.q ) + ']'
+
+class IntegerListsTest( unittest.TestCase ):
+	def test_IntegerLists_Sample( self ):
+		self.assertEqual( IntegerLists( 'RDD', '[1,2,3,4]' ).apply(), '[2,1]' )
+		self.assertEqual( IntegerLists( 'DD', '[42]' ).apply(), 'error' )
+		self.assertEqual( IntegerLists( 'RRD', '[1,1,2,3,5,8]' ).apply(), '[1,2,3,5,8]' )
+		self.assertEqual( IntegerLists( 'D', '[]' ).apply(), 'error' )
+
+	def test_IntegerLists( self ):
+		with open( 'tests/integerlists/I.in' ) as inputFile, open( 'tests/integerlists/I.out' ) as solutionFile:
+			T = readInteger( inputFile )
+			for index in range( T ):
+				programString = readString( inputFile )
+				N = readInteger( inputFile )
+				inputListString = readString( inputFile )
+				
+				output = readString( solutionFile )
+
+				formatString = 'Testcase #{} programString = [{}] list length = {}'
+				print( formatString.format( index + 1, programString, N ) )
+
+				self.assertEqual( IntegerLists( programString, inputListString ).apply(), output )
 
 ################################################################################
 ################################################################################
