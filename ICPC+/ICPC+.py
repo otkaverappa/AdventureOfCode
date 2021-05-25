@@ -8,6 +8,7 @@ from collections import defaultdict
 import math
 import operator
 import string
+import bisect
 
 def getTestFileList( tag ):
 	return set( [ pathlib.Path( filename ).stem for filename in os.listdir( 'tests/{}'.format( tag ) ) ] )
@@ -4766,6 +4767,115 @@ class ObstacleCourseTest( unittest.TestCase ):
 		]
 		locationMap = [ list( map( int, locationMapStringRow.split() ) ) for locationMapStringRow in locationMapStringList ]
 		self.assertEqual( ObstacleCourse( locationMap ).minimumEnergy(), 36 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# HSPT2005.pdf - He Got the Box!
+################################################################################
+
+class Box:
+	def __init__( self, areaMap ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = areaMap
+		self.startCell, self.emptyCell, self.wallCell, self.boxCell = 'B', '.', 'W', 'X'
+
+		self.startLocation = None
+		self.teleportLocationDict = dict()
+
+		teleportDevices = dict()
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			cellType = self.areaMap[ row ][ col ]
+			if cellType == self.startCell:
+				self.startLocation = row, col
+			elif cellType in string.digits:
+				if cellType in teleportDevices:
+					cell1, cell2 = teleportDevices[ cellType ], (row, col)
+					self.teleportLocationDict[ cell1 ] = cell2
+					self.teleportLocationDict[ cell2 ] = cell1
+				else:
+					teleportDevices[ cellType ] = (row, col)
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+		self.message = 'He got the Box in {} steps!'
+
+	def go( self ):
+		q = deque()
+		q.append( self.startLocation )
+
+		visited = set()
+		visited.add( self.startLocation )
+
+		stepCount = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				u, v = currentLocation = q.popleft()
+				if self.areaMap[ u ][ v ] == self.boxCell:
+					return self.message.format( stepCount )
+
+				possibleLocations = list()
+				for du, dv in self.adjacentCellDelta:
+					r, c = newLocation = u + du, v + dv
+					if not 0 <= r < self.rows or not 0 <= c < self.cols:
+						continue
+					if self.areaMap[ r ][ c ] == self.wallCell:
+						continue
+					possibleLocations.append( newLocation )
+					if newLocation in self.teleportLocationDict:
+						possibleLocations.append( self.teleportLocationDict[ newLocation ] )
+
+				for newLocation in possibleLocations:
+					if newLocation not in visited:
+						visited.add( newLocation )
+						q.append( newLocation )
+			stepCount += 1
+		return None
+
+class BoxTest( unittest.TestCase ):
+	def test_Box( self ):
+		with open( 'tests/box/box.in' ) as inputFile, \
+		     open( 'tests/box/box.out' ) as solutionFile:
+
+			testcaseCount = 0
+			while True:
+				rows, cols = readIntegers( inputFile )
+				if rows == cols == 0:
+					break
+				testcaseCount += 1
+
+				areaMap = [ readString( inputFile ) for _ in range( rows ) ]
+				message = readString( solutionFile )
+
+				print( 'Testcase #{} rows = {} cols = {} [{}]'.format( testcaseCount, rows, cols, message ) )
+				for areaMapRow in areaMap:
+					print( areaMapRow )
+
+				self.assertEqual( Box( areaMap ).go(), message )
+
+	def test_Box_Sample( self ):
+		areaMap = [
+		'B....',
+		'....1',
+		'WWWWW',
+		'1....',
+		'....X'
+		]
+		self.assertEqual( Box( areaMap ).go(), 'He got the Box in 10 steps!' )
+
+		areaMap = [
+		'...B',
+		'WWW.',
+		'5XW.',
+		'WWW.',
+		'.5..'
+		]
+		self.assertEqual( Box( areaMap ).go(), 'He got the Box in 7 steps!' )
 
 ################################################################################
 ################################################################################
