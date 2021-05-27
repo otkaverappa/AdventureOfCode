@@ -19,6 +19,9 @@ def getTestFileSuffixList( tag ):
 def readString( file ):
 	return file.readline().strip()
 
+def readStrings( file ):
+	return file.readline().strip().split()
+
 def readRawString( file ):
 	newline = '\n'
 	return file.readline().strip( newline )
@@ -5370,6 +5373,91 @@ class CrowdControlTest( unittest.TestCase ):
 			print( formatString.format( testfile, intersectionCount, streetCount ) )
 
 			self.assertEqual( CrowdControl( intersectionCount, streetList ).block(), streetsToBlock )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# VirginiaTechHighSchoolProgrammingContest_2017 - Problem E: Through the Grapevine
+################################################################################
+
+class Grapevine:
+	def __init__( self, peopleList, connectionList ):
+		self.nameToIdDict = dict()
+		self.skepticismList = [ None for _ in range( len( peopleList ) ) ]
+		for index, (name, skepticism) in enumerate( peopleList ):
+			self.nameToIdDict[ name ] = index
+			self.skepticismList[ index ] = skepticism
+
+		self.connections = [ list() for _ in range( len( peopleList ) ) ]
+		for (person1, person2) in connectionList:
+			id1 = self.nameToIdDict[ person1 ]
+			id2 = self.nameToIdDict[ person2 ]
+			self.connections[ id1 ].append( id2 )
+			self.connections[ id2 ].append( id1 )
+
+	def after( self, rumorOriginator, numberOfDays ):
+		rumorOriginatorId = self.nameToIdDict[ rumorOriginator ]
+
+		q = deque()
+		q.append( rumorOriginatorId )
+
+		grapevine = set()
+		while numberOfDays > 0 and len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				personId = q.popleft()
+				# Spread the rumor to connections.
+				for connectionId in self.connections[ personId ]:
+					grapevine.add( connectionId )
+					# Reduce the person's skepticism and if it reaches zero, add to the queue.
+					self.skepticismList[ connectionId ] -= 1
+					if self.skepticismList[ connectionId ] == 0:
+						q.append( connectionId )
+			numberOfDays -= 1
+		if rumorOriginatorId in grapevine:
+			grapevine.remove( rumorOriginatorId )
+		return len( grapevine )
+
+class GrapevineTest( unittest.TestCase ):
+	def test_Grapevine_Sample( self ):
+		peopleList = [ ('Alice', 0), ('Bob', 1), ('Carol', 1) ]
+		connectionList = [ ('Alice', 'Bob'), ('Bob', 'Carol') ]
+		self.assertEqual( Grapevine( peopleList, connectionList ).after( 'Alice', 1 ), 1 )
+
+		peopleList = [ ('Alice', 0), ('Bob', 1), ('Carol', 1), ('Dan', 3), ('Erin', 1) ]
+		connectionList = [ ('Alice', 'Bob'), ('Alice', 'Carol'), ('Bob', 'Dan'), ('Carol', 'Dan'), ('Dan', 'Erin') ]
+		self.assertEqual( Grapevine( peopleList, connectionList ).after( 'Alice', 3 ), 3 )
+
+	def test_Grapevine( self ):
+		for testfile in getTestFileList( tag='grapevine' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/grapevine/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/grapevine/{}.ans'.format( testfile ) ) as solutionFile:
+
+		     numberOfPeople, numberOfConnections, numberOfDays = readIntegers( inputFile )
+		     peopleList = list()
+		     for _ in range( numberOfPeople ):
+		     	name, skepticism = readString( inputFile ).split()
+		     	peopleList.append( (name, int( skepticism ) ) )
+		     connectionList = list()
+		     for _ in range( numberOfConnections ):
+		     	person1, person2 = readStrings( inputFile )
+		     	connectionList.append( (person1, person2) )
+
+		     rumorOriginator = readString( inputFile )
+
+		     count = readInteger( solutionFile )
+
+		     print( 'Testcase {} numberOfPeople = {} numberOfConnections = {}'.format( testfile, numberOfPeople, numberOfConnections ) )
+		     self.assertEqual( Grapevine( peopleList, connectionList ).after( rumorOriginator, numberOfDays ), count )
 
 ################################################################################
 ################################################################################
