@@ -5147,5 +5147,233 @@ class IntegerListsTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+# Bergen Open 2018 - "Problem F : Fishmongers"
+################################################################################
+
+class Fish:
+	def __init__( self, fishWeightList, mongerList ):
+		self.sortedFishWeightList = fishWeightList
+		self.sortedFishWeightList.sort( reverse=True )
+
+		self.mongerList = list()
+		for (quantityNeeded, pricePerKilo) in mongerList:
+			self.mongerList.append( (pricePerKilo, quantityNeeded) )
+		self.mongerList.sort( reverse=True )
+
+	def maximumSales( self ):
+		totalSales = 0
+
+		currentFishIndex = 0
+		currentMongerIndex = 0
+
+		while currentFishIndex < len( self.sortedFishWeightList ) and currentMongerIndex < len( self.mongerList ):
+			pricePerKilo, quantityNeeded = self.mongerList[ currentMongerIndex ]
+			currentMongerIndex += 1
+			while quantityNeeded > 0 and currentFishIndex < len( self.sortedFishWeightList ):
+				totalSales += ( pricePerKilo * self.sortedFishWeightList[ currentFishIndex ] )
+				currentFishIndex += 1
+				quantityNeeded -= 1
+		return totalSales
+
+class FishTest( unittest.TestCase ):
+	def test_Fish_Sample( self ):
+		fishWeightList = [ 1, 2, 7, 5 ]
+		mongerList = [ (2, 4), (1, 5), (3, 3) ]
+		self.assertEqual( Fish( fishWeightList, mongerList ).maximumSales(), 66 )
+
+	def test_Fish( self ):
+		for testfile in getTestFileList( tag='fish' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/fish/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/fish/{}.ans'.format( testfile ) ) as solutionFile:
+
+			fishCount, mongerCount = readIntegers( inputFile )
+			fishWeightList = list( readIntegers( inputFile ) )
+			mongerList = list()
+			for _ in range( mongerCount ):
+				quantityNeeded, pricePerKilo = readIntegers( inputFile )
+				mongerList.append( (quantityNeeded, pricePerKilo) )
+
+			totalSales = readInteger( solutionFile )
+
+			print( 'Testcase {} fishCount = {} mongerCount = {} totalSales = {}'.format( testfile, fishCount, mongerCount, totalSales ) )
+			self.assertEqual( Fish( fishWeightList, mongerList ).maximumSales(), totalSales )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# melzarmaze.pdf
+################################################################################
+
+class Melzar:
+	def __init__( self, areaMap ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = areaMap
+
+	def defeat( self ):
+		infinity = float( 'inf' )
+		hptable = [ [ None for _ in range( self.cols ) ] for _ in range( self.rows ) ]
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			health = self.areaMap[ row ][ col ]
+
+			if row == 0 and col == 0:
+				hptable[ row ][ col ] = (health, health)
+				continue
+
+			minimumHealth_A, totalHealth_A = ( - infinity, 0 ) if row == 0 else hptable[ row - 1 ][ col ]
+			minimumHealth_B, totalHealth_B = ( - infinity, 0 ) if col == 0 else hptable[ row ][ col - 1 ]
+
+			totalHealth_A, totalHealth_B = totalHealth_A + health, totalHealth_B + health
+			minimumHealth_A, minimumHealth_B = min( minimumHealth_A, totalHealth_A ), min( minimumHealth_B, totalHealth_B )
+
+			if minimumHealth_A > minimumHealth_B:
+				hptable[ row ][ col ] = (minimumHealth_A, totalHealth_A)
+			else:
+				hptable[ row ][ col ] = (minimumHealth_B, totalHealth_B)
+
+		minimumHealth, totalHealth = hptable[ self.rows - 1 ][ self.cols - 1 ]
+		return max( 0, - minimumHealth ) + 1
+
+class MelzarTest( unittest.TestCase ):
+	def test_Melzar_Sample( self ):
+		areaMap = [
+		[ -2,  -3,  3 ],
+		[ -5, -10,  1 ],
+		[ 10,  30, -5 ]
+		]
+		self.assertEqual( Melzar( areaMap ).defeat(), 7 )
+
+	def test_Melzar( self ):
+		for testfile in getTestFileList( tag='melzar' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/melzar/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/melzar/{}.ans'.format( testfile ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			areaMap = [ list( readIntegers( inputFile ) ) for _ in range( rows ) ]
+
+			hitpoints = readInteger( solutionFile )
+
+			print( 'Testcase {} rows = {} cols = {} hitpoints = {}'.format( testfile, rows, cols, hitpoints ) )
+			self.assertEqual( Melzar( areaMap ).defeat(), hitpoints )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+# BAPC2017_Preliminaries.pdf - "Problem C : Crowd Control"
+################################################################################
+
+class CrowdControl:
+	def __init__( self, intersectionCount, streetList ):
+		self.startVertex, self.targetVertex = 0, intersectionCount - 1
+		self.streets = [ list() for _ in range( intersectionCount ) ]
+		self.streetToIndex = dict()
+		
+		for index, (intersection1, intersection2, width) in enumerate( streetList ):
+			self.streets[ intersection1 ].append( (intersection2, width) )
+			self.streets[ intersection2 ].append( (intersection1, width) )
+			
+			self.streetToIndex[ (intersection1, intersection2) ] = index
+			self.streetToIndex[ (intersection2, intersection1) ] = index
+
+	def block( self ):
+		infinity = - float( 'inf' )
+		
+		q = list()
+		q.append( (infinity, self.startVertex) )
+
+		costDict = dict()
+		costDict[ self.startVertex ] = infinity
+
+		pathDict = dict()
+		pathDict[ self.startVertex ] = None
+
+		while len( q ) > 0:
+			minimumWidth, currentVertex = heapq.heappop( q )
+			if currentVertex == self.targetVertex:
+				break
+
+			if costDict[ currentVertex ] < minimumWidth:
+				continue
+
+			for toVertex, width in self.streets[ currentVertex ]:
+				newMinimumWidth = - min( abs( minimumWidth ), width )
+				if toVertex not in pathDict or costDict[ toVertex ] > newMinimumWidth:
+					costDict[ toVertex ] = newMinimumWidth
+					pathDict[ toVertex ] = currentVertex
+					heapq.heappush( q, (newMinimumWidth, toVertex) )
+
+		streetIndicesToBlock = set()
+		verticesOnOptimalPath = set()
+
+		while currentVertex is not None:
+			previousVertex = pathDict[ currentVertex ]
+			verticesOnOptimalPath.add( currentVertex )
+			verticesOnOptimalPath.add( previousVertex )
+
+			for adjacentVertex, _ in self.streets[ currentVertex ]:
+				if adjacentVertex not in verticesOnOptimalPath:
+					streetIndicesToBlock.add( self.streetToIndex[ (currentVertex, adjacentVertex) ] )
+			
+			currentVertex = previousVertex
+
+		if len( streetIndicesToBlock ) == 0:
+			return 'none'
+		return sorted( streetIndicesToBlock )
+
+class CrowdControlTest( unittest.TestCase ):
+	def test_CrowdControl_Sample( self ):
+		intersectionCount = 7
+		streetList = [ (0, 1, 800), (1, 2, 300), (2, 3, 75), (3, 4, 80), (4, 5, 50), (4, 6, 100),
+		(6, 1, 35), (0, 6, 10), (0, 2, 120), (0, 3, 100) ]
+		self.assertEqual( CrowdControl( intersectionCount, streetList ).block(), [ 0, 2, 4, 6, 7, 8 ] )
+
+		intersectionCount = 4
+		streetList = [ (0, 1, 10), (1, 2, 50), (0, 3, 30), (1, 3, 20) ]
+		self.assertEqual( CrowdControl( intersectionCount, streetList ).block(), [ 0, 3 ] )
+
+		intersectionCount = 4
+		streetList = [ (0, 1, 10), (1, 2, 20), (2, 3, 30) ]
+		self.assertEqual( CrowdControl( intersectionCount, streetList ).block(), 'none' )
+
+	def test_CrowdControl( self ):
+		for testfile in getTestFileList( tag='crowdcontrol' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/crowdcontrol/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/crowdcontrol/{}.ans'.format( testfile ) ) as solutionFile:
+
+			intersectionCount, streetCount = readIntegers( inputFile )
+			streetList = list()
+			for _ in range( streetCount ):
+				intersection1, intersection2, width = readIntegers( inputFile )
+				streetList.append( (intersection1, intersection2, width) )
+
+			streetsToBlock = readString( solutionFile )
+			if streetsToBlock != 'none':
+				streetsToBlock = list( map( int, streetsToBlock.split() ) )
+
+			formatString = 'Testcase {} intersectionCount = {} streetCount = {}'
+			print( formatString.format( testfile, intersectionCount, streetCount ) )
+
+			self.assertEqual( CrowdControl( intersectionCount, streetList ).block(), streetsToBlock )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
