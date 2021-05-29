@@ -762,6 +762,13 @@ class UnionFind:
 		if self._merge( elementIdA, elementIdB ):
 			# Decrement the number of disjoint sets only if the merge step succeeds.
 			self.disjointSetCount -= 1
+			return True
+		return False
+
+	def find( self, elementIdA, elementIdB ):
+		if elementIdA not in self.uf or elementIdB not in self.uf:
+			return False
+		return self._representative( elementIdA ) == self._representative( elementIdB )
 
 	def __len__( self ):
 		# Return the number of disjoint sets.
@@ -5724,6 +5731,287 @@ class VinDiagramTest( unittest.TestCase ):
 
 			print( 'Testcase {} rows = {} cols = {} vinDiagramStats = {}'.format( testfile, rows, cols, vinDiagramStats ) )
 			self.assertEqual( VinDiagram( diagram ).analyze(), vinDiagramStats )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# UKIEPC2016 - "Problem E : Elegant Showroom"
+################################################################################
+
+class ElegantShowroom:
+	def __init__( self, areaMap ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = areaMap
+
+		self.carCell, self.doorCell, self.wallCell = 'cD#'
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def _isExit( self, location ):
+		r, c = location
+		return self.areaMap[ r ][ c ] == self.doorCell and ( r == 0 or r == self.rows - 1 or c == 0 or c == self.cols - 1 )
+
+	def moveFrom( self, carLocation ):
+		row, col = carLocation
+		location = row - 1, col - 1 # Convert to 0 based index.
+
+		q = deque()
+		q.append( (location, 1) )
+
+		visited = set()
+
+		while len( q ) > 0:
+			currentLocation, carsMoved = q.popleft()
+			if self._isExit( currentLocation ):
+				return carsMoved
+
+			if currentLocation in visited:
+				continue
+			visited.add( currentLocation )
+
+			u, v = currentLocation
+			for du, dv in self.adjacentCellDelta:
+				r, c = adjacentLocation = u + du, v + dv
+				if self.areaMap[ r ][ c ] == self.wallCell:
+					continue
+				if self.areaMap[ r ][ c ] == self.carCell:
+					q.append( (adjacentLocation, carsMoved + 1) )
+				elif self.areaMap[ r ][ c ] == self.doorCell:
+					q.appendleft( (adjacentLocation, carsMoved) )
+
+class ElegantShowroomTest( unittest.TestCase ):
+	def test_ElegantShowroom( self ):
+		for testfile in getTestFileList( tag='elegant' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/elegant/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/elegant/{}.ans'.format( testfile ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			areaMap = [ readString( inputFile ) for _ in range( rows ) ]
+			r, c = readIntegers( inputFile )
+			carLocation = r, c
+
+			carsMoved = readInteger( solutionFile )
+
+			formatString = 'Testcase {} rows = {} cols = {} carLocation = [{}, {}] carsMoved = {}'
+			print( formatString.format( testfile, rows, cols, r, c, carsMoved ) )
+
+			self.assertEqual( ElegantShowroom( areaMap ).moveFrom( carLocation ), carsMoved )
+
+	def test_ElegantShowroom_Sample( self ):
+		areaMap = [
+		'#####',
+		'#cDc#',
+		'#c#cD',
+		'#####'
+		]
+		self.assertEqual( ElegantShowroom( areaMap ).moveFrom( (3, 2) ), 4 )
+
+		areaMap = [
+		'##########',
+		'#cc#ccccc#',
+		'#cc#cccccD',
+		'#cccccccc#',
+		'########c#',
+		'#cccccccc#',
+		'###cccccc#',
+		'#c#cccccc#',
+		'#cccccccc#',
+		'##########'
+		]
+		self.assertEqual( ElegantShowroom( areaMap ).moveFrom( (2, 2) ), 11 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# RockyMountain2014 - "Problem F : Landline Telephone Network"
+################################################################################
+
+class Landline:
+	def __init__( self, buildingCount, connectionList, insecureBuildingList ):
+		self.buildingCount = buildingCount
+		self.connectionList = list()
+		for (building1, building2, cost) in connectionList:
+			self.connectionList.append( (cost, building1, building2) )
+		self.insecureBuildings = set( insecureBuildingList )
+
+	def go( self ):
+		if self.buildingCount == 2 and len( self.connectionList ) == 1:
+			# Special case when there is only one connection between two buildings.
+			# The totalCost is the same even when both buildings are insecure.
+			totalCost, _, _ = self.connectionList.pop()
+			return totalCost
+
+		heapq.heapify( self.connectionList )
+
+		uf = UnionFind()
+		edgesAdded = 0
+		connectedInsecureBuildings = set()
+		totalCost = 0
+
+		while edgesAdded < self.buildingCount - 1 and len( self.connectionList ) > 0:
+			cost, building1, building2 = heapq.heappop( self.connectionList )
+			# If both buildings are insecure, we cannot consider this connection.
+			if building1 in self.insecureBuildings and building2 in self.insecureBuildings:
+				continue
+			# If either building is an insecure building which is already connected, then we cannot consider
+			# this connection.
+			if building1 in connectedInsecureBuildings or building2 in connectedInsecureBuildings:
+				continue
+
+			if not uf.find( building1, building2 ):
+				uf.merge( building1, building2 )
+				edgesAdded += 1
+				totalCost += cost
+			if building1 in self.insecureBuildings:
+				connectedInsecureBuildings.add( building1 )
+			if building2 in self.insecureBuildings:
+				connectedInsecureBuildings.add( building2 )
+
+		# Did we add the requisite number of edges ? (which is the number of buildings - 1)
+		if edgesAdded != self.buildingCount - 1:
+			return 'impossible'
+		return totalCost
+
+class LandlineTest( unittest.TestCase ):
+	def test_Landline( self ):
+		for testfile in getTestFileList( tag='landline' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/landline/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/landline/{}.out'.format( testfile ) ) as solutionFile:
+
+			buildingCount, connectionCount, insecureBuildingCount = readIntegers( inputFile )
+			insecureBuildingList = list( readIntegers( inputFile ) )
+			connectionList = list()
+			for _ in range( connectionCount ):
+				building1, building2, cost = readIntegers( inputFile )
+				connectionList.append( (building1, building2, cost) )
+
+			totalCost = readString( solutionFile )
+			if totalCost != 'impossible':
+				totalCost = int( totalCost )
+
+			formatString = 'Testcase {} buildingCount = {} connectionCount = {} insecureBuildingCount = {} totalCost = {}'
+			print( formatString.format( testfile, buildingCount, connectionCount, insecureBuildingCount, totalCost ) )
+
+			self.assertEqual( Landline( buildingCount, connectionList, insecureBuildingList ).go(), totalCost )
+
+	def test_Landline_Sample( self ):
+		buildingCount = 4
+		connectionList = [ (1, 2, 1), (1, 3, 1), (1, 4, 1), (2, 3, 2), (2, 4, 4), (3, 4, 3) ]
+		insecureBuildingList = [ 1 ]
+		self.assertEqual( Landline( buildingCount, connectionList, insecureBuildingList ).go(), 6 )
+
+		buildingCount = 4
+		connectionList = [ (1, 2, 1), (2, 3, 7), (3, 4, 5) ]
+		insecureBuildingList = [ 1, 2 ]
+		self.assertEqual( Landline( buildingCount, connectionList, insecureBuildingList ).go(), 'impossible' )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Mid-CentralUSARegional2018.pdf - "Problem A : Treehouses"
+################################################################################
+
+class TreeHouses:
+	def __init__( self, treeHouseLocationList, cableList, closeToOpenLand ):
+		self.treeHouseLocationList = treeHouseLocationList
+		self.cableList = cableList
+		self.closeToOpenLand = closeToOpenLand
+
+	def go( self ):
+		uf = UnionFind()
+		uf.add( 0 ) # 0 represents open land !
+
+		edgesAdded = 0
+
+		i = 0
+		while i < self.closeToOpenLand: # Add treehouses which are close to the open land.
+			uf.merge( 0, i + 1 )
+			edgesAdded += 1
+			i += 1
+		for treehouse1, treehouse2 in self.cableList:
+			if uf.merge( treehouse1, treehouse2 ):
+				edgesAdded += 1
+
+		priorityQueue = list()
+		for i in range( len( self.treeHouseLocationList ) ):
+			for j in range( i + 1, len( self.treeHouseLocationList ) ):
+				x1, y1 = self.treeHouseLocationList[ i ]
+				x2, y2 = self.treeHouseLocationList[ j ]
+				length = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
+				priorityQueue.append( (length, i + 1, j + 1) )
+
+		heapq.heapify( priorityQueue )
+		totalLength = 0
+		
+		while edgesAdded < len( self.treeHouseLocationList ) and len( priorityQueue ) > 0:
+			length, treehouse1, treehouse2 = heapq.heappop( priorityQueue )
+			if not uf.find( treehouse1, treehouse2 ):
+				if uf.merge( treehouse1, treehouse2 ):
+					edgesAdded += 1
+				totalLength += math.sqrt( length )
+		return totalLength
+
+class TreeHousesTest( unittest.TestCase ):
+	def test_TreeHouses( self ):
+		for testfile in getTestFileList( tag='treehouses' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/treehouses/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/treehouses/{}.ans'.format( testfile ) ) as solutionFile:
+
+		     treeHouseCount, closeToOpenLand, numberOfCables = readIntegers( inputFile )
+		     treeHouseLocationList = list()
+		     for _ in range( treeHouseCount ):
+		     	x, y = readStrings( inputFile )
+		     	treeHouseLocationList.append( (float( x ), float( y )) )
+		     cableList = list()
+		     for _ in range( numberOfCables ):
+		     	treehouse1, treehouse2 = readIntegers( inputFile )
+		     	cableList.append( (treehouse1, treehouse2) )
+
+		     optimalCableLength = float( readString( solutionFile ) )
+		     cableLength = TreeHouses( treeHouseLocationList, cableList, closeToOpenLand ).go()
+
+		     formatString = 'Testcase {} treeHouseCount = {} numberOfCables = {} optimalCableLength = {} reportedLength = {}'
+		     print( formatString.format( testfile, treeHouseCount, numberOfCables, optimalCableLength, cableLength ) )
+		     self._compare( cableLength, optimalCableLength )
+
+	def test_TreeHouses_Sample( self ):
+		treeHouseCount, closeToOpenLand = 3, 1
+		treeHouseLocationList = [ (0.0, 0.0), (2.0, 0.0), (1.0, 2.0) ]
+		cableList = list()
+		self._compare( TreeHouses( treeHouseLocationList, cableList, closeToOpenLand ).go(), 4.236 )
+
+		treeHouseCount, closeToOpenLand = 3, 1
+		treeHouseLocationList = [ (0.0, 0.0), (0.5, 2.0), (2.5, 2.0) ]
+		cableList = [ (1, 2) ]
+		self._compare( TreeHouses( treeHouseLocationList, cableList, closeToOpenLand ).go(), 2.000 )
+
+		treeHouseCount, closeToOpenLand = 3, 2
+		treeHouseLocationList = [ (0.0, 0.0), (2.0, 0.0), (1.0, 2.0) ]
+		cableList = list()
+		self._compare( TreeHouses( treeHouseLocationList, cableList, closeToOpenLand ).go(), 2.236 )
+
+	def _compare( self, cableLength1, cableLength2 ):
+		assert abs( cableLength1 - cableLength2 ) < 0.001
 
 ################################################################################
 ################################################################################
