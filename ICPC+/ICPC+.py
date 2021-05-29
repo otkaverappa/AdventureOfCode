@@ -5463,5 +5463,271 @@ class GrapevineTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# EastCentralNorthAmericaRegionalContest2016 - "Problem D: Lost in Translation"
+################################################################################
+
+class LostInTranslation:
+	def __init__( self, languageList, translatorList ):
+		self.languageToIdDict = dict()
+		self.languageToIdDict[ 'English' ] = 0
+		for index, language in enumerate( languageList ):
+			self.languageToIdDict[ language ] = index + 1
+		
+		self.translatorList = [ list() for _ in range( len( languageList ) + 1 ) ]
+		for language1, language2, cost in translatorList:
+			i, j = self.languageToIdDict[ language1 ], self.languageToIdDict[ language2 ]
+			self.translatorList[ i ].append( (j, cost) )
+			self.translatorList[ j ].append( (i, cost) )
+
+	def translate( self ):
+		totalCost = 0
+		intermediateSteps, cost, languageId = 0, 0, 0 # languageId is 0 for 'English'
+
+		q = list()
+		q.append( ( (intermediateSteps, cost), languageId) )
+
+		costDict = dict()
+		costDict[ languageId ] = (intermediateSteps, cost)
+
+		while len( q ) > 0:
+			(intermediateSteps, cost), languageId = heapq.heappop( q )
+			if costDict[ languageId ] < (intermediateSteps, cost):
+				continue
+			for (conversionLanguageId, additionalCost) in self.translatorList[ languageId ]:
+				newCost = intermediateSteps + 1, additionalCost
+				if conversionLanguageId not in costDict or costDict[ conversionLanguageId ] > newCost:
+					costDict[ conversionLanguageId ] = newCost
+					heapq.heappush( q, (newCost, conversionLanguageId) )
+			totalCost += cost
+		if len( costDict ) != len( self.languageToIdDict ):
+			return 'Impossible'
+		return totalCost
+
+class LostInTranslationTest( unittest.TestCase ):
+	def test_LostInTranslation_Sample( self ):
+		languageList = [ 'Pashto', 'French', 'Amheric', 'Swedish' ]
+		translatorList = [
+		('English', 'Pashto', 1), ('English', 'French', 1), ('English', 'Amheric', 5),
+		('Pashto', 'Amheric', 1), ('Amheric', 'Swedish', 5), ('French', 'Swedish', 1)
+		]
+		self.assertEqual( LostInTranslation( languageList, translatorList ).translate(), 8 )
+
+		languageList = [ 'A', 'B' ]
+		translatorList = [ ('English', 'B', 1) ]
+		self.assertEqual( LostInTranslation( languageList, translatorList ).translate(), 'Impossible' )
+
+	def test_LostInTranslation( self ):
+		for testfile in getTestFileList( tag='lostintranslation' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/lostintranslation/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/lostintranslation/{}.ans'.format( testfile ) ) as solutionFile:
+
+		     numberOfLanguages, numberOfTranslators = readIntegers( inputFile )
+		     languageList = list( readStrings( inputFile ) )
+		     translatorList = list()
+		     for _ in range( numberOfTranslators ):
+		     	language1, language2, cost = readStrings( inputFile )
+		     	translatorList.append( (language1, language2, int( cost ) ) )
+
+		     totalCost = readString( solutionFile )
+		     if totalCost != 'Impossible':
+		     	totalCost = int( totalCost )
+
+		     formatString = 'Testcase {} Number of languages, translators = {}, {} [{}]'
+		     print( formatString.format( testfile, numberOfLanguages, numberOfTranslators, totalCost ) )
+		     self.assertEqual( LostInTranslation( languageList, translatorList ).translate(), totalCost )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# EastCentralNorthAmericaRegionalContest2016 - "Problem H : Vin Diagrams"
+################################################################################
+
+class VinDiagram:
+	def __init__( self, diagram ):
+		self.rows, self.cols = len( diagram ), len( diagram[ 0 ] )
+		self.diagram = [ list( diagramRow ) for diagramRow in diagram ]
+
+		self.emptyCell, self.cellX, self.cellA, self.cellB = '.XAB'
+		self.intersectionMarker = 'I'
+		self.colorWhite = '~' # We will color the empty cells outside the Vin Diagram with "White" !
+		self.colorRed = '*' # We will color the empty cells inside the Vin Diagram with "Red" !
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+		self.locationA = self.locationB = None
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			cellType = self.diagram[ row ][ col ]
+			if cellType == self.cellA:
+				self.locationA = row, col
+				self.diagram[ row ][ col ] = self.cellX # Replace cellA with cellX so that _floodFillBoundary() becomes simpler.
+			elif cellType == self.cellB:
+				self.locationB = row, col
+				self.diagram[ row ][ col ] = self.cellX
+
+			cellXCount = 0
+			for du, dv in self.adjacentCellDelta:
+				r, c = location = row + du, col + dv
+				if self._isWithInDiagram( location ) and self.diagram[ r ][ c ] == self.cellX:
+					cellXCount += 1
+			if cellType == self.cellX and cellXCount == 4:
+				# We have found an intersection ! Mark it as such.
+				self.diagram[ row ][ col ] = self.intersectionMarker
+
+	def _isWithInDiagram( self, location ):
+		r, c = location
+		return 0 <= r < self.rows and 0 <= c < self.cols
+
+	def _floodFillBoundary( self, location, fillCell ):
+		stack = list()
+		stack.append( location )
+
+		while len( stack ) > 0:
+			u, v = location = stack.pop()
+			if self.diagram[ u ][ v ] == fillCell:
+				continue
+			self.diagram[ u ][ v ] = fillCell
+			for du, dv in self.adjacentCellDelta:
+				r, c = adjacentLocation = u + du, v + dv
+				if not self._isWithInDiagram( adjacentLocation ):
+					continue
+				if self.diagram[ r ][ c ] == self.cellX:
+					stack.append( adjacentLocation )
+				elif self.diagram[ r ][ c ] == self.intersectionMarker:
+					# Get the location adjacent to the intersection marker !
+					# We don't need to check for (r1, c1) being outside the diagram, because
+					# the intersection marker shouldn't be present on the boundary.
+					r1, c1 = adjacentLocation = r + du, c + dv
+					if self.diagram[ r1 ][ c1 ] == self.cellX:
+						stack.append( adjacentLocation )
+
+	def _getAdjacentCells( self, location ):
+		adjacentCellList = list()
+		u, v = location
+		for du, dv in self.adjacentCellDelta:
+			r, c = adjacentLocation = u + du, v + dv
+			if not self._isWithInDiagram( adjacentLocation ):
+				continue
+			adjacentCellList.append( (adjacentLocation, self.diagram[ r ][ c ]) )
+		return adjacentCellList
+
+	def _floodFill( self, location, cellType, fillCell, stopCellTypes ):
+		# We fill cells which contain the content "cellType" with "fillCell" (if fillCell is not None), and stop our exploration
+		# when we encounter cells of type "stopCellTypes".
+		stack = list()
+		stack.append( location )
+
+		visited = set()
+
+		reachedOutsideVin = False # Set to True, if we reach outside the Vin Diagram (which is colored White).
+		
+		while len( stack ) > 0:
+			u, v = location = stack.pop()			
+			
+			if location in visited:
+				continue
+			visited.add( location )
+
+			if fillCell is not None:
+				self.diagram[ u ][ v ] = fillCell
+
+			for adjacentLocation, cell in self._getAdjacentCells( location ):
+				if cell == cellType:
+					stack.append( adjacentLocation )
+				elif cell in stopCellTypes:
+					pass
+				else:
+					# We don't want to color the cell at "adjacentLocation", but we do want to explore
+					# cells that are adjacent to "adjacentLocation" and of type "cellType".
+					for newAdjacentLocation, cell in self._getAdjacentCells( adjacentLocation ):
+						if cell == cellType:
+							stack.append( newAdjacentLocation )
+						elif cell == self.colorWhite:
+							reachedOutsideVin = True
+		# Return the number of cells visited !
+		return len( visited ), reachedOutsideVin
+
+	def analyze( self ):
+		self._floodFillBoundary( self.locationA, self.cellA )
+		self._floodFillBoundary( self.locationB, self.cellB	)
+
+		# The empty cells outside the Vin Diagram are colored White.
+
+		for row, col in itertools.product( [ 0, self.rows - 1 ], range( self.cols ) ):
+			location = row, col
+			if self.diagram[ row ][ col ] == self.emptyCell:
+				self._floodFill( location, self.emptyCell, self.colorWhite, [ self.cellA, self.cellB ] )
+		
+		for row, col in itertools.product( range( self.rows ), [ 0, self.cols - 1 ] ):
+			location = row, col
+			if self.diagram[ row ][ col ] == self.emptyCell:
+				self._floodFill( location, self.emptyCell, self.colorWhite, [ self.cellA, self.cellB ] )
+
+		countsList = list()
+		locationList = list()
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			location = row, col
+			if self.diagram[ row ][ col ] == self.emptyCell:
+				count, _ = self._floodFill( location, self.emptyCell, self.colorRed, [ self.cellA, self.cellB ] )
+				countsList.append( count  )
+				locationList.append( location )
+
+		areaExclusiveA = areaExclusiveB = areaOfIntersection = None
+		for location in locationList:
+			count, reachedOutsideVin = self._floodFill( location, self.colorRed, None, [ self.cellA ] )
+			if reachedOutsideVin:
+				areaExclusiveB = count
+			count, reachedOutsideVin = self._floodFill( location, self.colorRed, None, [ self.cellB ] )
+			if reachedOutsideVin:
+				areaExclusiveA = count
+
+		assert areaExclusiveA is not None and areaExclusiveB is not None
+		countsList.remove( areaExclusiveA )
+		countsList.remove( areaExclusiveB )
+		areaOfIntersection = countsList.pop()
+		return (areaExclusiveA, areaExclusiveB, areaOfIntersection)
+
+class VinDiagramTest( unittest.TestCase ):
+	def test_VinDiagram_Sample( self ):
+		diagram = [
+		'AXXXX..',
+		'X...X..',
+		'X.XXXXX',
+		'X.X.X.X',
+		'XXXXX.X',
+		'..X...X',
+		'..XXXXB'
+		]
+		self.assertEqual( VinDiagram( diagram ).analyze(), (5, 5, 1) )
+
+	def test_VinDiagram( self ):
+		for testfile in getTestFileList( tag='vin' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/vin/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/vin/{}.ans'.format( testfile ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			diagram = [ readString( inputFile ) for _ in range( rows ) ]
+
+			vinDiagramStats = tuple( readIntegers( solutionFile ) )
+
+			print( 'Testcase {} rows = {} cols = {} vinDiagramStats = {}'.format( testfile, rows, cols, vinDiagramStats ) )
+			self.assertEqual( VinDiagram( diagram ).analyze(), vinDiagramStats )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
