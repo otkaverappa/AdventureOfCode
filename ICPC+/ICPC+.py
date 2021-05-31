@@ -6177,5 +6177,135 @@ class EightQueensTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# RockyMountain2013_Problem_I_FloodIt
+################################################################################
+
+class FloodIt:
+	def __init__( self, boardData ):
+		self.boardSize = len( boardData )
+		self.boardData = [ list( boardDataRow ) for boardDataRow in boardData ]
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+		self.tokens = '123456'
+		self.visitedSetCache = dict()
+
+		origin = (0, 0)
+		self.connectedToOrigin = set( [ origin ] )
+		self.bootstrapFillToken = self.boardData[ 0 ][ 0 ]
+		self._floodFillSimulate( self.bootstrapFillToken )
+		self._floodFillApply( self.bootstrapFillToken )
+
+	def _isOutside( self, location ):
+		r, c = location
+		return r < 0 or r >= self.boardSize or c < 0 or c >= self.boardSize
+
+	def _floodFillApply( self, fillToken ):
+		for row, col in self.visitedSetCache[ fillToken ]:
+			self.boardData[ row ][ col ] = fillToken
+		self.connectedToOrigin.update( self.visitedSetCache[ fillToken ] )
+
+	def _floodFillSimulate( self, fillToken ):
+		stack = list( self.connectedToOrigin )
+
+		visited = set()
+		visited.update( self.connectedToOrigin )
+		
+		while len( stack ) > 0:
+			u, v = currentLocation = stack.pop()
+			for du, dv in self.adjacentCellDelta:
+				r, c = newLocation = u + du, v + dv
+				if self._isOutside( newLocation ) or newLocation in visited:
+					continue
+				if self.boardData[ r ][ c ] == fillToken:
+					visited.add( newLocation )
+					stack.append( newLocation )
+		self.visitedSetCache[ fillToken ] = visited
+		return len( visited )
+
+	def analyze( self ):
+		count = 0
+		frequencyList = [ 0 for _ in range( len( self.tokens ) ) ]
+
+		# Initial fill token
+		fillToken = self.bootstrapFillToken
+		while len( self.connectedToOrigin ) != self.boardSize * self.boardSize:
+			fillOptionsList = list()
+			for index, possibleFillToken in enumerate( self.tokens ):
+				if possibleFillToken == fillToken:
+					fillOptionsList.append( (0, - index) )
+				else:
+					fillOptionsList.append( (self._floodFillSimulate( possibleFillToken ), - index ) )
+			size, index = max( fillOptionsList )
+			fillToken = self.tokens[ - index ]
+			self._floodFillApply( fillToken )
+			count += 1
+			frequencyList[ self.tokens.index( fillToken ) ] += 1
+		return (count, frequencyList)
+
+class FloodItTest( unittest.TestCase ):
+	def test_FloodIt_Sample( self ):
+		boardData = [
+		'123423',
+		'334521',
+		'433123',
+		'543621',
+		'324343',
+		'234156'
+		]
+		self.assertEqual( FloodIt( boardData ).analyze(), (12, [ 2, 2, 4, 2, 1, 1 ]) )
+
+		boardData = [
+		'12121',
+		'21212',
+		'12121',
+		'21212',
+		'12121'
+		]
+		self.assertEqual( FloodIt( boardData ).analyze(), (8, [ 4, 4, 0, 0, 0, 0 ]) )
+
+		boardData = [
+		'12345',
+		'12345',
+		'12345',
+		'12345',
+		'12345'
+		]
+		self.assertEqual( FloodIt( boardData ).analyze(), (4, [ 0, 1, 1, 1, 1, 0 ]) )
+
+		boardData = [
+		'11131',
+		'12211',
+		'31311',
+		'21111',
+		'11111'
+		]
+		self.assertEqual( FloodIt( boardData ).analyze(), (4, [ 1, 2, 1, 0, 0, 0 ]) )
+
+	def test_FloodIt( self ):
+		for testfile in getTestFileList( tag='floodit' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/floodit/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/floodit/{}.out'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				boardSize = readInteger( inputFile )
+				boardData = [ readString( inputFile ) for _ in range( boardSize ) ]
+
+				moves = readInteger( solutionFile )
+				moveInfoList = list( readIntegers( solutionFile ) )
+
+				print( 'Testcase {}#{} boardSize = {} Total moves = {}'.format( testfile, index + 1, boardSize, moves ) )
+				self.assertEqual( FloodIt( boardData ).analyze(), (moves, moveInfoList) )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
