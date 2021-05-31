@@ -6100,5 +6100,82 @@ class SecurityBadgeTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# ICPC_2014_NorthAmerican_Qualification - "Problem A : Eight Queens"
+################################################################################
+
+class EightQueens:
+	def __init__( self, chessBoard ):
+		self.chessBoardSize = 8
+		self.queenCell = '*'
+		self.chessBoard = chessBoard
+		self.diagonalDelta = [ (1, 1), (1, -1), (-1, 1), (-1, -1) ]
+
+	def analyze( self ):
+		blockedRows = set()
+		blockedCols = set()
+		blockedCells = set()
+
+		count = 0
+		for row, col in itertools.product( range( self.chessBoardSize ), range( self.chessBoardSize ) ):
+			if self.chessBoard[ row ][ col ] == self.queenCell:
+				count += 1
+				if count > self.chessBoardSize or row in blockedRows or col in blockedCols or (row, col) in blockedCells:
+					return 'invalid'
+				blockedRows.add( row )
+				blockedCols.add( col )
+				for du, dv in self.diagonalDelta:
+					r, c = row, col
+					while 0 <= r < self.chessBoardSize and 0 <= c < self.chessBoardSize:
+						blockedCells.add( (r, c) )
+						r, c = r + du,  c + dv 
+		return 'valid' if count == self.chessBoardSize else 'invalid'
+
+class EightQueensTest( unittest.TestCase ):
+	def test_EightQueens( self ):
+		for testfile in getTestFileList( tag='eightqueens' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/eightqueens/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/eightqueens/{}.ans'.format( testfile ) ) as solutionFile:
+
+			chessBoard = [ readString( inputFile ) for _ in range( 8 ) ]
+			state = readString( solutionFile )
+
+			print( 'Testcase {} [{}]'.format( testfile, state ) )
+			self.assertEqual( EightQueens( chessBoard ).analyze(), state )
+
+	def test_EightQueens_Sample( self ):
+		chessBoard = [
+		'*.......',
+		'..*.....',
+		'....*...',
+		'......*.',
+		'.*......',
+		'.......*',
+		'.....*..',
+		'...*....'
+		]
+		self.assertEqual( EightQueens( chessBoard ).analyze(), 'invalid' )
+
+		chessBoard = [
+		'*.......',
+		'......*.',
+		'....*...',
+		'.......*',
+		'.*......',
+		'...*....',
+		'.....*..',
+		'..*.....'
+		]
+		self.assertEqual( EightQueens( chessBoard ).analyze(), 'valid' )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
