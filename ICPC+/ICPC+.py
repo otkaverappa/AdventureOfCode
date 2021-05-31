@@ -523,7 +523,7 @@ class FireTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 ################################################################################
-# SWERC2014.pdf
+# SouthWesternEuropeanRegionalContest_2014.pdf - "Problem B : Flowery Trails"
 ################################################################################
 
 class FloweryTrails:
@@ -6012,6 +6012,89 @@ class TreeHousesTest( unittest.TestCase ):
 
 	def _compare( self, cableLength1, cableLength2 ):
 		assert abs( cableLength1 - cableLength2 ) < 0.001
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Mid-AtlanticRegional2017.pdf - "Problem B: Security Badge"
+################################################################################
+
+class SecurityBadge:
+	def __init__( self, roomCount, badgeCount, lockList ):
+		self.numberOfRooms = roomCount
+		self.badgeCount = badgeCount
+		self.network = [ list() for _ in range( roomCount + 1 ) ]
+		
+		self.boundaryBadgeIds = set()
+		for fromRoom, toRoom, badgeLow, badgeHigh in lockList:
+			self.network[ fromRoom ].append( (toRoom, badgeLow, badgeHigh) )
+			self.boundaryBadgeIds.add( badgeLow )
+			self.boundaryBadgeIds.add( badgeHigh + 1 )
+
+	def _search( self, badgeId, startRoom, targetRoom ):
+		stack = list()
+		stack.append( startRoom )
+
+		visited = set()
+		visited.add( startRoom )
+
+		while len( stack ) > 0:
+			currentRoom = stack.pop()
+			if currentRoom == targetRoom:
+				return True
+			for adjacentRoom, badgeLow, badgeHigh in self.network[ currentRoom ]:
+				if badgeLow <= badgeId <= badgeHigh and adjacentRoom not in visited:
+					visited.add( adjacentRoom )
+					stack.append( adjacentRoom )
+		return False
+
+	def go( self, startRoom, targetRoom ):
+		previousSearchSuccessful = False
+		previousBadgeId = None
+		
+		totalBadges = 0
+		for badgeId in sorted( self.boundaryBadgeIds ):
+			searchSuccessful = self._search( badgeId, startRoom, targetRoom )
+			if previousSearchSuccessful:
+				totalBadges += badgeId - previousBadgeId
+			previousSearchSuccessful, previousBadgeId = searchSuccessful, badgeId	
+		return totalBadges
+
+class SecurityBadgeTest( unittest.TestCase ):
+	def test_SecurityBadge_Sample( self ):
+		roomCount, badgeCount = 4, 10
+		lockList = [ (1, 2, 4, 7), (3, 1, 1, 6), (3, 4, 7, 10), (2, 4, 3, 5), (4, 2, 8, 9) ]
+		self.assertEqual( SecurityBadge( roomCount, badgeCount, lockList ).go( 3, 2 ), 5 )
+
+		roomCount, badgeCount = 4, 9
+		lockList = [ (1, 2, 3, 5), (1, 3, 6, 7), (1, 4, 2, 3), (2, 4, 4, 6), (3, 4, 7, 9) ]
+		self.assertEqual( SecurityBadge( roomCount, badgeCount, lockList ).go( 1, 4 ), 5 )
+
+	def test_SecurityBadge( self ):
+		for testfile in getTestFileList( tag='badge' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/badge/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/badge/{}.ans'.format( testfile ) ) as solutionFile:
+
+		     roomCount, lockCount, badgeCount = readIntegers( inputFile )
+		     startRoom, targetRoom = readIntegers( inputFile )
+		     lockList = list()
+		     for _ in range( lockCount ):
+		     	fromRoom, toRoom, badgeLow, badgeHigh = readIntegers( inputFile )
+		     	lockList.append( (fromRoom, toRoom, badgeLow, badgeHigh) )
+
+		     totalBadges = readInteger( solutionFile )
+
+		     formatString = 'Testcase {} roomCount = {} lockCount = {} badgeCount = {} totalBadges = {}'
+		     print( formatString.format( testfile, roomCount, lockCount, badgeCount, totalBadges ) )
+
+		     self.assertEqual( SecurityBadge( roomCount, badgeCount, lockList ).go( startRoom, targetRoom ), totalBadges )
 
 ################################################################################
 ################################################################################
