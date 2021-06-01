@@ -6424,5 +6424,55 @@ class FilenameMatchTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+# Bergen Open 2019 - "Problem B : Bus Ticket"
+################################################################################
+
+class BusTicket:
+	@staticmethod
+	def bestPrice( singleTripPrice, periodTripPrice, duration, tripDayList ):
+		priceList = [ 0 for _ in range( len( tripDayList ) + 1 ) ]
+		
+		for i, tripDay in enumerate( tripDayList ):
+			# Option A: Pay single trip cost for this day !
+			priceA = singleTripPrice + priceList[ i ]
+
+			# Option B: Pay a group price trip covering this day !
+			j = bisect.bisect_left( tripDayList, tripDay - duration + 1 )
+			priceB = periodTripPrice + priceList[ j ]
+
+			priceList[ i + 1 ] = min( priceA, priceB )
+
+		return priceList[ -1 ]
+
+class BusTicketTest( unittest.TestCase ):
+	def test_BusTicket_Sample( self ):
+		singleTripPrice, periodTripPrice, duration = 10, 25, 30
+		tripDayList = [ 0, 1, 2, 30, 30, 32 ]
+		self.assertEqual( BusTicket.bestPrice( singleTripPrice, periodTripPrice, duration, tripDayList ), 45 )
+
+	def test_BusTicket( self ):
+		for testfile in getTestFileList( tag='busticket' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/busticket/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/busticket/{}.ans'.format( testfile ) ) as solutionFile:
+
+			singleTripPrice, periodTripPrice, duration, tripDayCount = readIntegers( inputFile )
+			tripDayList = list( readIntegers( inputFile ) )
+
+			bestPrice = readInteger( solutionFile )
+
+			formatString = 'Testcase {} [{}, {}, {}] tripDayCount = {} bestPrice = {}'
+			print( formatString.format( testfile, singleTripPrice, periodTripPrice, duration, tripDayCount, bestPrice ) )
+
+			self.assertEqual( BusTicket.bestPrice( singleTripPrice, periodTripPrice, duration, tripDayList ), bestPrice )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
