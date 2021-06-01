@@ -6474,5 +6474,87 @@ class BusTicketTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# ICPC_2014_NorthAmerican_Qualification - "Problem H : Narrow Art Gallery"
+################################################################################
+
+class NarrowArtGallery:
+	def __init__( self, narrowGallery, tobeClosed ):
+		self.narrowGallery = narrowGallery
+		self.tobeClosed = tobeClosed
+		
+		self.mask_both_open = 0x0
+		self.mask_right_closed = 0x1
+		self.mask_left_closed = 0x2
+
+	def close( self ):
+		roomCount = len( self.narrowGallery )
+		table = [ [ [ - float( 'inf' ) for _ in range( 3 ) ] for _ in range( self.tobeClosed + 1 ) ] for _ in range( roomCount ) ]
+
+		# Initialization.
+		A, B = self.narrowGallery[ 0 ]
+		table[ 0 ][ 0 ][ self.mask_both_open ] = A + B
+		if self.tobeClosed > 0:
+			table[ 0 ][ 1 ][ self.mask_right_closed ] = A
+			table[ 0 ][ 1 ][ self.mask_left_closed ] = B
+
+		for index, (A, B) in enumerate( self.narrowGallery ):
+			if index == 0:
+				continue
+			for K in range( self.tobeClosed + 1 ):
+				roomNumber = index + 1
+				if K > roomNumber:
+					continue
+
+				# Option 1 : Both rooms are to be open. Close K rooms within roomNumber - 1.
+				table[ index ][ K ][ self.mask_both_open ] = max( table[ index - 1 ][ K ] ) + A + B
+				# Option 2 and 3 are applicable only if K > 0.
+				if K == 0:
+					continue
+				# Option 2 : Keep the right room closed. Close K - 1 rooms within roomNumber - 1.
+				table[ index ][ K ][ self.mask_right_closed ] = max( table[ index - 1 ][ K - 1 ][ self.mask_right_closed ],
+						                                             table[ index - 1 ][ K - 1 ][ self.mask_both_open ] ) + A
+				# Option 3 : Keep the left room closed. Close K - 1 rooms within roomNumber - 1.
+				table[ index ][ K ][ self.mask_left_closed ] = max( table[ index - 1 ][ K - 1 ][ self.mask_left_closed ],
+						                                            table[ index - 1 ][ K - 1 ][ self.mask_both_open ] ) + B
+
+		return max( table[ roomCount - 1 ][ self.tobeClosed ] )
+
+class NarrowArtGalleryTest( unittest.TestCase ):
+	def test_NarrowArtGallery_Sample( self ):
+		narrowGallery = [ (3, 1), (2, 1), (1, 2), (1, 3), (3, 3), (0, 0) ]
+		self.assertEqual( NarrowArtGallery( narrowGallery, 4 ).close(), 17 )
+
+		narrowGallery = [ (3, 4), (1, 1), (1, 1), (5, 6) ]
+		self.assertEqual( NarrowArtGallery( narrowGallery, 3 ).close(), 17 )
+
+		narrowGallery = [ (7, 8), (4, 9), (3, 7), (5, 9), (7, 2), (10, 3), (0, 10), (3, 2), (6, 3), (7, 9) ]
+		self.assertEqual( NarrowArtGallery( narrowGallery, 5 ).close(), 102 )
+
+	def test_NarrowArtGallery( self ):
+		for testfile in getTestFileList( tag='narrowartgallery' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/narrowartgallery/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/narrowartgallery/{}.ans'.format( testfile ) ) as solutionFile:
+
+			roomCount, tobeClosed = readIntegers( inputFile )
+			narrowGallery = list()
+			for _ in range( roomCount ):
+				A, B = readIntegers( inputFile )
+				narrowGallery.append( (A, B) )
+
+			maximumValue = readInteger( solutionFile )
+
+			print( 'Testcase {} roomCount = {} tobeClosed = {} Maximum value = {}'.format( testfile, roomCount, tobeClosed, maximumValue ) )
+			self.assertEqual( NarrowArtGallery( narrowGallery, tobeClosed ).close(), maximumValue )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
