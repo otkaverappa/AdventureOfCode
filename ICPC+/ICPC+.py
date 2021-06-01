@@ -6323,6 +6323,7 @@ class Debugging:
 			nonlocal timeTakenList
 			if timeTakenList[ L ] != float( 'inf' ):
 				return timeTakenList[ L ]
+			# Place j debugging statements ( 1 <= j < L ).
 			timeTaken = timeTakenForRun + min( [ j * timeTakenForAdd + calculate( math.ceil( L / ( j + 1 ) ) ) for j in range(1, L) ] )
 			timeTakenList[ L ] = timeTaken
 			return timeTaken
@@ -6354,6 +6355,70 @@ class DebuggingTest( unittest.TestCase ):
 			print( formatString.format( testfile, numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd, optimalTimeTaken ) )
 
 			self.assertEqual( Debugging.timeTaken( numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd ), optimalTimeTaken )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Nordic_Collegiate_Programming_Contest_2011 : "Problem E : ls"
+################################################################################
+
+class FilenameMatch:
+	@staticmethod
+	def match( pattern, filename ):
+		patternLength, filenameLength = len( pattern ), len( filename )
+
+		table = [ [ False for _ in range( patternLength + 1 ) ] for _ in range( filenameLength + 1 ) ]
+
+		# Empty pattern matches empty filename.
+		table[ 0 ][ 0 ] = True
+		if patternLength > 0 and pattern[ 0 ] == '*':
+			# Empty filename matches with '*'.
+			table[ 0 ][ 1 ] = True
+
+		for i in range( filenameLength ):
+			for j in range( patternLength ):
+				if pattern[ j ] == '*':
+					table[ i + 1 ][ j + 1 ] = table[ i ][ j ] or table[ i + 1 ][ j ] or table[ i ][ j + 1 ]
+				elif pattern[ j ] == filename[ i ]:
+					table[ i + 1 ][ j + 1 ] = table[ i ][ j ]
+				else:
+					table[ i + 1 ][ j + 1 ] = False
+		return table[ filenameLength ][ patternLength ]
+
+	@staticmethod
+	def matchFileNames( pattern, filenameList ):
+		return [ filename for filename in filenameList if FilenameMatch.match( pattern, filename ) ]
+
+class FilenameMatchTest( unittest.TestCase ):
+	def test_FilenameMatch_Sample( self ):
+		pattern = '*.*'
+		filenameList = [ 'main.c', 'a.out', 'readme', 'yacc' ]
+		self.assertEqual( FilenameMatch.matchFileNames( pattern, filenameList ), [ 'main.c', 'a.out' ] )
+
+		pattern = '*a*a*a'
+		filenameList = [ 'aaa', 'aaaaa', 'aaaaax', 'abababa' ]
+		self.assertEqual( FilenameMatch.matchFileNames( pattern, filenameList ), [ 'aaa', 'aaaaa', 'abababa' ] )
+
+	def test_FilenameMatch( self ):
+		for testfile in getTestFileList( tag='ls' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/ls/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/ls/{}.ans'.format( testfile ) ) as solutionFile:
+
+			pattern = readString( inputFile )
+			filenameCount = readInteger( inputFile )
+			filenameList = [ readString( inputFile ) for _ in range( filenameCount ) ]
+
+			matchFilenameList = readAllStrings( solutionFile )
+
+			print( 'Testcase {} pattern = [{}] Number of files = {}'.format( testfile, pattern, len( filenameList ) ) )
+			self.assertEqual( FilenameMatch.matchFileNames( pattern, filenameList ), matchFilenameList )
 
 ################################################################################
 ################################################################################
