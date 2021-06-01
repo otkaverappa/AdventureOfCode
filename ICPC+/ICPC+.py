@@ -6307,5 +6307,57 @@ class FloodItTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# NorthWesternEuropeanRegionalContest_2015 - "Problem D : Debugging"
+################################################################################
+
+class Debugging:
+	@staticmethod
+	def timeTaken( numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd ):
+		timeTakenList = [ float( 'inf' ) for _ in range( numberOfLinesOfCode + 1 ) ]
+		timeTakenList[ 1 ] = 0
+
+		def calculate( L ):
+			nonlocal timeTakenList
+			if timeTakenList[ L ] != float( 'inf' ):
+				return timeTakenList[ L ]
+			timeTaken = timeTakenForRun + min( [ j * timeTakenForAdd + calculate( math.ceil( L / ( j + 1 ) ) ) for j in range(1, L) ] )
+			timeTakenList[ L ] = timeTaken
+			return timeTaken
+		return calculate( numberOfLinesOfCode )
+
+class DebuggingTest( unittest.TestCase ):
+	def test_Debugging_Sample( self ):
+		numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd = 1, 100, 20
+		self.assertEqual( Debugging.timeTaken( numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd ), 0 )
+
+		numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd = 10, 10, 1
+		self.assertEqual( Debugging.timeTaken( numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd ), 19 )
+
+		numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd = 16, 1, 10
+		self.assertEqual( Debugging.timeTaken( numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd ), 44 )
+
+	def test_Debugging( self ):
+		for testfile in getTestFileList( tag='debugging' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/debugging/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/debugging/{}.ans'.format( testfile ) ) as solutionFile:
+
+			numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd = readIntegers( inputFile )
+			optimalTimeTaken = readInteger( solutionFile )
+
+			formatString = 'Testcase {} numberOfLinesOfCode = {} timeTakenForRun = {} timeTakenForAdd = {} optimalTimeTaken = {}'
+			print( formatString.format( testfile, numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd, optimalTimeTaken ) )
+
+			self.assertEqual( Debugging.timeTaken( numberOfLinesOfCode, timeTakenForRun, timeTakenForAdd ), optimalTimeTaken )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
