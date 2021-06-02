@@ -6692,5 +6692,142 @@ class WelcomeTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Watersheds.txt
+################################################################################
+
+class Watersheds:
+	def __init__( self, areaMap ):
+		self.areaMap = [ list( map( int, areaMapRow.split() ) ) for areaMapRow in areaMap ]
+		self.rows, self.cols = len( self.areaMap ), len( self.areaMap[ 0 ] )
+
+		# Order - North, West, East, South
+		self.adjacentCellDelta = [ (-1, 0), (0, -1), (0, 1), (1, 0) ]
+
+	def label( self ):
+		availableLabels = string.ascii_lowercase
+		nextLabelIndex = 0
+
+		self.labeledAreaMap = [ [ None for _ in range( self.cols ) ] for _ in range( self.rows ) ]
+
+		for flowLocation in itertools.product( range( self.rows ), range( self.cols ) ):
+			row, col = flowLocation
+			if self.labeledAreaMap[ row ][ col ] is not None:
+				# Already labeled cell.
+				continue
+			
+			visitedList = list()
+			labelToApply = None	
+			
+			while flowLocation is not None:
+				visitedList.append( flowLocation )
+				u, v = flowLocation
+				possibleFlowLocations = list()
+				newFlowLocation = None
+				for index, (du, dv) in enumerate( self.adjacentCellDelta ):
+					r, c = adjacentLocation = u + du, v + dv
+					if r < 0 or r >= self.rows or c < 0 or c >= self.cols:
+						continue
+					if self.areaMap[ u ][ v ] > self.areaMap[ r ][ c ]:
+						possibleFlowLocations.append( (self.areaMap[ r ][ c ], index, adjacentLocation) )
+				if len( possibleFlowLocations ) > 0:
+					_, _, (r, c) = min( possibleFlowLocations )
+					if self.labeledAreaMap[ r ][ c ] is not None:
+						labelToApply = self.labeledAreaMap[ r ][ c ]
+					else:
+						newFlowLocation = r, c
+				flowLocation = newFlowLocation
+			
+			if labelToApply is None:
+				labelToApply = availableLabels[ nextLabelIndex ]
+				nextLabelIndex += 1
+			for u, v in visitedList:
+				self.labeledAreaMap[ u ][ v ] = labelToApply
+
+		return [ ' '.join( areaMapRow ) for areaMapRow in self.labeledAreaMap ]
+
+class WatershedsTest( unittest.TestCase ):
+	def test_Watersheds( self ):
+		for testfile in getTestFileList( tag='watersheds' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/watersheds/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/watersheds/{}.out'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				rows, cols = readIntegers( inputFile )
+				areaMap = [ readString( inputFile ) for _ in range( rows ) ]
+
+				readString( solutionFile )
+				watershed = [ readString( solutionFile ) for _ in range( rows ) ]
+
+				print( 'Testcase {}#{} rows = {} cols = {}'.format( testfile, index + 1, rows, cols ) )
+				self.assertEqual( Watersheds( areaMap ).label(), watershed )
+
+	def test_Watersheds_Sample( self ):
+		areaMap = [
+		'9 6 3',
+		'5 9 6',
+		'3 5 9'
+		]
+		watershed = [
+		'a b b',
+		'a a b',
+		'a a a'
+		]
+		self.assertEqual( Watersheds( areaMap ).label(), watershed )
+
+		areaMap = [
+		'0 1 2 3 4 5 6 7 8 7'
+		]
+		watershed = [
+		'a a a a a a a a a b'
+		]
+		self.assertEqual( Watersheds( areaMap ).label(), watershed )
+
+		areaMap = [
+		'7 6 7',
+		'7 6 7'
+		]
+		watershed = [
+		'a a a',
+		'b b b'
+		]
+		self.assertEqual( Watersheds( areaMap ).label(), watershed )
+
+		areaMap = [
+		'1 2 3 4 5',
+		'2 9 3 9 6',
+		'3 3 0 8 7',
+		'4 9 8 9 8',
+		'5 6 7 8 9'
+		]
+		watershed = [
+		'a a a a a',
+		'a a b b a',
+		'a b b b a',
+		'a b b b a',
+		'a a a a a'
+		]
+		self.assertEqual( Watersheds( areaMap ).label(), watershed )
+
+		areaMap = [
+		'8 8 8 8 8 8 8 8 8 8 8 8 8',
+		'8 8 8 8 8 8 8 8 8 8 8 8 8'
+		]
+		watershed = [
+		'a b c d e f g h i j k l m',
+		'n o p q r s t u v w x y z'
+		]
+		self.assertEqual( Watersheds( areaMap ).label(), watershed )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
