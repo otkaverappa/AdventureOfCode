@@ -6556,5 +6556,86 @@ class NarrowArtGalleryTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# CodeWars2017.pdf
+# CodeWars 2017 - "Problem 20 : Yet Another Maze Solver"
+################################################################################
+
+class MazeSolver:
+	def __init__( self, mazeLayout ):
+		self.rows, self.cols = len( mazeLayout ), len( mazeLayout[ 0 ] )
+		self.mazeLayout = [ list( mazeLayoutRow ) for mazeLayoutRow in mazeLayout ]
+		
+		self.startCell, self.targetCell = '@', 'X'
+		self.blockedCells = set( '.\\/' )
+		self.openCell = ' '
+		self.pathCell = '*'
+
+		self.startLocation = self.targetLocation = None
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.mazeLayout[ row ][ col ] == self.startCell:
+				self.startLocation = row, col
+			elif self.mazeLayout[ row ][ col ] == self.targetCell:
+				self.targetLocation = row, col
+		self.adjacentCellDelta = list( itertools.product( [ -1, 0, 1 ], [ -1, 0, 1 ] ) )
+
+	def solve( self ):
+		q = deque()
+		q.append( self.startLocation )
+
+		visited = dict()
+		visited[ self.startLocation ] = None
+
+		while len( q ) > 0:
+			u, v = currentLocation = q.popleft()
+
+			if currentLocation == self.targetLocation:
+				break
+
+			for du, dv in self.adjacentCellDelta:
+				if du == dv == 0:
+					continue
+				r, c = adjacentLocation = u + du, v + dv
+				if r < 0 or r >= self.rows or c < 0 or c >= self.cols:
+					continue
+				if not self.mazeLayout[ r ][ c ]  in (self.openCell, self.targetCell):
+					continue
+				if adjacentLocation not in visited:
+					visited[ adjacentLocation ] = currentLocation
+					q.append( adjacentLocation )
+
+		# currentLocation is at the target. Retrace the steps and mark it with self.pathCell.
+		while currentLocation is not None:
+			r, c = currentLocation
+			if currentLocation not in (self.startLocation, self.targetLocation):
+				self.mazeLayout[ r ][ c ] = self.pathCell
+			currentLocation = visited[ currentLocation ]
+
+		return [ ''.join( mazeLayoutRow ) for mazeLayoutRow in self.mazeLayout ]
+
+class MazeSolverTest( unittest.TestCase ):
+	def test_MazeSolver( self ):
+		for testfile in getTestFileList( tag='mazesolver' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/mazesolver/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/mazesolver/{}.out'.format( testfile ) ) as solutionFile:
+
+			cols, rows = readIntegers( inputFile )
+			mazeLayout = [ readString( inputFile ) for _ in range( rows ) ]
+			solvedMazeLayout = [ readString( solutionFile ) for _ in range( rows ) ]
+
+			print( 'Testcase {} rows = {} cols = {}'.format( testfile, rows, cols ) )
+			self.assertEqual( MazeSolver( mazeLayout ).solve(), solvedMazeLayout )
+			for mazeLayoutRow in solvedMazeLayout:
+				print( mazeLayoutRow )
+
+################################################################################
+################################################################################
+################################################################################
+			
 if __name__ == '__main__':
 	unittest.main()
