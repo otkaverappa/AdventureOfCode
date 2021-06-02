@@ -6636,6 +6636,61 @@ class MazeSolverTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 ################################################################################
-			
+
+################################################################################
+################################################################################
+################################################################################
+# WelcomeToCodeJam.txt
+################################################################################
+
+class Welcome:
+	def __init__( self, inputString ):
+		self.inputString = inputString
+
+		self.searchString = 'welcome to code jam'
+		self.countList = [ 0 for _ in range( len( self.searchString ) ) ]
+		self.characterIndexDict = defaultdict( lambda : list() )
+		for index, character in enumerate( self.searchString ):
+			self.characterIndexDict[ character ].append( index )
+
+	def count( self ):
+		for character in self.inputString:
+			for index in self.characterIndexDict[ character ]:
+				if index == 0:
+					self.countList[ index ] += 1
+				else:
+					self.countList[ index ] += self.countList[ index - 1 ]
+		_count = self.countList[ -1 ]
+		# We want only 4 least significant digits. If _count <= 999, then we
+		# need to fill zeroes so that the result has 4 characters.
+		return str( _count )[ -4 : ].zfill( 4 )
+
+class WelcomeTest( unittest.TestCase ):
+	def test_Welcome_Sample( self ):
+		self.assertEqual( Welcome( 'elcomew elcome to code jam' ).count(), '0001' )
+		self.assertEqual( Welcome( 'wweellccoommee to code qps jam' ).count(), '0256' )
+		self.assertEqual( Welcome( 'welcome to codejam' ).count(), '0000' )
+
+	def test_Welcome( self ):
+		for testfile in getTestFileList( tag='welcome' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/welcome/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/welcome/{}.out'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				inputString = readString( inputFile )
+				state = readString( solutionFile )
+				_, _, count = state.split()
+
+				self.assertEqual( Welcome( inputString ).count(), count )
+				print( 'Testcase {}#{} inputString length = [{}] count = {}'.format( testfile, index + 1, len( inputString ), count ) )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
