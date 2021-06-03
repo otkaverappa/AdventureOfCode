@@ -6829,5 +6829,467 @@ class WatershedsTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+class RobotInMaze:
+	def __init__( self, areaMap ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = areaMap
+
+		self.startCell, self.blackCell, self.targetCell, self.emptyCell = 'RBD.'
+
+		self.startLocation = None
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.areaMap[ row ][ col ] == self.startCell:
+				self.startLocation = row, col
+				break
+
+		self.directionDelta = {
+		'N' : (-1, 0), 'S' : (1, 0), 'E' : (0, 1), 'W' : (0, -1)
+		}
+		self.oppositeDirection = {
+		'N' : 'S', 'S' : 'N', 'E' : 'W', 'W' : 'E', None : None
+		}
+		self.searchFail = -1
+
+	def search( self ):
+		startState = self.startLocation, None, None
+		
+		q = deque()
+		q.append( startState )
+
+		visited = set()
+		visited.add( startState )
+
+		stepCount = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentLocation, A, B = q.popleft()
+				u, v = currentLocation
+
+				if self.areaMap[ u ][ v ] == self.targetCell:
+					return stepCount
+
+				for direction, (du, dv) in self.directionDelta.items():
+					r, c = newLocation = u + du, v + dv
+					if r < 0 or r >= self.rows or c < 0 or c >= self.cols:
+						continue
+					if self.areaMap[ r ][ c ] == self.blackCell:
+						continue
+					if A == B == direction:
+						continue
+					if direction == self.oppositeDirection[ A ]:
+						continue
+					newState = newLocation, direction, A
+					if newState not in visited:
+						visited.add( newState )
+						q.append( newState )
+			stepCount += 1
+		return self.searchFail
+
+class RobotInMazeTest( unittest.TestCase ):
+	def test_RobotInMaze_Sample( self ):
+		areaMap = [
+		'....D.',
+		'.R.B..',
+		'...B..',
+		'......',
+		'......'
+		]
+		self.assertEqual( RobotInMaze( areaMap ).search(), 4 )
+
+		areaMap = [
+		'....D.',
+		'.RBB..',
+		'...B..',
+		'......',
+		'......'
+		]
+		self.assertEqual( RobotInMaze( areaMap ).search(), 10 )
+
+		areaMap = [
+		'R...D',
+		'BB.BB',
+		'.....',
+		'.....'
+		]
+		self.assertEqual( RobotInMaze( areaMap ).search(), 14 )
+
+		areaMap = [
+		'...D',
+		'RBB.',
+		'..B.'
+		]
+		self.assertEqual( RobotInMaze( areaMap ).search(), -1 )
+
+class EnterprisingEscape:
+	def __init__( self, shipClassList, areaMap ):
+		self.classToDurationDict = dict()
+		for (shipLabel, duration) in shipClassList:
+			self.classToDurationDict[ shipLabel ] = duration
+		
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = areaMap
+
+		self.startLocation = None
+		self.enterpriseCell = 'E'
+		self.classToDurationDict[ self.enterpriseCell ] = float( 'inf' )
+
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.areaMap[ row ][ col ] == self.enterpriseCell:
+				self.startLocation = row, col
+				break
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def _isOnBoundary( self, location ):
+		r, c = location
+		return r in (0, self.rows - 1) or c in (0, self.cols - 1)
+
+	def escape( self ):
+		q = list()
+		q.append( (0, self.startLocation) )
+
+		durationDict = dict()
+		durationDict[ self.startLocation ] = 0
+
+		while len( q ) > 0:
+			duration, currentLocation = heapq.heappop( q )
+			if self._isOnBoundary( currentLocation ):
+				return duration
+
+			if currentLocation in durationDict and durationDict[ currentLocation ] < duration:
+				continue
+
+			u, v = currentLocation
+			for du, dv in self.adjacentCellDelta:
+				r, c = newLocation = u + du, v + dv
+				shipLabel = self.areaMap[ r ][ c ]
+				newDuration = duration + self.classToDurationDict[ shipLabel ]
+
+				if newLocation not in durationDict or durationDict[ newLocation ] > newDuration:
+					durationDict[ newLocation ] = newDuration
+					heapq.heappush( q, (newDuration, newLocation) )
+
+class EnterprisingEscapeTest( unittest.TestCase ):
+	def test_EnterprisingEscape( self ):
+		for testfile in getTestFileList( tag='enterprisingescape' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/enterprisingescape/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/enterprisingescape/{}.out'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				shipClasses, cols, rows = readIntegers( inputFile )
+
+				shipClassList = list()
+				for _ in range( shipClasses ):
+					shipLabel, duration = readString( inputFile ).split()
+					shipClassList.append( (shipLabel, int( duration )) )
+				areaMap = [ readString( inputFile ) for _ in range( rows ) ]
+
+				minimumDuration = readInteger( solutionFile )
+
+				print( 'Testcase {}#{} rows = {} cols = {} minimumDuration = {}'.format( testfile, index + 1, rows, cols, minimumDuration ) )
+				self.assertEqual( EnterprisingEscape( shipClassList, areaMap ).escape(), minimumDuration )
+
+	def test_EnterprisingEscape_Sample( self ):
+		shipClassList = [ ('A', 1), ('B', 2), ('C', 3), ('D', 4), ('F', 5), ('G', 6) ]
+		areaMap = [
+		'ABC',
+		'FEC',
+		'DBG'
+		]
+		self.assertEqual( EnterprisingEscape( shipClassList, areaMap ).escape(), 2 )
+
+		shipClassList = [ ('A', 100), ('B', 1000) ]
+		areaMap = [
+		'BBBBBB',
+		'AAAAEB',
+		'BBBBBB'
+		]
+		self.assertEqual( EnterprisingEscape( shipClassList, areaMap ).escape(), 400 )
+
+class Wormhole:
+	def __init__( self, planetList, wormholeList ):
+		self.planetCount = len( planetList )
+		
+		self.planetList = list()
+		self.wormholes = set()
+		self.planetToInfoDict = dict()
+		
+		for index, planetInfo in enumerate( planetList ):
+			planetName, x, y, z = planetInfo.split()
+			self.planetList.append( planetName )
+			self.planetToInfoDict[ planetName ] = (index, int( x ), int( y ), int( z ))
+		
+		for wormholeInfo in wormholeList:
+			fromPlanet, toPlanet = wormholeInfo.split()
+			fromPlanetId, _, _, _ = self.planetToInfoDict[ fromPlanet ]
+			toPlanetId, _, _, _ = self.planetToInfoDict[ toPlanet ]
+			self.wormholes.add( (fromPlanetId, toPlanetId) )
+
+		self.distanceMatrix = [ [ float( 'inf' ) for _ in range( self.planetCount ) ] for _ in range( self.planetCount ) ]
+		self._populateDistanceMatrix()
+
+	def _populateDistanceMatrix( self ):
+		def euclideanDistance( planet1Id, planet2Id ):
+			planet1, planet2 = self.planetList[ planet1Id ], self.planetList[ planet2Id ]
+			_, x1, y1, z1 = self.planetToInfoDict[ planet1 ]
+			_, x2, y2, z2 = self.planetToInfoDict[ planet2 ]
+			distance = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) + (z2 - z1) * (z2 - z1)
+			return math.sqrt( distance )
+
+		for i, j in itertools.product( range( self.planetCount ), range( self.planetCount ) ):
+			if i == j or (i, j) in self.wormholes:
+				self.distanceMatrix[ i ][ j ] = 0
+			else:
+				self.distanceMatrix[ i ][ j ] = euclideanDistance( i, j )
+
+		for k in range( self.planetCount ):
+			for i, j in itertools.product( range( self.planetCount ), range( self.planetCount ) ):
+				self.distanceMatrix[ i ][ j ] = min( self.distanceMatrix[ i ][ j ], \
+					                                 self.distanceMatrix[ i ][ k ] + self.distanceMatrix[ k ][ j ] )
+
+	def query( self, queryList ):
+		def processQuery( queryString ):
+			fromPlanet, toPlanet = queryString.split()
+			
+			fromPlanetId, _, _, _ = self.planetToInfoDict[ fromPlanet ]
+			toPlanetId, _, _, _ = self.planetToInfoDict[ toPlanet ]
+			
+			distance = round( self.distanceMatrix[ fromPlanetId ][ toPlanetId ] )
+			return 'The distance from {} to {} is {} parsecs.'.format( fromPlanet, toPlanet, distance )
+		
+		return [ processQuery( queryString ) for queryString in queryList ]
+
+class WormholeTest( unittest.TestCase ):
+	def test_Wormhole( self ):
+		for testfile in getTestFileList( tag='wormhole' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/wormhole/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/wormhole/{}.out'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				planetCount = readInteger( inputFile )
+				planetList = [ readString( inputFile ) for _ in range( planetCount ) ]
+				wormholeCount = readInteger( inputFile )
+				wormholeList = [ readString( inputFile ) for _ in range( wormholeCount ) ]
+				queryCount = readInteger( inputFile )
+				queryList = [ readString( inputFile ) for _ in range( queryCount ) ]
+
+				readString( solutionFile ) # header is of the form "Case {number}:"
+				resultList = [ readString( solutionFile ) for _ in range( queryCount ) ]
+
+				formatString = 'Testcase {}#{} planets = {} wormholes = {} queries = {}'
+				print( formatString.format( testfile, index + 1, planetCount, wormholeCount, queryCount ) )
+
+				self.assertEqual( Wormhole( planetList, wormholeList ).query( queryList ), resultList )
+
+	def test_Wormhole_Sample( self ):
+		planetList = [ 'Earth 0 0 0', 'Proxima 5 0 0', 'Barnards 5 5 0', 'Sirius 0 5 0' ]
+		wormholeList = [ 'Earth Barnards' ,'Barnards Sirius' ]
+		queryList = [ 'Earth Proxima', 'Earth Barnards', 'Earth Sirius', 'Proxima Earth', 'Barnards Earth', 'Sirius Earth' ]
+		resultList = [
+		'The distance from Earth to Proxima is 5 parsecs.',
+		'The distance from Earth to Barnards is 0 parsecs.',
+		'The distance from Earth to Sirius is 0 parsecs.',
+		'The distance from Proxima to Earth is 5 parsecs.',
+		'The distance from Barnards to Earth is 5 parsecs.',
+		'The distance from Sirius to Earth is 5 parsecs.'
+		]
+		self.assertEqual( Wormhole( planetList, wormholeList ).query( queryList ), resultList )
+
+		planetList = [ 'z1 0 0 0', 'z2 10 10 10', 'z3 10 0 0' ]
+		wormholeList = [ 'z1 z2' ]
+		queryList = [ 'z2 z1', 'z1 z2', 'z1 z3' ]
+		resultList = [
+		'The distance from z2 to z1 is 17 parsecs.',
+		'The distance from z1 to z2 is 0 parsecs.',
+		'The distance from z1 to z3 is 10 parsecs.'
+		]
+		self.assertEqual( Wormhole( planetList, wormholeList ).query( queryList ), resultList )
+
+		planetList = [ 'Mars 12345 98765 87654', 'Jupiter 45678 65432 11111' ]
+		wormholeList = list()
+		queryList = [ 'Mars Jupiter' ]
+		resultList = [
+		'The distance from Mars to Jupiter is 89894 parsecs.'
+		]
+		self.assertEqual( Wormhole( planetList, wormholeList ).query( queryList ), resultList )
+
+################################################################################
+################################################################################
+################################################################################
+# Islands.pdf
+# 2016 ACM ICPC Southeast USA Regional Programming Contest
+################################################################################
+
+class Island:
+	def __init__( self, imageData ):
+		self.rows, self.cols = len( imageData ), len( imageData[ 0 ] )
+		self.imageData = imageData
+
+		self.cloudCell, self.landCell, self.waterCell = 'CLW'
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def minimumIslands( self ):
+		count = 0
+		visited = set()
+
+		for location in itertools.product( range( self.rows ), range( self.cols ) ):
+			u, v = location
+			if self.imageData[ u ][ v ] != self.landCell or location in visited:
+				continue
+			count += 1
+
+			stack = list()
+			stack.append( location )
+
+			visited.add( location )
+
+			while len( stack ) > 0:
+				currentLocation = u, v = stack.pop()
+				for  du, dv in self.adjacentCellDelta:
+					r, c = adjacentLocation = u + du, v + dv
+					if not 0 <= r < self.rows or not 0 <= c < self.cols:
+						continue
+					if self.imageData[ r ][ c ] == self.waterCell:
+						continue
+					if adjacentLocation not in visited:
+						visited.add( adjacentLocation )
+						stack.append( adjacentLocation )
+		return count
+
+class IslandTest( unittest.TestCase ):
+	def test_Island( self ):
+		for testfile in getTestFileList( tag='island' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/island/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/island/{}.ans'.format( testfile ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			imageData = [ readString( inputFile ) for _ in range( rows ) ]
+
+			minimumIslands = readInteger( solutionFile )
+
+			print( 'Testcase {} rows = {} cols = {} minimumIslands = {}'.format( testfile, rows, cols, minimumIslands ) )
+			self.assertEqual( Island( imageData ).minimumIslands(), minimumIslands )
+
+	def test_Island_Sample( self ):
+		imageData = [
+		'CCCCC',
+		'CCCCC',
+		'CCCCC',
+		'CCCCC'
+		]
+		self.assertEqual( Island( imageData ).minimumIslands(), 0 )
+
+		imageData = [
+		'LW',
+		'CC',
+		'WL'
+		]
+		self.assertEqual( Island( imageData ).minimumIslands(), 1 )
+
+################################################################################
+################################################################################
+################################################################################
+
+class HopScotch:
+	def __init__( self, tileMap, k ):
+		self.k = k
+		self.tileMap = [ list( map( int, tileMapRow.split() ) ) for tileMapRow in tileMap ]
+		self.rows, self.cols = len( self.tileMap ), len( self.tileMap[ 0 ] )
+
+	def hop( self ):
+		startTile, targetTile = 1, self.k
+
+		q = list()
+		distanceDict = dict()
+		
+		tileLocationMap = defaultdict( lambda : list() )
+		for u, v in itertools.product( range( self.rows ), range( self.cols ) ):
+			location = u, v
+			cell = self.tileMap[ u ][ v ]
+			if startTile <= cell <= targetTile:
+				tileLocationMap[ cell ].append( location )
+			if cell == startTile:
+				q.append( (0, location) )
+				distanceDict[ location ] = 0
+
+		if len( tileLocationMap ) != self.k:
+			return -1
+
+		while len( q ) > 0:
+			distance, currentLocation = heapq.heappop( q )
+			u, v = currentLocation
+
+			if self.tileMap[ u ][ v ] == targetTile:
+				return distance
+
+			if distance > distanceDict[ currentLocation ]:
+				continue
+
+			for jumpLocation in tileLocationMap[ self.tileMap[ u ][ v ] + 1 ]:
+				r, c = jumpLocation
+				newDistance = distance + abs( u - r ) + abs( v - c )
+				if jumpLocation not in distanceDict or distanceDict[ jumpLocation ] > newDistance:
+					distanceDict[ jumpLocation ] = newDistance
+					heapq.heappush( q, (newDistance, jumpLocation) )
+
+class HopScotchTest( unittest.TestCase ):
+	def test_HopScotch( self ):
+		for testfile in getTestFileList( tag='hopscotch' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/hopscotch/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/hopscotch/{}.ans'.format( testfile ) ) as solutionFile:
+
+			size, k = readIntegers( inputFile )
+			tileMap = [ readString( inputFile ) for _ in range( size ) ]
+
+			hopCount = readInteger( solutionFile )
+
+			print( 'Testcase {} size = {} k = {} hopCount = {}'.format( testfile, size, k, hopCount ) )
+			self.assertEqual( HopScotch( tileMap, k ).hop(), hopCount )
+
+	def test_HopScotch_Sample( self ):
+		tileMap = [
+		'5 1 3 4 2 4 2 1 2 1',
+		'4 5 3 4 1 5 3 1 1 4',
+		'4 2 4 1 5 4 5 2 4 1',
+		'5 2 1 5 5 3 5 2 3 2',
+		'5 5 2 3 2 3 1 5 5 5',
+		'3 4 2 4 2 2 4 4 2 3',
+		'1 5 1 1 2 5 4 1 5 3',
+		'2 2 4 1 2 5 1 4 3 5',
+		'5 3 2 1 4 3 5 2 3 1',
+		'3 4 2 5 2 5 3 4 4 2'
+		]
+		self.assertEqual( HopScotch( tileMap, 5 ).hop(), 5 )
+
+		tileMap = [
+		'5 1 5 4 1 2 2 4 5 2',
+		'4 2 1 4 1 1 1 5 2 5',
+		'2 2 4 4 4 2 4 5 5 4',
+		'2 4 4 5 5 5 2 5 5 2',
+		'2 2 4 4 4 5 4 2 4 4',
+		'5 2 5 5 4 1 2 4 4 4',
+		'4 2 1 2 4 4 1 2 4 5',
+		'1 2 1 1 2 4 4 1 4 5',
+		'2 1 2 5 5 4 5 2 1 1',
+		'1 1 2 4 5 5 5 5 5 5'
+		]
+		self.assertEqual( HopScotch( tileMap, 5 ).hop(), -1 )
+
 if __name__ == '__main__':
 	unittest.main()
