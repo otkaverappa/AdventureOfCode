@@ -7291,5 +7291,212 @@ class HopScotchTest( unittest.TestCase ):
 		]
 		self.assertEqual( HopScotch( tileMap, 5 ).hop(), -1 )
 
+################################################################################
+################################################################################
+################################################################################
+# ICPC_2014_NorthAmerican_Qualification - "Problem D : Flip Five"
+################################################################################
+
+class FlipFive:
+	def __init__( self, desiredState ):
+		self.numberOfCells = 9
+		self.adjacentCellDict = {
+		0 : [ 1, 3 ],
+		1 : [ 0, 2, 4 ],
+		2 : [ 1, 5 ],
+		3 : [ 0, 4, 6 ],
+		4 : [ 1, 3, 5, 7 ],
+		5 : [ 2, 4, 8 ],
+		6 : [ 3, 7 ],
+		7 : [ 4, 6, 8 ],
+		8 : [ 5, 7 ]
+		}
+		self.desiredState = ''.join( desiredState )
+		self.startState = '.' * self.numberOfCells
+		self.flipDict = {
+		'.' : '*', '*' : '.'
+		}
+
+	def flip( self ):
+		q = deque()
+		q.append( self.startState )
+
+		visited = set()
+		visited.add( self.startState )
+
+		count = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+				currentState = q.popleft()
+				
+				if currentState == self.desiredState:
+					return count
+				
+				for flipCellIndex in range( self.numberOfCells ):
+					characterList = list( currentState )
+					for cellIndex in self.adjacentCellDict[ flipCellIndex ] + [ flipCellIndex ]:
+						characterList[ cellIndex ] = self.flipDict[ characterList[ cellIndex ] ]
+					newState = ''.join( characterList )
+					if newState not in visited:
+						visited.add( newState )
+						q.append( newState )
+			count += 1
+		return None
+
+class FlipFiveTest( unittest.TestCase ):
+	def test_FlipFive( self ):
+		for testfile in getTestFileList( tag='flipfive' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/flipfive/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/flipfive/{}.ans'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				desiredState = [ readString( inputFile ) for _ in range( 3 ) ]
+				flipCount = readInteger( solutionFile )
+
+				print( 'Testcase {}#{} desiredState = {} flipCount = {}'.format( testfile, index + 1, ''.join( desiredState ), flipCount ) )
+				self.assertEqual( FlipFive( desiredState ).flip(), flipCount )
+
+	def test_FlipFive_Sample( self ):
+		desiredState = [
+		'*..',
+		'**.',
+		'*..'
+		]
+		self.assertEqual( FlipFive( desiredState ).flip(), 1 )
+
+		desiredState = [
+		'***',
+		'*..',
+		'..*'
+		]
+		self.assertEqual( FlipFive( desiredState ).flip(), 3 )
+
+################################################################################
+################################################################################
+################################################################################
+
+class Portals:
+	def __init__( self, areaMap ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = areaMap
+
+		self.emptyCell, self.wallCell, self.startCell, self.targetCell = '.#$&'
+		self.startLocation = self.targetLocation = None
+		self.portals = dict()
+
+		portalLocationDict = dict()
+		portalTokens = set( string.ascii_uppercase )
+		for location in itertools.product( range( self.rows ), range( self.cols ) ):
+			u, v = location
+			cell = self.areaMap[ u ][ v ]
+			
+			if cell == self.startCell:
+				self.startLocation = location
+			elif cell == self.targetCell:
+				self.targetLocation = location
+			elif cell in portalTokens:
+				# Match portal entry and exit.
+				# If the portal entry (or exit) is not present in portalLocationDict, add it with the current location.
+				# When the matching portal exit (or entry) is found, add the (entry, exit) pair in self.portals. 
+				if cell in portalLocationDict:
+					self.portals[ location ] = portalLocationDict[ cell ]
+					self.portals[ portalLocationDict[ cell ] ] = location
+				else:
+					portalLocationDict[ cell ] = location
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def steps( self ):
+		q = deque()
+		q.append( self.startLocation )
+
+		visited = set()
+		visited.add( self.startLocation )
+
+		stepCount = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentLocation = u, v = q.popleft()
+				if currentLocation == self.targetLocation:
+					return stepCount
+
+				adjacentLocations = list()
+				for du, dv in self.adjacentCellDelta:
+					r, c = currentLocation = u + du, v + dv
+					if not 0 <= r < self.rows or not 0 <= c < self.cols:
+						continue
+					cell = self.areaMap[ r ][ c ]
+					if cell == self.wallCell:
+						continue
+					adjacentLocations.append( currentLocation )
+					if currentLocation in self.portals:
+						adjacentLocations.append( self.portals[ currentLocation ] )
+				for adjacentLocation in adjacentLocations:
+					if adjacentLocation not in visited:
+						visited.add( adjacentLocation )
+						q.append( adjacentLocation )
+			stepCount += 1
+		return None
+
+class PortalsTest( unittest.TestCase ):
+	def test_Portals( self ):
+		for testfile in getTestFileList( tag='portals' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/portals/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/portals/{}.out'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				rows, cols = readIntegers( inputFile )
+				areaMap = [ readRawString( inputFile ) for _ in range( rows ) ]
+
+				stepCount = readInteger( solutionFile )
+
+				print( 'Testcase {}#{} rows = {} cols = {} stepCount = {}'.format( testfile, index + 1, rows, cols, stepCount ) )
+				self.assertEqual( Portals( areaMap ).steps(), stepCount )
+
+	def test_Portals_Sample( self ):
+		areaMap = [
+		'##########',
+		'#$.......#',
+		'#........#',
+		'#.....A..#',
+		'#........#',
+		'#..B.....#',
+		'#........#',
+		'#........#',
+		'#..A..B..#',
+		'#........#',
+		'#.......&#',
+		'##########'
+		]
+		self.assertEqual( Portals( areaMap ).steps(), 10 )
+
+		areaMap = [
+		'    ######',
+		'    #....#',
+		'    #....#',
+		'####..A..#',
+		'#........#',
+		'#..B.....#',
+		'#......#.#',
+		'#......#.#',
+		'#..A..B#.#',
+		'#...####.#',
+		'#.$.#  #&#',
+		'#####  ###'
+		]
+		self.assertEqual( Portals( areaMap ).steps(), 12 )
+
 if __name__ == '__main__':
 	unittest.main()
