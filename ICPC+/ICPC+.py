@@ -7768,5 +7768,130 @@ class RainbowRoadRaceTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# ICPC World Finals 2015 - "Problem F : Keyboarding"
+################################################################################
+
+class Keyboarding:
+	def __init__( self, keyLayout ):
+		self.rows, self.cols = len( keyLayout ), len( keyLayout[ 0 ] )
+		self.keyLayout = keyLayout
+		self.keyMap = [ [ list() for _ in range( self.cols ) ] for _ in range( self.rows ) ]
+
+		for u, v in itertools.product( range( self.rows ), range( self.cols ) ):
+			# Populate the "adjacent keys" for key at (u, v).
+			key = self.keyLayout[ u ][ v ]
+			for du, dv in [ (0, 1), (0, -1), (1, 0), (-1, 0) ]:
+				adjacentKeyLocation = None
+				r, c = u, v
+				while True:
+					r, c = r + du, c + dv
+					if not 0 <= r < self.rows or not 0 <= c < self.cols:
+						break
+					if self.keyLayout[ r ][ c ] != key:
+						adjacentKeyLocation = r, c
+						break
+				if adjacentKeyLocation is not None:
+					# Add a directional edge from (u, v) to adjacentLocation.
+					self.keyMap[ u ][ v ].append( adjacentKeyLocation )
+		self.enterKey = '*'
+
+	def type( self, stringToType ):
+		stringToType = stringToType + self.enterKey
+		startLocation = 0, 0
+
+		q = deque()
+		q.append( (startLocation, 0) )
+
+		visited = [ [ [ False for _ in range( len( stringToType ) + 1 ) ] for _ in range( self.cols ) ] for _ in range( self.rows ) ]
+		visited[ 0 ][ 0 ][ 0 ] = True
+
+		stepCount = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentLocation, currentIndex = q.popleft()
+				if currentIndex == len( stringToType ):
+					return stepCount
+
+				u, v = currentLocation
+				adjacentStateList = list()
+				# Press any of the arrow keys !
+				for adjacentKeyLocation in self.keyMap[ u ][ v ]:
+					adjacentStateList.append( (adjacentKeyLocation, currentIndex) )
+				# Press the "select" key if we are on the required character.
+				if stringToType[ currentIndex ] == self.keyLayout[ u ][ v ]:
+					adjacentStateList.append( (currentLocation, currentIndex + 1) )
+
+				for adjacentState in adjacentStateList:
+					(row, col), index = adjacentState
+					if not visited[ row ][ col ][ index ]:
+						visited[ row ][ col ][ index ] = True
+						q.append( adjacentState )
+			stepCount += 1
+		return None
+
+class KeyboardingTest( unittest.TestCase ):
+	def test_Keyboarding( self ):
+		for testfile in getTestFileList( tag='keyboard' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/keyboard/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/keyboard/{}.ans'.format( testfile ) ) as solutionFile:
+
+		     rows, cols = readIntegers( inputFile )
+		     keyLayout = [ readString( inputFile ) for _ in range( rows ) ]
+		     stringToType = readString( inputFile )
+
+		     steps = readInteger( solutionFile )
+
+		     formatString = 'Testcase {} Dimensions = {} x {} Length of the string to type = {} steps = {}'
+		     print( formatString.format( testfile, rows, cols, len( stringToType ), steps ) )
+
+		     self.assertEqual( Keyboarding( keyLayout ).type( stringToType ), steps )
+
+	def test_Keyboarding_Sample( self ):
+		keyLayout = [
+		'ABCDEFG',
+		'HIJKLMN',
+		'OPQRSTU',
+		'VWXYZ**'
+		]
+		self.assertEqual( Keyboarding( keyLayout ).type( 'CONTEST' ), 30 )
+
+		keyLayout = [
+		'12233445566778899000',
+		'QQWWEERRTTYYUUIIOOPP',
+		'-AASSDDFFGGHHJJKKLL*',
+		'--ZZXXCCVVBBNNMM--**',
+		'--------------------'
+		]
+		self.assertEqual( Keyboarding( keyLayout ).type( 'ACM-ICPC-WORLD-FINALS-2015' ), 160 )
+
+		keyLayout = [
+		'ABCDEFGHIJKLMNOPQZY',
+		'X*****************Y'
+		]
+		self.assertEqual( Keyboarding( keyLayout ).type( 'AZAZ' ), 19 )
+
+		keyLayout = [
+		'AXYB',
+		'BBBB',
+		'KLMB',
+		'OPQB',
+		'DEFB',
+		'GHI*'
+		]
+		self.assertEqual( Keyboarding( keyLayout ).type( 'AB' ), 7 )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
