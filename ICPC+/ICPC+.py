@@ -7601,5 +7601,107 @@ class SafeTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Mid-CentralUSARegional2018.pdf - "Problem G : Illiteracy"
+################################################################################
+
+class Illiteracy:
+	def __init__( self, startSequence, targetSequence ):
+		self.startSequence, self.targetSequence = startSequence, targetSequence
+		self.size = 8
+		self.rotationDict = {
+		'A' : 'B', 'B' : 'C', 'C' : 'D', 'D' : 'E', 'E' : 'F', 'F' : 'A'
+		}
+
+	def _rotate( self, index, characterList ):
+		if 0 <= index < len( characterList ):
+			characterList[ index ] = self.rotationDict[ characterList[ index ] ]
+
+	def _getAdjacentSequences( self, sequence ):
+		adjacentSequenceList = list()
+
+		for i in range( self.size ):
+			characterList = list( sequence )
+			token = sequence[ i ]
+
+			# Transition rules !
+			if token == 'A':
+				self._rotate( i - 1, characterList )
+				self._rotate( i + 1, characterList )
+			elif token == 'B' and i not in (0, self.size - 1):
+				characterList[ i + 1 ] = characterList[ i - 1 ]
+			elif token == 'C':
+				self._rotate( self.size - i - 1, characterList )
+			elif token == 'D' and i not in (0, self.size - 1):
+				if i < self.size // 2:
+					for j in range( i ):
+						self._rotate( j, characterList )
+				else:
+					for j in range( i + 1, self.size ):
+						self._rotate( j, characterList )
+			elif token == 'E' and i not in (0, self.size - 1):
+				j = min( i, self.size - i - 1 )
+				self._rotate( i - j, characterList )
+				self._rotate( i + j, characterList )
+			elif token == 'F':
+				if ( i + 1 ) % 2 == 0:
+					self._rotate( ( i + 1 ) // 2 - 1, characterList )
+				else:
+					self._rotate( ( i + self.size ) // 2, characterList )
+
+			adjacentSequenceList.append( ''.join( characterList ) )
+
+		return adjacentSequenceList
+
+	def count( self ):
+		q = deque()
+		q.append( self.startSequence )
+
+		visited = set()
+		visited.add( self.startSequence )
+
+		stepCount = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+				currentSequence = q.popleft()
+				if currentSequence == self.targetSequence:
+					return stepCount
+				for adjacentSequence in self._getAdjacentSequences( currentSequence ):
+					if adjacentSequence not in visited:
+						visited.add( adjacentSequence )
+						q.append( adjacentSequence )
+			stepCount += 1
+		return 0
+
+class IlliteracyTest( unittest.TestCase ):
+	def test_Illiteracy( self ):
+		for testfile in getTestFileList( tag='illiteracy' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/illiteracy/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/illiteracy/{}.ans'.format( testfile ) ) as solutionFile:
+
+		     startSequence = readString( inputFile )
+		     targetSequence = readString( inputFile )
+		     stepCount = readInteger( solutionFile )
+
+		     print( 'Testcase {} [{} --> {}] steps = {}'.format( testfile, startSequence, targetSequence, stepCount ) )
+		     self.assertEqual( Illiteracy( startSequence, targetSequence ).count(), stepCount )
+
+	def test_Illiteracy_Sample( self ):
+		self.assertEqual( Illiteracy( 'ABCDEFCD', 'BCEDEFCD' ).count(), 2 )
+		self.assertEqual( Illiteracy( 'DCDAFCBA', 'ECEABCCC' ).count(), 4 )
+		self.assertEqual( Illiteracy( 'ABCDEFCD', 'ABCDEFCD' ).count(), 0 )
+		self.assertEqual( Illiteracy( 'ACFEFBEB', 'EDBFEFDE' ).count(), 22 )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
