@@ -7703,5 +7703,70 @@ class IlliteracyTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# RockyMountain2018 - "Problem J : Rainbow Road Race"
+################################################################################
+
+class RainbowRoadRace:
+	def __init__( self, locationCount, roadList ):
+		self.locationCount = locationCount
+		self.roadNetwork = [ list() for _ in range( self.locationCount + 1 ) ]
+		
+		for (location1, location2, distance, color) in roadList:
+			self.roadNetwork[ location1 ].append( (location2, distance, color) )
+			self.roadNetwork[ location2 ].append( (location1, distance, color) )
+		colors = 'VIBGYOR'
+		self.bitNumberDict = dict()
+		for index, color in enumerate( colors ):
+			self.bitNumberDict[ color ] = index
+
+	def go( self ):
+		startLocation = 1
+		targetBitmap = ( 1 << len( self.bitNumberDict ) ) - 1
+
+		startState = startLocation, 0
+
+		q = list()
+		q.append( (0, startState) )
+
+		distanceDict = dict()
+		distanceDict[ startState ] = 0
+
+		while len( q ) > 0:
+			distance, (currentLocation, bitmap) = heapq.heappop( q )
+			if currentLocation == startLocation and bitmap == targetBitmap:
+				return distance
+
+			if distance > distanceDict[ (currentLocation, bitmap) ]:
+				continue
+
+			for adjacentLocation, lengthOfRoad, color in self.roadNetwork[ currentLocation ]:
+				totalDistance = distance + lengthOfRoad
+				newState = adjacentLocation, bitmap | ( 1 << self.bitNumberDict[ color ] )
+				if newState not in distanceDict or distanceDict[ newState ] > totalDistance:
+					distanceDict[ newState ] = totalDistance
+					heapq.heappush( q, (totalDistance, newState) )
+		return None
+
+class RainbowRoadRaceTest( unittest.TestCase ):
+	def test_RainbowRoadRace_Sample( self ):
+		locationCount = 7
+		roadList = [
+		(1, 2, 1, 'R'), (2, 3, 1, 'O'), (3, 4, 1, 'Y'), (4, 5, 1, 'G'), (5, 6, 1, 'B'), (6, 7, 1, 'I'), (1, 7, 1, 'V')
+		]
+		self.assertEqual( RainbowRoadRace( locationCount, roadList ).go(), 7 )
+
+		locationCount = 8
+		roadList = [
+		(1, 2, 1, 'R'), (1, 3, 1, 'O'), (1, 4, 1, 'Y'), (1, 5, 1, 'G'), (1, 6, 1, 'B'), (1, 7, 1, 'I'), (1, 8, 1, 'V')
+		]
+		self.assertEqual( RainbowRoadRace( locationCount, roadList ).go(), 14 )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
