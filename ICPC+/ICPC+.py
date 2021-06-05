@@ -7498,5 +7498,108 @@ class PortalsTest( unittest.TestCase ):
 		]
 		self.assertEqual( Portals( areaMap ).steps(), 12 )
 
+################################################################################
+################################################################################
+################################################################################
+# VirginiaTechHighSchoolProgrammingContest_2015 - Problem D: Cracking The Safe
+################################################################################
+
+class Safe:
+	def __init__( self, lockNumberList ):
+		self.size = 4 # The display on the lock is from 0 .. 3 inclusive.
+		self.numberOfCells = 9
+		self.lockNumberList = list()
+		for lockNumberListRow in lockNumberList:
+			for number in lockNumberListRow:
+				self.lockNumberList.append( number )
+
+		# To unlock the safe, all cells should display '0'.
+		self.desiredState = self._toString( [ 0 ] * self.numberOfCells )
+
+		self.adjacentCellInfoDict = {
+		0 : [ 0, 1, 2, 3, 6 ],
+		1 : [ 0, 1, 2, 4, 7 ],
+		2 : [ 0, 1, 2, 5, 8 ],
+		3 : [ 3, 4, 5, 0, 6 ],
+		4 : [ 3, 4, 5, 1, 7 ],
+		5 : [ 3, 4, 5, 2, 8 ],
+		6 : [ 6, 7, 8, 0, 3 ],
+		7 : [ 6, 7, 8, 1, 4 ],
+		8 : [ 6, 7, 8, 2, 5 ]
+		}
+
+	def _toString( self, lockNumberList ):
+		return ''.join( list( map( str, lockNumberList ) ) )
+
+	def _toggle( self, inputState, toggleCell ):
+		lockNumberList = list( map( int, inputState ) )
+		for cellIndex in self.adjacentCellInfoDict[ toggleCell ]:
+			lockNumberList[ cellIndex ] = ( lockNumberList[ cellIndex ] + 1 ) % self.size
+		return self._toString( lockNumberList )
+
+	def unlock( self ):
+		startState = self._toString( self.lockNumberList )
+
+		q = deque()
+		q.append( startState )
+
+		visited = set()
+		visited.add( startState )
+
+		stepCount = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentState = q.popleft()
+				if currentState == self.desiredState:
+					return stepCount
+
+				for toggleCell in range( self.numberOfCells ):
+					newState = self._toggle( currentState, toggleCell )
+					if newState not in visited:
+						visited.add( newState )
+						q.append( newState )
+			stepCount += 1
+		return -1
+
+class SafeTest( unittest.TestCase ):
+	def test_Safe( self ):
+		for testfile in getTestFileList( tag='safe' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/safe/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/safe/{}.ans'.format( testfile ) ) as solutionFile:
+
+			lockNumberList = list()
+			for _ in range( 3 ):
+				lockNumberList.append( list( readIntegers( inputFile ) ) )
+
+			stepCount = readInteger( solutionFile )
+
+			print( 'Testcase {} [{}] stepCount = {}'.format( testfile, lockNumberList ,stepCount ) )
+			self.assertEqual( Safe( lockNumberList ).unlock(), stepCount )
+
+	def test_Safe_Sample( self ):
+		lockNumberList = [
+		[ 3, 1, 2 ],
+		[ 0, 1, 1 ],
+		[ 3, 2, 3 ]
+		]
+		self.assertEqual( Safe( lockNumberList ).unlock(), 4 )
+
+		lockNumberList = [
+		[ 0, 0, 3 ],
+		[ 2, 2, 3 ],
+		[ 2, 2, 1 ]
+		]
+		self.assertEqual( Safe( lockNumberList ).unlock(), -1 )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
