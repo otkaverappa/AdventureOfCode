@@ -7893,5 +7893,76 @@ class KeyboardingTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+class Zoning:
+	def __init__( self, cityMap ):
+		self.residentialZone, self.industrialZone, self.commercialZone = '123'
+		self.rows, self.cols = len( cityMap ), len( cityMap[ 0 ] )
+		self.cityMap = cityMap
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def go( self ):
+		q = deque()
+		visited = set()
+
+		for location in itertools.product( range( self.rows ), range( self.cols ) ):
+			u, v = location
+			if self.cityMap[ u ][ v ] == self.commercialZone:
+				q.append( location )
+				visited.add( location )
+
+		distance = maximumDistance = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				u, v = currentLocation = q.popleft()
+
+				if self.cityMap[ u ][ v ] == self.residentialZone:
+					maximumDistance = distance
+				
+				for du, dv in self.adjacentCellDelta:
+					r, c = newLocation = u + du, v + dv
+					if not 0 <= r < self.rows or not 0 <= c < self.cols:
+						continue
+					if newLocation not in visited:
+						visited.add( newLocation )
+						q.append( newLocation )
+			distance += 1
+		return maximumDistance
+
+class ZoningTest( unittest.TestCase ):
+	def test_Zoning( self ):
+		for testfile in getTestFileList( tag='zoning' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/zoning/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/zoning/{}.ans'.format( testfile ) ) as solutionFile:
+
+		     size = readInteger( inputFile )
+		     cityMap = [ readString( inputFile ) for _ in range( size ) ]
+
+		     maximumDistance = readInteger( solutionFile )
+
+		     print( 'Testcase {} size = {} maximumDistance = {}'.format( testfile, size, maximumDistance ) )
+		     self.assertEqual( Zoning( cityMap ).go(), maximumDistance )
+
+	def test_Zoning_Sample( self ):
+		cityMap = [
+		'1223',
+		'2123',
+		'2213',
+		'3212'
+		]
+		self.assertEqual( Zoning( cityMap ).go(), 3 )
+
+		cityMap = [
+		'12',
+		'33'
+		]
+		self.assertEqual( Zoning( cityMap ).go(), 1 )
+
 if __name__ == '__main__':
 	unittest.main()
