@@ -7893,6 +7893,11 @@ class KeyboardingTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+# KTH_Challenge_2016.pdf - "Problem C : Zoning"
+################################################################################
+
 class Zoning:
 	def __init__( self, cityMap ):
 		self.residentialZone, self.industrialZone, self.commercialZone = '123'
@@ -7963,6 +7968,127 @@ class ZoningTest( unittest.TestCase ):
 		'33'
 		]
 		self.assertEqual( Zoning( cityMap ).go(), 1 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Mid-CentralUSARegional2019.pdf - "Problem F : Dragon Ball I"
+################################################################################
+
+class TravelingSalesman:
+	def __init__( self, distanceMatrix, startLocation ):
+		self.distanceMatrix = distanceMatrix
+		self.startLocation = startLocation
+		self.totalLocations = len( distanceMatrix )
+
+		self.table = [ [ float( 'inf' ) for _ in range( 1 << self.totalLocations ) ] for _ in range( self.totalLocations ) ]
+		
+	def _compute( self, location, bitmap ):
+		if bitmap == 0:
+			return 0
+		if self.table[ location ][ bitmap ] != float( 'inf' ):
+			return self.table[ location ][ bitmap ]
+
+		bestDistance = float( 'inf' )
+		for adjacentLocation in range( self.totalLocations ):
+			if bitmap & ( 1 << adjacentLocation ) == 0:
+				continue
+			distance = self._compute( adjacentLocation, bitmap & ~ ( 1 << adjacentLocation ) )
+			bestDistance = min( bestDistance, distance + self.distanceMatrix[ adjacentLocation ][ location ] )
+		self.table[ location ][ bitmap ] = bestDistance
+		return bestDistance
+
+	def go( self ):
+		bitmap = ( 1 << self.totalLocations ) - 1
+		return self._compute( self.startLocation, bitmap )
+
+class DragonBallI:
+	def __init__( self, numberOfCities, teleportList, dragonBallLocationList ):
+		self.numberOfCities = numberOfCities
+		self.network = [ list() for _ in range( self.numberOfCities + 1 ) ]
+		for (c1, c2, coins) in teleportList:
+			self.network[ c1 ].append( (c2, coins) )
+			self.network[ c2 ].append( (c1, coins) )
+		self.startLocation = 1
+
+		dragonBallLocations = set( dragonBallLocationList )
+		dragonBallLocations.add( self.startLocation ) # Add the startLocation. If may or may not already be present in dragonBallLocations.
+		self.dragonBallLocations = list( dragonBallLocations )
+
+	def _shortestPath( self, startLocation, targetLocation ):
+		q = list()
+		q.append( (0, startLocation) )
+
+		costDict = dict()
+		costDict[ startLocation ] = 0
+
+		while len( q ) > 0:
+			coinsSpent, currentLocation = heapq.heappop( q )
+			if currentLocation == targetLocation:
+				return coinsSpent
+			
+			if costDict[ currentLocation ] < coinsSpent:
+				continue
+
+			for adjacentLocation, coinsNeeded in self.network[ currentLocation ]:
+				totalCoins = coinsSpent + coinsNeeded
+				if adjacentLocation not in costDict or costDict[ adjacentLocation ] > totalCoins:
+					costDict[ adjacentLocation ] = totalCoins
+					heapq.heappush( q, (totalCoins, adjacentLocation) )
+
+	def collect( self ):
+		locationCount = len( self.dragonBallLocations )
+		distanceMatrix = [ [ None for _ in range( locationCount ) ] for _ in range( locationCount ) ]
+		for i in range( locationCount ):
+			distanceMatrix[ i ][ i ] = 0
+			for j in range( i + 1, locationCount ):
+				u, v = self.dragonBallLocations[ i ], self.dragonBallLocations[ j ]
+				distanceMatrix[ i ][ j ] = distanceMatrix[ j ][ i ] = self._shortestPath( u, v )
+
+		startLocationIndex = self.dragonBallLocations.index( self.startLocation )
+		return TravelingSalesman( distanceMatrix, startLocationIndex ).go()
+
+class DragonBallITest( unittest.TestCase ):
+	def test_DragonBallI_Sample( self ):
+		numberOfCities = 10
+		teleportList = [ (1, 2, 1), (2, 3, 1), (3, 4, 1), (4, 5, 1), (5, 6, 1), (6, 7, 1), (7, 8, 1),
+		(8, 9, 1), (9, 10, 1) ]
+		dragonBallLocationList = [ 1, 2, 3, 4, 5, 6, 7 ]
+		self.assertEqual( DragonBallI( numberOfCities, teleportList, dragonBallLocationList ).collect(), 6 )
+
+		numberOfCities = 5
+		teleportList = [ (1, 2, 0), (1, 3, 0), (2, 3, 1), (3, 4, 1), (4, 5, 1) ]
+		dragonBallLocationList = [ 1, 2, 1, 2, 3, 4, 4 ]
+		self.assertEqual( DragonBallI( numberOfCities, teleportList, dragonBallLocationList ).collect(), 1 )
+
+	def test_DragonBallI( self ):
+		for testfile in getTestFileList( tag='dragonball1' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/dragonball1/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/dragonball1/{}.ans'.format( testfile ) ) as solutionFile:
+
+		     numberOfCities, teleportCount = readIntegers( inputFile )
+		     teleportList = list()
+		     for _ in range( teleportCount ):
+		     	c1, c2, coins = readIntegers( inputFile )
+		     	teleportList.append( (c1, c2, coins) )
+		     dragonBallLocationList = list( readIntegers( inputFile ) )
+
+		     coins = readInteger( solutionFile )
+
+		     formatString = 'Testcase {} numberOfCities = {} teleports = {} coins = {}'
+		     print( formatString.format( testfile, numberOfCities, teleportCount, coins ) )
+		     self.assertEqual( DragonBallI( numberOfCities, teleportList, dragonBallLocationList ).collect(), coins )
+
+################################################################################
+################################################################################
+################################################################################
 
 if __name__ == '__main__':
 	unittest.main()
