@@ -8210,5 +8210,129 @@ class NurikabeTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+class IceMaze:
+	def __init__( self, iceMazeLayout ):
+		self.rows, self.cols = len( iceMazeLayout ), len( iceMazeLayout[ 0 ] )
+		self.iceMazeLayout = iceMazeLayout
+
+		self.wallCell, self.iceCell, self.gravelCell, self.goalCell = '#_.M'
+		
+		self.distanceMatrix = [ [ float( 'inf' ) for _ in range( self.cols ) ] for _ in range( self.rows ) ]
+		self.goalLocation = None
+		
+		for r, c in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.iceMazeLayout[ r ][ c ] == self.goalCell:
+				self.distanceMatrix[ r ][ c ] = 0
+				self.goalLocation = r, c
+				break
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def process( self ):
+		q = deque()
+		q.append( self.goalLocation )
+
+		visited = set()
+		visited.add( self.goalLocation )
+
+		distance = 0
+
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentLocation = q.popleft()
+				u, v = currentLocation
+
+				currentCell = self.iceMazeLayout[ u ][ v ]
+
+				self.distanceMatrix[ u ][ v ] = distance
+
+				adjacentStateList = list()
+
+				for du, dv in self.adjacentCellDelta:
+					r, c = newLocation = u + du, v + dv
+					newCell = self.iceMazeLayout[ r ][ c ]
+					oppositeCell = self.iceMazeLayout[ u - du ][ v - dv ]
+
+					if currentCell in (self.goalCell, self.gravelCell):
+						while self.iceMazeLayout[ r ][ c ] == self.iceCell:
+							adjacentStateList.append( newLocation )
+							r, c = newLocation = r + du, c + dv
+						if self.iceMazeLayout[ r ][ c ] == self.gravelCell:
+							adjacentStateList.append( newLocation )
+					elif currentCell == self.iceCell and oppositeCell == self.wallCell:
+						while self.iceMazeLayout[ r ][ c ] == self.iceCell:
+							adjacentStateList.append( newLocation )
+							r, c = newLocation = r + du, c + dv
+						if self.iceMazeLayout[ r ][ c ] == self.gravelCell:
+							adjacentStateList.append( newLocation )
+				
+				for adjacentLocation in adjacentStateList:
+					if adjacentLocation not in visited:
+						visited.add( adjacentLocation )
+						q.append( adjacentLocation )
+			distance += 1
+
+		for u, v in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.distanceMatrix[ u ][ v ] == float( 'inf' ):
+				self.distanceMatrix[ u ][ v ] = -1
+		return self.distanceMatrix
+
+class IceMazeTest( unittest.TestCase ):
+	def test_IceMaze( self ):
+		for testfile in getTestFileList( tag='pokemon' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/pokemon/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/pokemon/{}.ans'.format( testfile ) ) as solutionFile:
+
+			cols, rows = readIntegers( inputFile )
+			iceMazeLayout = [ readString( inputFile ) for _ in range( rows ) ]
+
+			distanceMatrix = [ list( readIntegers( solutionFile ) ) for _ in range( rows ) ]
+
+			print( 'Testcase {} rows = {} cols = {}'.format( testfile, rows, cols ) )
+			self.assertEqual( IceMaze( iceMazeLayout ).process(), distanceMatrix )
+
+	def test_IceMaze_Sample( self ):
+		iceMazeLayout = [
+		'#####',
+		'#...#',
+		'#_###',
+		'#_M.#',
+		'#__.#',
+		'#####'
+		]
+		distanceMatrix = [
+		[ -1, -1, -1, -1, -1 ],
+		[ -1,  4,  5,  6, -1 ],
+		[ -1,  4, -1, -1, -1 ],
+		[ -1,  1,  0,  1, -1 ],
+		[ -1,  3,  1,  2, -1 ],
+		[ -1, -1, -1, -1, -1 ]
+		]
+		self.assertEqual( IceMaze( iceMazeLayout ).process(), distanceMatrix )
+
+		iceMazeLayout = [
+		'#####',
+		'##__#',
+		'##__#',
+		'##M_#',
+		'##_##',
+		'#####'
+		]
+		distanceMatrix = [
+		[ -1, -1, -1, -1, -1 ],
+		[ -1, -1,  1,  2, -1 ],
+		[ -1, -1,  1,  2, -1 ],
+		[ -1, -1,  0,  1, -1 ],
+		[ -1, -1,  1, -1, -1 ],
+		[ -1, -1, -1, -1, -1 ]
+		]
+		self.assertEqual( IceMaze( iceMazeLayout ).process(), distanceMatrix )
+
 if __name__ == '__main__':
 	unittest.main()
