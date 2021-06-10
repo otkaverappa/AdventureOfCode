@@ -7686,12 +7686,12 @@ class IlliteracyTest( unittest.TestCase ):
 		with open( 'tests/illiteracy/{}.in'.format( testfile ) ) as inputFile, \
 		     open( 'tests/illiteracy/{}.ans'.format( testfile ) ) as solutionFile:
 
-		     startSequence = readString( inputFile )
-		     targetSequence = readString( inputFile )
-		     stepCount = readInteger( solutionFile )
+			startSequence = readString( inputFile )
+			targetSequence = readString( inputFile )
+			stepCount = readInteger( solutionFile )
 
-		     print( 'Testcase {} [{} --> {}] steps = {}'.format( testfile, startSequence, targetSequence, stepCount ) )
-		     self.assertEqual( Illiteracy( startSequence, targetSequence ).count(), stepCount )
+			print( 'Testcase {} [{} --> {}] steps = {}'.format( testfile, startSequence, targetSequence, stepCount ) )
+			self.assertEqual( Illiteracy( startSequence, targetSequence ).count(), stepCount )
 
 	def test_Illiteracy_Sample( self ):
 		self.assertEqual( Illiteracy( 'ABCDEFCD', 'BCEDEFCD' ).count(), 2 )
@@ -7844,16 +7844,16 @@ class KeyboardingTest( unittest.TestCase ):
 		with open( 'tests/keyboard/{}.in'.format( testfile ) ) as inputFile, \
 		     open( 'tests/keyboard/{}.ans'.format( testfile ) ) as solutionFile:
 
-		     rows, cols = readIntegers( inputFile )
-		     keyLayout = [ readString( inputFile ) for _ in range( rows ) ]
-		     stringToType = readString( inputFile )
+			rows, cols = readIntegers( inputFile )
+			keyLayout = [ readString( inputFile ) for _ in range( rows ) ]
+			stringToType = readString( inputFile )
 
-		     steps = readInteger( solutionFile )
+			steps = readInteger( solutionFile )
 
-		     formatString = 'Testcase {} Dimensions = {} x {} Length of the string to type = {} steps = {}'
-		     print( formatString.format( testfile, rows, cols, len( stringToType ), steps ) )
+			formatString = 'Testcase {} Dimensions = {} x {} Length of the string to type = {} steps = {}'
+			print( formatString.format( testfile, rows, cols, len( stringToType ), steps ) )
 
-		     self.assertEqual( Keyboarding( keyLayout ).type( stringToType ), steps )
+			self.assertEqual( Keyboarding( keyLayout ).type( stringToType ), steps )
 
 	def test_Keyboarding_Sample( self ):
 		keyLayout = [
@@ -7946,13 +7946,13 @@ class ZoningTest( unittest.TestCase ):
 		with open( 'tests/zoning/{}.in'.format( testfile ) ) as inputFile, \
 		     open( 'tests/zoning/{}.ans'.format( testfile ) ) as solutionFile:
 
-		     size = readInteger( inputFile )
-		     cityMap = [ readString( inputFile ) for _ in range( size ) ]
+			size = readInteger( inputFile )
+			cityMap = [ readString( inputFile ) for _ in range( size ) ]
 
-		     maximumDistance = readInteger( solutionFile )
+			maximumDistance = readInteger( solutionFile )
 
-		     print( 'Testcase {} size = {} maximumDistance = {}'.format( testfile, size, maximumDistance ) )
-		     self.assertEqual( Zoning( cityMap ).go(), maximumDistance )
+			print( 'Testcase {} size = {} maximumDistance = {}'.format( testfile, size, maximumDistance ) )
+			self.assertEqual( Zoning( cityMap ).go(), maximumDistance )
 
 	def test_Zoning_Sample( self ):
 		cityMap = [
@@ -8073,18 +8073,138 @@ class DragonBallITest( unittest.TestCase ):
 		with open( 'tests/dragonball1/{}.in'.format( testfile ) ) as inputFile, \
 		     open( 'tests/dragonball1/{}.ans'.format( testfile ) ) as solutionFile:
 
-		     numberOfCities, teleportCount = readIntegers( inputFile )
-		     teleportList = list()
-		     for _ in range( teleportCount ):
-		     	c1, c2, coins = readIntegers( inputFile )
-		     	teleportList.append( (c1, c2, coins) )
-		     dragonBallLocationList = list( readIntegers( inputFile ) )
+			numberOfCities, teleportCount = readIntegers( inputFile )
+			teleportList = list()
+			for _ in range( teleportCount ):
+				c1, c2, coins = readIntegers( inputFile )
+				teleportList.append( (c1, c2, coins) )
+			dragonBallLocationList = list( readIntegers( inputFile ) )
 
-		     coins = readInteger( solutionFile )
+			coins = readInteger( solutionFile )
 
-		     formatString = 'Testcase {} numberOfCities = {} teleports = {} coins = {}'
-		     print( formatString.format( testfile, numberOfCities, teleportCount, coins ) )
-		     self.assertEqual( DragonBallI( numberOfCities, teleportList, dragonBallLocationList ).collect(), coins )
+			formatString = 'Testcase {} numberOfCities = {} teleports = {} coins = {}'
+			print( formatString.format( testfile, numberOfCities, teleportCount, coins ) )
+			self.assertEqual( DragonBallI( numberOfCities, teleportList, dragonBallLocationList ).collect(), coins )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# IDI_Open_2010.pdf - "Problem F : Nurikabe"
+################################################################################
+
+class Nurikabe:
+	def __init__( self, boardLayout ):
+		self.rows, self.cols = len( boardLayout ), len( boardLayout[ 0 ] )
+		self.boardLayout = boardLayout
+
+		self.emptyCell, self.blockedCell = '.#'
+		self.digits = set( '123456789' )
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def _componentSize( self, location ):
+		stack = list()
+		stack.append( location )
+
+		visited = set()
+		visited.add( location )
+
+		while len( stack ) > 0:
+			currentLocation = u, v = stack.pop()
+			for du, dv in self.adjacentCellDelta:
+				adjacentLocation = r, c = u + du, v + dv
+				if not 0 <= r < self.rows or not 0 <= c < self.cols:
+					continue
+				if self.boardLayout[ r ][ c ] == self.emptyCell and adjacentLocation not in visited:
+					visited.add( adjacentLocation )
+					stack.append( adjacentLocation )
+		return len( visited )
+
+	def analyze( self ):
+		blockedCellCount = 0
+		anyBlockedCellLocation = None
+		islandSize = 0
+
+		for location in itertools.product( range( self.rows ), range( self.cols ) ):
+			r, c = location
+			cellType = self.boardLayout[ r ][ c ]
+			if cellType == self.blockedCell:
+				blockedCellCount += 1
+				anyBlockedCellLocation = location
+			elif cellType in self.digits:
+				if self._componentSize( location ) != int( cellType ):
+					return 'NO'
+				islandSize += int( cellType )
+
+		if islandSize != ( self.rows * self.cols ) - blockedCellCount:
+			return 'NO'
+
+		# "For each 2x2 block, there must be atleast one cell belonging to an island." Verify this requirement by
+		# ensuring that no 2x2 block is composed of only blocked cells.
+		for r, c in itertools.product( range( self.rows - 1 ), range( self.cols - 1 ) ):
+			if self.boardLayout[ r ][ c ] == self.boardLayout[ r + 1 ][ c ] == self.boardLayout[ r ][ c + 1 ] == \
+			   self.boardLayout[ r + 1 ][ c + 1 ] == self.blockedCell:
+				return 'NO'
+
+		# Do the blocked cells form a connected component ?
+		stack = list()
+		visited = set()
+		if anyBlockedCellLocation is not None:
+			stack.append( anyBlockedCellLocation )
+			visited.add( anyBlockedCellLocation )
+
+		while len( stack ) > 0:
+			currentLocation = u, v = stack.pop()
+			for du, dv in self.adjacentCellDelta:
+				adjacentLocation = r, c = u + du, v + dv
+				if not 0 <= r < self.rows or not 0 <= c < self.cols:
+					continue
+				if self.boardLayout[ r ][ c ] == self.blockedCell and adjacentLocation not in visited:
+					visited.add( adjacentLocation )
+					stack.append( adjacentLocation )
+		return 'YES' if len( visited ) == blockedCellCount else 'NO'
+
+class NurikabeTest( unittest.TestCase ):
+	def test_Nurikabe_Sample( self ):
+		boardLayout = [
+		'2.#...##.2',
+		'###..#2###',
+		'#2#.7#.#.#',
+		'#.######.#',
+		'##.#..3#3#',
+		'.#2####3##',
+		'2##4.#..#.',
+		'##..#####.',
+		'#1###.2#4.'
+		]
+		self.assertEqual( Nurikabe( boardLayout ).analyze(), 'YES' )
+
+		boardLayout = [
+		'#1',
+		'1#'
+		]
+		self.assertEqual( Nurikabe( boardLayout ).analyze(), 'NO' )
+
+	def test_Nurikabe( self ):
+		for testfile in getTestFileList( tag='nurikabe' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/nurikabe/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/nurikabe/{}.out'.format( testfile ) ) as solutionFile:
+
+		    testcaseCount = readInteger( inputFile )
+		    for index in range( testcaseCount ):
+		    	rows, cols = readIntegers( inputFile )
+		    	boardLayout = [ readString( inputFile ) for _ in range( rows ) ]
+
+		    	state = readString( solutionFile )
+
+		    	print( 'Testcase {}#{} rows = {} cols = {} state = {}'.format( testfile, index + 1, rows, cols, state ) )
+		    	self.assertEqual( Nurikabe( boardLayout ).analyze(), state )
 
 ################################################################################
 ################################################################################
