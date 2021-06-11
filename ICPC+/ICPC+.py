@@ -8398,7 +8398,7 @@ class PackTest( unittest.TestCase ):
 		with open( 'tests/ninepacks/{}.in'.format( testfile ) ) as inputFile, \
 		     open( 'tests/ninepacks/{}.ans'.format( testfile ) ) as solutionFile:
 
-			_, * hotdogList = list( readIntegers( inputFile ) )
+			_, * hotdogList = list( readIntegers( inputFile ) ) # The first entry is the size of the list.
 			_, * bunList = list( readIntegers( inputFile ) )
 
 			state = readString( solutionFile )
@@ -8407,6 +8407,76 @@ class PackTest( unittest.TestCase ):
 
 			print( 'Testcase {} hotdogs = {} buns = {} [{}]'.format( testfile, len( hotdogList ), len( bunList ), state ) )
 			self.assertEqual( Pack( hotdogList, bunList ).analyze(), state )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# ICPC_2017_NorthAmerican_Qualification.pdf - "Problem C : Canonical Coin Systems"
+################################################################################
+
+class CanonicalCoinSystem:
+	def __init__( self, coinList ):
+		self.coinList = coinList
+
+	def _greedyCoinChange( self, denomination ):
+		coinsNeeded = 0
+		while denomination > 0:
+			index = bisect.bisect_left( self.coinList, denomination )
+			if index < len( self.coinList ) and self.coinList[ index ] == denomination:
+				coinsNeeded += 1
+				denomination = 0
+			else:
+				coin = self.coinList[ index - 1 ]
+				coinsNeeded += ( denomination // coin )
+				denomination = denomination % coin
+		return coinsNeeded
+
+	def analyze( self ):
+		maximumDenomination = self.coinList[ -1 ] + self.coinList[ -2 ]
+		changeTable = [ None for _ in range( maximumDenomination + 1 ) ]
+
+		changeTable[ 0 ] = 0
+
+		for denomination in range( 1, maximumDenomination + 1 ):
+			if changeTable[ denomination ] == 1:
+				continue
+			minimumCoins = float( 'inf' )
+			for coin in self.coinList:
+				if coin > denomination:
+					break
+				minimumCoins = min( minimumCoins, 1 + changeTable[ denomination - coin ] )
+			changeTable[ denomination ] = minimumCoins
+
+			# Calculate the minimum coins using greedy method. If it is different from "minimumCoins", then
+			# the coin system is non-canonical.
+			if self._greedyCoinChange( denomination ) != minimumCoins:
+				return 'non-canonical'
+		return 'canonical'
+
+class CanonicalCoinSystemTest( unittest.TestCase ):
+	def test_CanonicalCoinSystem_Sample( self ):
+		self.assertEqual( CanonicalCoinSystem( [ 1, 2, 4, 8 ] ).analyze(), 'canonical' )
+		self.assertEqual( CanonicalCoinSystem( [ 1, 5, 8 ] ).analyze(), 'non-canonical' )
+		self.assertEqual( CanonicalCoinSystem( [ 1, 5, 10, 25, 100, 200 ] ).analyze(), 'canonical' )
+
+	def test_CanonicalCoinSystem( self ):
+		for testfile in getTestFileList( tag='canonical' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/canonical/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/canonical/{}.ans'.format( testfile ) ) as solutionFile:
+
+			coins = readInteger( inputFile )
+			coinList = list( readIntegers( inputFile ) )
+			state = readString( solutionFile )
+
+			print( 'Testcase {} Number of coins = {} [{}]'.format( testfile, coins, state ) )
+			self.assertEqual( CanonicalCoinSystem( coinList ).analyze(), state )
 
 ################################################################################
 ################################################################################
