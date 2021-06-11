@@ -8482,5 +8482,58 @@ class CanonicalCoinSystemTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Mid-CentralUSARegional2018.pdf - "Problem B : Exam"
+################################################################################
+
+class Exam:
+	def __init__( self, K, answerStringA, answerStringB ):
+		self.K = K
+		self.answerStringA = answerStringA
+		self.answerStringB = answerStringB
+
+	def analyze( self ):
+		totalAnswers = len( self.answerStringA )
+		identicalAnswers = 0
+		for i in range( totalAnswers ):
+			if self.answerStringA[ i ] == self.answerStringB[ i ]:
+				identicalAnswers += 1
+		oppositeAnswers = totalAnswers - identicalAnswers
+		
+		maximumCorrectAnswers = min( identicalAnswers, self.K )
+		self.K -= maximumCorrectAnswers
+		maximumCorrectAnswers += oppositeAnswers - self.K
+
+		return maximumCorrectAnswers
+
+class ExamTest( unittest.TestCase ):
+	def test_Exam_Sample( self ):
+		self.assertEqual( Exam( 3, 'FTFFF', 'TFTTT' ).analyze(), 2 )
+		self.assertEqual( Exam( 6, 'TTFTFFTFTF', 'TTTTFFTTTT' ).analyze(), 9 )
+
+	def test_Exam( self ):
+		for testfile in getTestFileList( tag='exam' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/exam/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/exam/{}.ans'.format( testfile ) ) as solutionFile:
+
+			K = readInteger( inputFile )
+			answerStringA = readString( inputFile )
+			answerStringB = readString( inputFile )
+			N = len( answerStringA )
+
+			maximumCorrectAnswers = readInteger( solutionFile )
+
+			print( 'Testcase {} K = {} Number of questions = {} maximumCorrectAnswers = {}'.format( testfile, K, N, maximumCorrectAnswers ) )
+			self.assertEqual( Exam( K, answerStringA, answerStringB ).analyze(), maximumCorrectAnswers )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
