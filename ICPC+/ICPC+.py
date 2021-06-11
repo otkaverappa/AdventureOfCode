@@ -8334,5 +8334,83 @@ class IceMazeTest( unittest.TestCase ):
 		]
 		self.assertEqual( IceMaze( iceMazeLayout ).process(), distanceMatrix )
 
+################################################################################
+################################################################################
+# ICPC_2016_NorthAmerican_Qualification.pdf - "Problem H : Nine Packs"
+################################################################################	
+
+class Pack:
+	def __init__( self, hotdogList, bunList ):
+		self.hotdogList = hotdogList
+		self.bunList = bunList
+
+	def analyze( self ):
+		hotdogTable = [ (False, None) for _ in range( sum( self.hotdogList ) + 1 ) ]
+		hotdogTable[ 0 ] = (True, 0)
+		
+		for packSize in self.hotdogList:
+			_sum = len( hotdogTable )
+			while _sum > 0:
+				_sum = _sum - 1
+				sumPossible, count = hotdogTable[ _sum ]
+				if not sumPossible:
+					continue
+				currentSumPossible, currentCount = hotdogTable[ packSize + _sum ]
+				if not currentSumPossible:
+					hotdogTable[ packSize + _sum ] = (True, count + 1)
+				else:
+					hotdogTable[ packSize + _sum ] = (True, min( currentCount, count + 1))
+
+		bunTable = [ (False, None) for _ in range( sum( self.bunList ) + 1 ) ]
+		bunTable[ 0 ] = (True, 0)
+
+		for packSize in self.bunList:
+			_sum = len( bunTable )
+			while _sum > 0:
+				_sum = _sum - 1
+				sumPossible, count = bunTable[ _sum ]
+				if not sumPossible:
+					continue
+				currentSumPossible, currentCount = bunTable[ packSize + _sum ]
+				if not currentSumPossible:
+					bunTable[ packSize + _sum ] = (True, count + 1)
+				else:
+					bunTable[ packSize + _sum ] = (True, min( currentCount, count + 1))
+
+		bestCount = float( 'inf' )
+		for _sum in range( 1, min( len( hotdogTable ), len( bunTable ) ) ):
+			sumPossible_hotdog, count_hotdog = hotdogTable[ _sum ]
+			sumPossible_bun, count_bun = bunTable[ _sum ]
+			if sumPossible_hotdog and sumPossible_bun:
+				bestCount = min( bestCount, count_hotdog + count_bun )
+		return 'impossible' if bestCount == float( 'inf' ) else bestCount
+
+class PackTest( unittest.TestCase ):
+	def test_Pack_Sample( self ):
+		self.assertEqual( Pack( [ 10, 10, 10, 10 ], [ 8, 8, 8, 12, 12, 12, 8, 8, 12, 12 ] ).analyze(), 4 )
+		self.assertEqual( Pack( [ 7, 7, 14, 7 ], [ 11, 22, 11 ] ).analyze(), 'impossible' )
+
+	def test_Pack( self ):
+		for testfile in getTestFileList( tag='ninepacks' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/ninepacks/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/ninepacks/{}.ans'.format( testfile ) ) as solutionFile:
+
+			_, * hotdogList = list( readIntegers( inputFile ) )
+			_, * bunList = list( readIntegers( inputFile ) )
+
+			state = readString( solutionFile )
+			if state != 'impossible':
+				state = int( state )
+
+			print( 'Testcase {} hotdogs = {} buns = {} [{}]'.format( testfile, len( hotdogList ), len( bunList ), state ) )
+			self.assertEqual( Pack( hotdogList, bunList ).analyze(), state )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
