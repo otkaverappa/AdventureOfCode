@@ -8710,5 +8710,123 @@ class VirtualFriendsTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Mid-CentralUSARegional2014_Fun.pdf - "Problem I : Wet Tiles"
+################################################################################
+
+class WetTiles:
+	def __init__( self, x, y, time, leakLocationList, wallList ):
+		self.x_dimension, self.y_dimension = x, y
+		self.time = time - 1
+		self.leakLocationList = leakLocationList
+		self.wallLocations = set()
+
+		for x1, y1, x2, y2 in wallList:
+			if x1 == x2:
+				for y in range( min( y1, y2 ), max( y1, y2 ) + 1 ):
+					self.wallLocations.add( (x1, y) )
+			elif y1 == y2:
+				for x in range( min( x1, x2 ), max( x1, x2 ) + 1 ):
+					self.wallLocations.add( (x, y1) )
+			else:
+				rangeWidth = abs( x2 - x1 )
+				dx, dy = ( x2 - x1 ) // rangeWidth, ( y2 - y1 ) // rangeWidth
+				x, y = x1, y1
+				for _ in range( rangeWidth + 1 ):
+					self.wallLocations.add( (x, y) )
+					x, y = x + dx, y + dy
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def wet( self ):
+		q = deque()
+		visited = set()
+
+		for location in self.leakLocationList:
+			q.append( location )
+			visited.add( location )
+
+		while len( q ) > 0 and self.time > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentLocation = u, v = q.popleft()
+				for du, dv in self.adjacentCellDelta:
+					x, y = newLocation = u + du, v + dv
+					if not 1 <= x <= self.x_dimension or not 1 <= y <= self.y_dimension:
+						continue
+					if newLocation in self.wallLocations:
+						continue
+					if newLocation not in visited:
+						visited.add( newLocation )
+						q.append( newLocation )
+			self.time -= 1
+		return len( visited )
+
+class WetTilesTest( unittest.TestCase ):
+	def test_WetTiles( self ):
+		def read_N_Integers( inputFile, N ):
+			list_x_y = list()
+			while len( list_x_y ) != N:
+				list_x_y += list( readIntegers( inputFile ) )
+			return list_x_y
+
+		with open( 'tests/wet_tiles/tiles.in' ) as inputFile, \
+		     open( 'tests/wet_tiles/tiles.ans' ) as solutionFile:
+			
+			testcaseCount = 0
+			while True:
+				header = readString( inputFile )
+				if header == '-1':
+					break
+				testcaseCount += 1
+
+				x, y, time, leakLocationCount, walls = map( int, header.split() )
+				
+				list_x_y = read_N_Integers( inputFile, leakLocationCount * 2 )
+				leakLocationList = list()
+				for i in range( len( list_x_y ) // 2 ):
+					location = list_x_y[ i * 2 ], list_x_y[ i * 2 + 1 ]
+					leakLocationList.append( location )
+
+				list_x_y = read_N_Integers( inputFile, walls * 4 )
+				wallList = list()
+				for i in range( len( list_x_y ) // 4 ):
+					x1, y1, x2, y2 = list_x_y[ i * 4 ], list_x_y[ i * 4 + 1 ], list_x_y[ i * 4 + 2 ], list_x_y[ i * 4 + 3 ]
+					wallList.append( (x1, y1, x2, y2) )
+
+				count = readInteger( solutionFile )
+				print( 'Testcase # {} dimensions = {} x {} Total wet tiles = {}'.format( testcaseCount, x, y, count ) )
+
+				self.assertEqual( WetTiles( x, y, time, leakLocationList, wallList ).wet(), count )
+
+	def test_WetTiles_Sample( self ):
+		x, y, time = 12, 12, 5
+		leakLocationList = [ (2, 11), (3, 3), (9, 5) ]
+		wallList = [
+		(1, 9, 6, 9),
+		(1, 7, 4, 4),
+		(7, 1, 7, 4),
+		(10, 9, 10, 12),
+		(11, 4, 12, 4)
+		]
+		self.assertEqual( WetTiles( x, y, time, leakLocationList, wallList ).wet(), 75 )
+
+		x, y, time = 9, 7, 8
+		leakLocationList = [ (4, 3) ]
+		wallList = [
+		(2, 2, 6, 6),
+		(6, 2, 2, 6),
+		(8, 2, 8, 2)
+		]
+		self.assertEqual( WetTiles( x, y, time, leakLocationList, wallList ).wet(), 17 )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
