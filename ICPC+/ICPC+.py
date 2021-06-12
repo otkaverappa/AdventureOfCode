@@ -732,6 +732,7 @@ class EvenUpSolitaireTest( unittest.TestCase ):
 class UnionFind:
 	def __init__( self ):
 		self.uf = dict()
+		self.representativeToSize = dict()
 		self.disjointSetCount = 0
 
 	def _representative( self, elementId ):
@@ -739,20 +740,30 @@ class UnionFind:
 			return None
 		if elementId == self.uf[ elementId ]:
 			return elementId
-		return self._representative( self.uf[ elementId ] )
+		representative = self._representative( self.uf[ elementId ] )
+		self.uf[ elementId ] = representative
+		return representative
 
 	def _merge( self, elementIdA, elementIdB ):
 		representativeA = self._representative( elementIdA )
 		representativeB = self._representative( elementIdB )
 		if representativeA != representativeB:
 			self.uf[ representativeB ] = representativeA
+			c1, c2 = self.representativeToSize[ representativeA ], self.representativeToSize[ representativeB ]
+			del self.representativeToSize[ representativeB ]
+			self.representativeToSize[ representativeA ] = c1 + c2
 			return True
 		return False
 
 	def add( self, elementId ):
 		if elementId not in self.uf:
 			self.uf[ elementId ] = elementId
+			self.representativeToSize[ elementId ] = 1
 			self.disjointSetCount += 1
+
+	def mergeAndCount( self, elementIdA, elementIdB ):
+		self.merge( elementIdA, elementIdB )
+		return self.representativeToSize[ self._representative( elementIdA ) ]
 
 	def merge( self, elementIdA, elementIdB ):
 		if elementIdA not in self.uf:
@@ -8530,6 +8541,170 @@ class ExamTest( unittest.TestCase ):
 
 			print( 'Testcase {} K = {} Number of questions = {} maximumCorrectAnswers = {}'.format( testfile, K, N, maximumCorrectAnswers ) )
 			self.assertEqual( Exam( K, answerStringA, answerStringB ).analyze(), maximumCorrectAnswers )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# SouthWesternEuropeanRegionalContest_2014.pdf - "Problem E : Ricochet Robots"
+################################################################################
+
+class RicochetRobot:
+	def __init__( self, robotCount, maximumMoves, floorLayout ):
+		self.robotCount = robotCount
+		self.maximumMoves = maximumMoves
+		self.rows, self.cols = len( floorLayout ), len( floorLayout[ 0 ] )
+		self.floorLayout = floorLayout
+
+		maximumRobotCount = 4
+		self.robotLocations = [ None for _ in range( maximumRobotCount ) ]
+		self.targetLocation = None
+
+		self.emptyCell, self.wallCell, self.targetCell = '.WX'
+		for row, col in itertools.product( range( self.rows ), range( self.cols ) ):
+			cellType = self.floorLayout[ row ][ col ]
+			if cellType in '1234':
+				index = int( cellType ) - 1
+				self.robotLocations[ index ] = row, col
+			elif cellType == self.targetCell:
+				self.targetLocation = row, col
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def _isOutsideOrWall( self, location ):
+		r, c = location
+		return r < 0 or r >= self.rows or c < 0 or c >= self.cols or self.floorLayout[ r ][ c ] == self.wallCell
+
+	def go( self ):
+		startState = tuple( self.robotLocations )
+		
+		q = deque()
+		q.append( startState )
+
+		visited = set()
+		visited.add( startState )
+
+		moveCount = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentState = q.popleft()
+				robot1Location, _, _, _ = currentState
+				
+				if robot1Location == self.targetLocation:
+					return moveCount
+
+				if moveCount == self.maximumMoves:
+					continue
+
+				adjacentStateList = list()
+				for index in range( len( currentState ) ):
+					robotToMoveLocation = currentState[ index ]
+					if robotToMoveLocation is None:
+						continue
+					u, v = robotToMoveLocation
+					for du, dv in self.adjacentCellDelta:
+						r, c = u, v
+						while True:
+							newLocation = r + du, c + dv
+							if self._isOutsideOrWall( newLocation ) or newLocation in currentState:
+								break
+							r, c = newLocation
+						currentLocationList = list( currentState )
+						currentLocationList[ index ] = r, c
+						adjacentStateList.append( tuple( currentLocationList ) )
+
+				for adjacentState in adjacentStateList:
+					if adjacentState not in visited:
+						visited.add( adjacentState )
+						q.append( adjacentState )
+			moveCount += 1
+		return 'NO SOLUTION'
+
+class RicochetRobotTest( unittest.TestCase ):
+	def test_RicochetRobot( self ):
+		for i in range( 1, 12 ):
+			with open( 'tests/rico/input{}'.format( i ) ) as inputFile, \
+			     open( 'tests/rico/output{}'.format( i ) ) as solutionFile:
+
+				robotCount, cols, rows, maximumMoves = readIntegers( inputFile )
+				floorLayout = [ readString( inputFile ) for _ in range( rows ) ]
+
+				state = readString( solutionFile )
+				if state != 'NO SOLUTION':
+					state = int( state )
+
+				print( 'Testcase #{} rows = {} cols = {} maximumMoves = {} [{}]'.format( i, rows, cols, maximumMoves, state ) )
+				self.assertEqual( RicochetRobot( robotCount, maximumMoves, floorLayout ).go(), state )
+
+	def test_RicochetRobot_Sample( self ):
+		robotCount, maximumMoves = 2, 10
+		floorLayout = [
+		'.2...',
+		'...W.',
+		'WWW..',
+		'.X.1.'
+		]
+		self.assertEqual( RicochetRobot( robotCount, maximumMoves, floorLayout ).go(), 6 )
+
+		robotCount, maximumMoves = 1, 10
+		floorLayout = [
+		'.....',
+		'...W.',
+		'WWW..',
+		'.X.1.'
+		]
+		self.assertEqual( RicochetRobot( robotCount, maximumMoves, floorLayout ).go(), 'NO SOLUTION' )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Waterloo Programming Contest 27-09-2008 - "Problem C: Virtual Friends"
+################################################################################
+
+class VirtualFriends:
+	def __init__( self, friendList ):
+		self.friendList = friendList
+		self.uf = UnionFind()
+
+	def analyze( self ):
+		return [ self.uf.mergeAndCount( person1, person2 ) for (person1, person2) in self.friendList ]
+
+class VirtualFriendsTest( unittest.TestCase ):
+	def test_VirtualFriends_Sample( self ):
+		friendList = [ ('Fred', 'Barney'), ('Barney', 'Betty'), ('Betty', 'Wilma') ]
+		self.assertEqual( VirtualFriends( friendList ).analyze(), [ 2, 3, 4 ] )
+
+	def test_VirtualFriends( self ):
+		for testfile in getTestFileList( tag='virtual' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/virtual/{}.dat'.format( testfile ) ) as inputFile, \
+		     open( 'tests/virtual/{}.diff'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				entries = readInteger( inputFile )
+				
+				friendList = list()
+				countList = list()
+				for _ in range( entries ):
+					person1, person2 = readString( inputFile ).split()
+					friendList.append( (person1, person2) )
+					countList.append( readInteger( solutionFile ) )
+
+				print( 'Testcase {}#{} Number of entries = {}'.format( testfile, index + 1, entries ) )
+				self.assertEqual( VirtualFriends( friendList ).analyze(), countList )
 
 ################################################################################
 ################################################################################
