@@ -8713,7 +8713,7 @@ class VirtualFriendsTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 ################################################################################
-# Mid-CentralUSARegional2014_Fun.pdf - "Problem I : Wet Tiles"
+# Mid-CentralUSARegional2014.pdf - "Problem I : Wet Tiles"
 ################################################################################
 
 class WetTiles:
@@ -8823,6 +8823,60 @@ class WetTilesTest( unittest.TestCase ):
 		(8, 2, 8, 2)
 		]
 		self.assertEqual( WetTiles( x, y, time, leakLocationList, wallList ).wet(), 17 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# TextMessagingOutrage.txt
+################################################################################
+
+class TextMessaging:
+	def __init__( self, maximumLettersPerKey, numberOfKeys, numberOfLetters, letterFrequencyList ):
+		self.numberOfKeys = numberOfKeys
+		self.letterFrequencyList = letterFrequencyList
+
+	def press( self ):
+		total = 0
+		self.letterFrequencyList.sort( reverse=True )
+		for index, frequency in enumerate( self.letterFrequencyList ):
+			position = index // self.numberOfKeys
+			total += ( position + 1 ) * frequency
+		return total
+
+class TextMessagingTest( unittest.TestCase ):
+	def test_TextMessaging( self ):
+		for testfile in getTestFileList( tag='textmessaging' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/textmessaging/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/textmessaging/{}.ans'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				maximumLettersPerKey, numberOfKeys, numberOfLetters = readIntegers( inputFile )
+				letterFrequencyList = list( readIntegers( inputFile ) )
+
+				_, _, keyPress = readString( solutionFile ).split()
+				keyPress = int( keyPress )
+
+				formatString = 'Testcase {}#{} numberOfKeys = {} numberOfLetters = {} keyPress = {}'
+				print( formatString.format( testfile, index + 1, numberOfKeys, numberOfLetters, keyPress ) )
+
+				self.assertEqual( TextMessaging( maximumLettersPerKey, numberOfKeys, numberOfLetters, letterFrequencyList ).press(), keyPress )
+
+	def test_TextMessaging_Sample( self ):
+		maximumLettersPerKey, numberOfKeys, numberOfLetters = 3, 2, 6
+		letterFrequencyList = [ 8, 2, 5, 2, 4, 9 ]
+		self.assertEqual( TextMessaging( maximumLettersPerKey, numberOfKeys, numberOfLetters, letterFrequencyList ).press(), 47 )
+
+		maximumLettersPerKey, numberOfKeys, numberOfLetters = 3, 9, 26
+		letterFrequencyList = [ 1, 1, 1, 100, 100, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 10, 11, 11, 11, 11, 1, 1, 1, 100 ]
+		self.assertEqual( TextMessaging( maximumLettersPerKey, numberOfKeys, numberOfLetters, letterFrequencyList ).press(), 397 )
 
 ################################################################################
 ################################################################################
