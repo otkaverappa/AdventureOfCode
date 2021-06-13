@@ -8882,5 +8882,218 @@ class TextMessagingTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# IDI_Open_2009.pdf - "Problem G : Counting Sheep"
+################################################################################
+
+class Sheep:
+	def __init__( self, locationMap ):
+		self.rows, self.cols = len( locationMap ), len( locationMap[ 0 ] )
+		self.locationMap = [ list( locationMapRow ) for locationMapRow in locationMap ]
+		self.sheepCell, self.grassCell = '#.'
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def count( self ):
+		flocks = 0
+		for location in itertools.product( range( self.rows ), range( self.cols ) ):
+			u, v = location
+			if self.locationMap[ u ][ v ] == self.sheepCell:
+				flocks += 1
+
+				stack = list()
+				stack.append( location )
+
+				while len( stack ) > 0:
+					r, c = stack.pop()
+					if self.locationMap[ r ][ c ] == self.grassCell:
+						continue
+					self.locationMap[ r ][ c ] = self.grassCell
+					for du, dv in self.adjacentCellDelta:
+						u, v = newLocation = r + du, c + dv
+						if not 0 <= u < self.rows or not 0 <= v < self.cols:
+							continue
+						if self.locationMap[ u ][ v ] == self.sheepCell:
+							stack.append( newLocation )
+		return flocks
+
+class SheepTest( unittest.TestCase ):
+	def test_Sheep( self ):
+		with open( 'tests/sheep/sheep.in' ) as inputFile, \
+		     open( 'tests/sheep/sheep.out' ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				rows, cols = readIntegers( inputFile )
+				locationMap = [ readString( inputFile ) for _ in range( rows ) ]
+
+				count = readInteger( solutionFile )
+
+				print( 'Testcase #{} rows = {} cols = {} count = {}'.format( index + 1, rows, cols, count ) )
+				self.assertEqual( Sheep( locationMap ).count(), count )
+
+	def test_Sheep_Sample( self ):
+		locationMap = [
+		'#.#.',
+		'.#.#',
+		'#.##',
+		'.#.#'
+		]
+		self.assertEqual( Sheep( locationMap ).count(), 6 )
+
+		locationMap = [
+		'###.#',
+		'..#..',
+		'#.###'
+		]
+		self.assertEqual( Sheep( locationMap ).count(), 3 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# IDI_Open_2009.pdf - "Problem K : Robotic Encryption"
+################################################################################
+
+class RoboticEncryption:
+	def __init__( self, letterGrid, commandList ):
+		self.rows, self.cols = len( letterGrid ), len( letterGrid[ 0 ] )
+		
+		self.letterGrid = letterGrid
+		self.commandList = commandList
+
+		self.r, self.c = 0, 0
+		self.currentDirection = 'S'
+		
+		self.directionDelta = {
+		'S' : (1, 0), 'N' : (-1, 0), 'E' : (0, 1), 'W' : (0, -1)
+		}
+		self.leftTurnDict = {
+		'N' : 'W', 'W' : 'S', 'S' : 'E', 'E' : 'N'
+		}
+		self.rightTurnDict = {
+		'N' : 'E', 'E' : 'S', 'S' : 'W', 'W' : 'N'
+		}
+		self.uTurnDict = {
+		'N' : 'S', 'S' : 'N', 'E' : 'W', 'W' : 'E'
+		}
+
+		self.leftTurnToken, self.rightTurnToken, self.moveForwardToken = 'LRF'
+		self.cache = dict()
+
+	def _move( self ):
+		du, dv = self.directionDelta[ self.currentDirection ]
+		u, v = self.r + du, self.c + dv
+		if 0 <= u < self.rows and 0 <= v < self.cols:
+			self.r, self.c = u, v
+			return True
+		return False
+
+	def _apply( self, commandString ):
+		commandTokenList = list( commandString )
+
+		stack = list()
+		matchDict = dict()
+		
+		for i, token in enumerate( commandString ):
+			if token == '(':
+				stack.append( i )
+			elif token == ')':
+				matchDict[ stack.pop() ] = i + 1
+		assert len( stack ) == 0
+		
+		pc = 0
+
+		while pc < len( commandTokenList ):
+			token = commandTokenList[ pc ]
+			
+			if token == '(':
+				jumpAddress, loopEndAddress = pc, matchDict[ pc ]
+				fragment = commandString[ jumpAddress : loopEndAddress + 1 ]
+				cacheKey = (fragment, self.r, self.c, self.currentDirection)
+				if cacheKey in self.cache:
+					self.r, self.c, self.currentDirection = self.cache[ cacheKey ]
+					pc = loopEndAddress
+				else:
+					stack.append( (jumpAddress, None, self.r, self.c, self.currentDirection, fragment) )
+			elif token == ')':
+				# Examine the loop-counter. If the loop-counter is:
+				# None : Initialize the loop-counter. 
+				# x : Decrement x. If the loop-counter is zero, execution of the loop is complete; Otherwise jump
+				#     to the start of the loop.
+				jumpAddress, loopCounter, parameter_r, parameter_c, parameter_direction, fragment = stack[ -1 ]
+				pc += 1
+				if loopCounter is None:
+					loopCounter = int( commandTokenList[ pc ] )
+				loopCounter -= 1
+				if loopCounter == 0:
+					stack.pop()
+					cacheKey = (fragment, parameter_r, parameter_c, parameter_direction)
+					self.cache[ cacheKey ] = (self.r, self.c, self.currentDirection)
+				else:
+					stack[ -1 ] = (jumpAddress, loopCounter, parameter_r, parameter_c, parameter_direction, fragment)
+					pc = jumpAddress
+			elif token == self.leftTurnToken:
+				self.currentDirection = self.leftTurnDict[ self.currentDirection ]
+			elif token == self.rightTurnToken:
+				self.currentDirection = self.rightTurnDict[ self.currentDirection ]
+			elif token == self.moveForwardToken:
+				moveSuccess = self._move()
+				if not moveSuccess:
+					self.currentDirection = self.uTurnDict[ self.currentDirection ]
+			pc += 1
+
+	def decode( self ):
+		decodedString = list()
+		for commandString in self.commandList:
+			self._apply( commandString )
+			decodedString.append( self.letterGrid[ self.r ][ self.c ] )
+		return ''.join( decodedString )
+
+class RoboticEncryptionTest( unittest.TestCase ):
+	def test_RoboticEncryption( self ):
+		with open( 'tests/robocrypt/robocrypt.in' ) as inputFile, \
+		     open( 'tests/robocrypt/robocrypt.out' ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				cols, rows = readIntegers( inputFile )
+				letterGrid = [ readRawString( inputFile ) for _ in range( rows ) ]
+
+				commands = readInteger( inputFile )
+				commandList = [ readString( inputFile ) for _ in range( commands ) ]
+
+				decodedString = readRawString( solutionFile )
+
+				formatString = 'Testcase #{} {}x{} Number of commands = {} decodedString = [{}]'
+				print( formatString.format( index + 1, rows, cols, commands, decodedString ) )
+
+				self.assertEqual( RoboticEncryption( letterGrid, commandList ).decode(), decodedString )
+
+	def test_RoboticEncryption_Sample( self ):
+		letterGrid = [
+		'012345',
+		'6789AB',
+		'CDEFGH',
+		'IJKLMN',
+		'OPQRST',
+		'UVWXYZ',
+		'_! .,&'
+		]
+		commandList = [
+		'FFL(F)5', '(F)4', '(LF)2', '(L(R)6L)9', 'RFRFFF', '(L(F)2)2', 'LF',
+		'FLFF', 'FFFF', 'LF', 'FLFF', 'L(F)4'
+		]
+		self.assertEqual( RoboticEncryption( letterGrid, commandList ).decode(), 'HELLO WORLD!' )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
