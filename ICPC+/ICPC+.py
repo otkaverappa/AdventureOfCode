@@ -9095,5 +9095,125 @@ class RoboticEncryptionTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# BAPC2014.pdf - "Problem J : Jury Jeopardy"
+################################################################################
+
+class JuryJeopardy:
+	def __init__( self, commandString ):
+		self.commandString = commandString
+
+		self.leftToken, self.rightToken, self.forwardToken, self.backwardToken = 'LRFB'
+		self.emptyCell, self.wallCell = '.#'
+
+		self.directionDelta = {
+		'E' : (0, 1), 'W' : (0, -1), 'N' : (-1, 0), 'S' : (1, 0)
+		}
+		self.leftTurnDict = {
+		'N' : 'W', 'W' : 'S', 'S' : 'E', 'E' : 'N'
+		}
+		self.rightTurnDict = {
+		'N' : 'E', 'E' : 'S', 'S' : 'W', 'W' : 'N'
+		}
+		self.uTurnDict = {
+		'N' : 'S', 'S' : 'N', 'E' : 'W', 'W' : 'E'
+		}
+
+	def generate( self ):
+		currentLocation = 0, 0
+		currentDirection = 'E'
+		
+		openSpaces = set()
+		openSpaces.add( currentLocation )
+
+		row_minimum = row_maximum = col_minimum = col_maximum = 0
+
+		for commandToken in self.commandString:
+			u, v = currentLocation
+			if commandToken == self.forwardToken:
+				pass
+			elif commandToken == self.backwardToken:
+				currentDirection = self.uTurnDict[ currentDirection ]
+			elif commandToken == self.leftToken:
+				currentDirection = self.leftTurnDict[ currentDirection ]
+			elif commandToken == self.rightToken:
+				currentDirection = self.rightTurnDict[ currentDirection ]
+
+			du, dv = self.directionDelta[ currentDirection ]
+			currentLocation = r, c = u + du, v + dv
+
+			row_minimum = min( row_minimum, r )
+			row_maximum = max( row_maximum, r )
+			col_minimum = min( col_minimum, c )
+			col_maximum = max( col_maximum, c )
+			openSpaces.add( currentLocation )
+
+		rows, cols = ( row_maximum - row_minimum ) + 1 + 2, ( col_maximum - col_minimum ) + 1 + 1
+		mazeLayout = [ [ self.wallCell for _ in range( cols ) ] for _ in range( rows ) ]
+
+		for row, col in openSpaces:
+			r, c = row + abs( row_minimum ) + 1, col
+			mazeLayout[ r ][ c ] = self.emptyCell
+
+		return [ ''.join( mazeLayoutRow ) for mazeLayoutRow in mazeLayout ]
+
+class JuryJeopardyTest( unittest.TestCase ):
+	def test_JuryJeopardy( self ):
+		with open( 'tests/jury/J.in' ) as inputFile, \
+		     open( 'tests/jury/J.out' ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			readString( solutionFile ) # Line containing the number of testcases; We don't need this information.
+
+			for index in range( testcaseCount ):
+				commandString = readString( inputFile )
+
+				rows, cols = readIntegers( solutionFile )
+				mazeLayout = [ readString( solutionFile ) for _ in range( rows ) ]
+
+				formatString = 'Testcase {} commandString length = {} --> {}x{}'
+				print( formatString.format( index + 1, len( commandString ), rows, cols ) )
+				self.assertEqual( JuryJeopardy( commandString ).generate(), mazeLayout )
+
+	def test_JuryJeopardy_Sample( self ):
+		commandString = 'FFRBLF'
+		mazeLayout = [
+		'####',
+		'...#',
+		'##.#',
+		'####'
+		]
+		self.assertEqual( JuryJeopardy( commandString ).generate(), mazeLayout )
+
+		commandString = 'FFRFRBRFBFRBRFLF'
+		mazeLayout = [
+		'#####',
+		'...##',
+		'##.##',
+		'#...#',
+		'##.##',
+		'##.##',
+		'#####'
+		]
+		self.assertEqual( JuryJeopardy( commandString ).generate(), mazeLayout )
+
+		commandString = 'FRLFFFLBRFFFRFFFRFRFBRFLBRFRLFLFFR'
+		mazeLayout = [
+		'#######',
+		'#...#.#',
+		'#.#...#',
+		'#.#.###',
+		'..###.#',
+		'#.....#',
+		'#######'
+		]
+		self.assertEqual( JuryJeopardy( commandString ).generate(), mazeLayout )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
