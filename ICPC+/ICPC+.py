@@ -9215,5 +9215,108 @@ class JuryJeopardyTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Mid-CentralUSARegional2017.pdf - "Problem E : Honey Heist"
+################################################################################
+
+class HoneyHeist:
+	def __init__( self, radius, N, startCell, targetCell, hardCellList ):
+		self.cellIdToPositionDict = dict()
+		self.positionToCellIdDict = dict()
+
+		cellId = 1
+		count = radius
+		startColNumber = 0
+		for rowNumber in range( 2 * radius - 1 ):
+			colNumber = startColNumber
+			for c in range( count ):
+				self.cellIdToPositionDict[ cellId ] = (rowNumber, colNumber)
+				self.positionToCellIdDict[ (rowNumber, colNumber) ] = cellId
+				cellId += 1
+				colNumber += 2
+			if rowNumber < radius - 1:
+				count += 1
+				startColNumber -= 1
+			else:
+				count -= 1
+				startColNumber += 1
+
+		self.N = N
+		self.startCell, self.targetCell = startCell, targetCell
+		self.hardCells = set( hardCellList )
+
+	def _adjacentCellList( self, cellId ):
+		adjacentCellList = list()
+		row, col = self.cellIdToPositionDict[ cellId ]
+		for du, dv in [ (0, -2), (0, 2), (-1, -1), (-1, 1), (1, -1), (1, 1) ]:
+			position = row + du, col + dv
+			if position in self.positionToCellIdDict:
+				adjacentCellList.append( self.positionToCellIdDict[ position ] )
+		return adjacentCellList
+
+	def go( self ):
+		distance = 0
+
+		q = deque()
+		q.append( self.startCell )
+
+		visited = set()
+		visited.add( self.startCell )
+
+		while len ( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentCell = q.popleft()
+				if currentCell == self.targetCell:
+					return distance
+				for adjacentCell in self._adjacentCellList( currentCell ):
+					if adjacentCell in self.hardCells:
+						continue
+					if adjacentCell not in visited:
+						visited.add( adjacentCell )
+						q.append( adjacentCell )
+			distance += 1
+			if distance > self.N:
+				break
+		return 'No'
+
+class HoneyHeistTest( unittest.TestCase ):
+	def test_HoneyHeist( self ):
+		for testfile in getTestFileList( tag='honeyheist' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/honeyheist/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/honeyheist/{}.ans'.format( testfile ) ) as solutionFile:
+
+			radius, N, startCell, targetCell, _ = readIntegers( inputFile )
+			hardCellList = list( readIntegers( inputFile ) )
+
+			state = readString( solutionFile )
+			if state != 'No':
+				state = int( state )
+
+			print( 'Testcase {} radius = {} {} --> {} [{}]'.format( testfile, radius, startCell, targetCell, state ) )
+			self.assertEqual( HoneyHeist( radius, N, startCell, targetCell, hardCellList ).go(), state )
+
+	def test_HoneyHeist_Sample( self ):
+		radius, N = 6, 6
+		startCell, targetCell = 1, 45
+		hardCellList = [ 15, 16, 17, 19, 26, 27, 52, 53, 58, 65, 74 ]
+		self.assertEqual( HoneyHeist( radius, N, startCell, targetCell, hardCellList ).go(), 6 )
+
+		radius, N = 6, 3
+		startCell, targetCell = 1, 45
+		hardCellList = [ 15, 16, 17, 19, 26, 27, 52, 53, 58, 65, 74 ]
+		self.assertEqual( HoneyHeist( radius, N, startCell, targetCell, hardCellList ).go(), 'No' )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
