@@ -9318,5 +9318,221 @@ class HoneyHeistTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# VirginiaTechHighSchoolProgrammingContest_2020_Division1 - Problem C : Cave Exploration
+################################################################################
+
+class CaveExploration:
+	def __init__( self, caveLayout ):
+		self.size = len( caveLayout )
+		self.caveLayout = caveLayout
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def go( self ):
+		startLocation, targetLocation = (0, 0), (self.size - 1, self.size - 1)
+		timeTaken = 0
+
+		q = list()
+		q.append( (timeTaken, startLocation) )
+
+		timeTakenDict = dict()
+		timeTakenDict[ startLocation ] = timeTaken
+
+		while len( q ) > 0:
+			timeTaken, currentLocation = heapq.heappop( q )
+			if currentLocation == targetLocation:
+				return timeTaken
+
+			if timeTakenDict[ currentLocation ] < timeTaken:
+				continue
+
+			u, v = currentLocation
+			for du, dv in self.adjacentCellDelta:
+				r, c = newLocation = u + du, v + dv
+				if not 0 <= r < self.size or not 0 <= c < self.size:
+					continue
+				totalTimeTaken = max( timeTaken, self.caveLayout[ r ][ c ] )
+				if newLocation not in timeTakenDict or timeTakenDict[ newLocation ] > totalTimeTaken:
+					timeTakenDict[ newLocation ] = totalTimeTaken
+					heapq.heappush( q, (totalTimeTaken, newLocation) )
+
+class CaveExplorationTest( unittest.TestCase ):
+	def test_CaveExploration_Sample( self ):
+		caveLayout = [
+		[ 0, 3 ],
+		[ 2, 4 ]
+		]
+		self.assertEqual( CaveExploration( caveLayout ).go(), 4 )
+
+		caveLayout = [
+		[ 0, 2, 3, 10, 4 ],
+		[ 10, 23, 2, 21, 12 ],
+		[ 11, 10, 12, 12, 16 ],
+		[ 12, 12, 18, 10, 10 ],
+		[ 10, 10, 10, 11, 10 ]
+		]
+		self.assertEqual( CaveExploration( caveLayout ).go(), 12 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# VirginiaTechHighSchoolProgrammingContest_2020_Division2 - Problem A : Pumpkin Patch
+################################################################################
+
+class PumpkinPatch:
+	def __init__( self, size, pumpkinLocations, days ):
+		self.size = size
+		self.pumpkinLocations = pumpkinLocations
+		self.days = days
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def go( self ):
+		emptyCell = '.'
+		field = [ [ emptyCell for _ in range( self.size ) ] for _ in range( self.size ) ]
+		
+		locationToIndex = dict()
+		for index, location in enumerate( self.pumpkinLocations ):
+			locationToIndex[ location ] = index
+			r, c = location
+			field[ r ][ c ] = index
+
+		alivePumpkins = set( self.pumpkinLocations )
+
+		stateList = [ 'ALIVE' for _ in range( len( alivePumpkins ) ) ]
+
+		days = 0
+		while days < self.days:
+			days += 1
+			deadList = list()
+			
+			for pumpkinLocation in alivePumpkins:
+				dead = False
+				index = locationToIndex[ pumpkinLocation ]
+
+				u, v = pumpkinLocation
+				for du, dv in self.adjacentCellDelta:
+					r, c = u + days * du, v + days * dv
+					if r < 0 or r >= self.size or c < 0 or c >= self.size:
+						dead = True
+						continue
+					if field[ r ][ c ] == emptyCell:
+						field[ r ][ c ] = index
+					else:
+						dead = True
+						rootIndex = field[ r ][ c ]
+						if stateList[ rootIndex ] == 'ALIVE':
+							stateList[ rootIndex ] = days
+							deadList.append( self.pumpkinLocations[ rootIndex ] )
+				if dead:
+					stateList[ index ] = days
+					deadList.append( pumpkinLocation )
+
+			for location in deadList:
+				if location in alivePumpkins:
+					alivePumpkins.remove( location )
+		return stateList
+
+class PumpkinPatchTest( unittest.TestCase ):
+	def test_PumpkinPatch_Sample( self ):
+		size = 8
+		pumpkinLocations = [ (3, 2), (5, 5), (4, 3), (1, 1) ]
+		days = 2
+		self.assertEqual( PumpkinPatch( size, pumpkinLocations, days ).go(), [ 1, 2, 1, 2 ] )
+
+		size = 10
+		pumpkinLocations = [ (0, 0), (6, 3), (6, 4), (3, 6), (2, 1) ]
+		days = 3
+		self.assertEqual( PumpkinPatch( size, pumpkinLocations, days ).go(), [ 1, 1, 1, 'ALIVE', 2 ] )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Mid-CentralUSARegional2016.pdf - "Problem B : Falling Apples"
+################################################################################
+
+class FallingApples:
+	def __init__( self, areaMap ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = [ list( areaMapRow ) for areaMapRow in areaMap ]
+
+		self.emptyCell, self.blockedCell, self.appleCell = '.#a'
+
+	def go( self ):
+		for col in range( self.cols ):
+			writeIndex = readIndex = self.rows - 1
+			while readIndex >= 0:
+				if self.areaMap[ readIndex ][ col ] == self.emptyCell:
+					readIndex -= 1
+				elif self.areaMap[ readIndex ][ col ] == self.appleCell:
+					self.areaMap[ readIndex ][ col ] = self.emptyCell
+					self.areaMap[ writeIndex ][ col ] = self.appleCell
+					readIndex -= 1
+					writeIndex -= 1
+				elif self.areaMap[ readIndex ][ col ] == self.blockedCell:
+					readIndex -= 1
+					writeIndex = readIndex
+					
+		return [ ''.join( areaMapRow ) for areaMapRow in self.areaMap ]
+
+class FallingApplesTest( unittest.TestCase ):
+	def test_FallingApples( self ):
+		for testfile in getTestFileList( tag='apples' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/apples/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/apples/{}.ans'.format( testfile ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			areaMap = [ readString( inputFile ) for _ in range( rows ) ]
+
+			fallenApples = [ readString( solutionFile ) for _ in range( rows ) ]
+
+			print( 'Testcase {} rows = {} cols = {}'.format( testfile, rows, cols ) )
+			self.assertEqual( FallingApples( areaMap ).go(), fallenApples )
+
+	def test_FallingApples_Sample( self ):
+		areaMap = [
+		'aaa',
+		'#..',
+		'..#'
+		]
+		fallenApples = [
+		'a..',
+		'#.a',
+		'.a#'
+		]
+		self.assertEqual( FallingApples( areaMap ).go(), fallenApples )
+
+		areaMap = [
+		'aaa.a',
+		'aa.a.',
+		'a.a..',
+		'...a.'
+		]
+		fallenApples = [
+		'.....',
+		'a....',
+		'aaaa.',
+		'aaaaa'
+		]
+		self.assertEqual( FallingApples( areaMap ).go(), fallenApples )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
