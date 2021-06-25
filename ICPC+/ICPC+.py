@@ -9590,5 +9590,115 @@ class PairingSocksTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# NorthWesternEuropeanRegionalContest_2010 - "Problem H : Stock Prices"
+################################################################################
+
+class StockPrices:
+	def __init__( self, orderInfoList ):
+		self.orderInfoList = orderInfoList
+
+	def process( self ):
+		statusList = list()
+
+		buyQueue = list()
+		sellQueue = list()
+
+		stockPrice = None
+		for orderInfo in self.orderInfoList:
+			orderType, numberOfShares, _, _, price = orderInfo.split()
+			numberOfShares, price = int( numberOfShares ), int( price )
+
+			if orderType == 'buy':
+				heapq.heappush( buyQueue, (-price, numberOfShares) )
+			elif orderType == 'sell':
+				heapq.heappush( sellQueue, (price, numberOfShares) )
+
+			while True:
+				bidPrice, buyQuantity = (None, None) if len( buyQueue ) == 0 else buyQueue[ 0 ]
+				askPrice, askQuantity = (None, None) if len( sellQueue ) == 0 else sellQueue[ 0 ]
+
+				if bidPrice is not None:
+					bidPrice = -bidPrice
+				
+				if bidPrice is None or askPrice is None or not bidPrice >= askPrice:
+					break
+
+				stockPrice = askPrice
+				heapq.heappop( buyQueue )
+				heapq.heappop( sellQueue )
+				if buyQuantity == askQuantity:
+					pass
+				elif buyQuantity < askQuantity:
+					heapq.heappush( sellQueue, (askPrice, askQuantity - buyQuantity) )
+				else:
+					heapq.heappush( buyQueue, (-bidPrice, buyQuantity - askQuantity) )
+			
+			askPriceString = '-' if askPrice is None else str( askPrice )
+			bidPriceString = '-' if bidPrice is None else str( bidPrice )
+			stockPriceString = '-' if stockPrice is None else str( stockPrice )
+			
+			statusString = '{} {} {}'.format( askPriceString, bidPriceString, stockPriceString )
+			statusList.append( statusString )
+		return statusList
+
+class StockPricesTest( unittest.TestCase ):
+	def test_StockPrices( self ):
+		with open( 'tests/stockprices/H.in' ) as inputFile, \
+		     open( 'tests/stockprices/H.out' ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for index in range( testcaseCount ):
+				orderInfoSize = readInteger( inputFile )
+				orderInfoList = [ readString( inputFile ) for _ in range( orderInfoSize ) ]
+
+				priceList = [ readString( solutionFile ) for _ in range( orderInfoSize ) ]
+
+				print( 'Testcase #{} orderInfoSize = {}'.format( index + 1, orderInfoSize ) )
+				self.assertEqual( StockPrices( orderInfoList ).process(), priceList )
+
+	def test_StockPrices_Sample( self ):
+		orderInfoList = [
+		'buy 10 shares at 100',
+		'sell 1 shares at 120',
+		'sell 20 shares at 110',
+		'buy 30 shares at 110',
+		'sell 10 shares at 99',
+		'buy 1 shares at 120'
+		]
+		priceList = [
+		'- 100 -',
+		'120 100 -',
+		'110 100 -',
+		'120 110 110',
+		'120 100 99',
+		'- 100 120'
+		]
+		self.assertEqual( StockPrices( orderInfoList ).process(), priceList )
+
+		orderInfoList = [
+		'sell 10 shares at 100',
+		'buy 1 shares at 80',
+		'buy 20 shares at 90',
+		'sell 30 shares at 90',
+		'buy 10 shares at 101',
+		'sell 1 shares at 80'
+		]
+		priceList = [
+		'100 - -',
+		'100 80 -',
+		'100 90 -',
+		'90 80 90',
+		'100 80 90',
+		'100 - 80'
+		]
+		self.assertEqual( StockPrices( orderInfoList ).process(), priceList )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
