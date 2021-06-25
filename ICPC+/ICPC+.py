@@ -9534,5 +9534,61 @@ class FallingApplesTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+# KTH_Challenge_2018.pdf - "Problem G : Pairing Socks"
+################################################################################
+
+class PairingSocks:
+	def __init__( self, socksList ):
+		self.socksList = socksList
+		self.socksList.reverse()
+
+	def pair( self ):
+		turn = 0
+		stack = list()
+
+		while len( self.socksList ) > 0:
+			if len( stack ) == 0 or stack[ -1 ] != self.socksList[ -1 ]:
+				stack.append( self.socksList.pop() )
+			elif stack[ -1 ] == self.socksList[ -1 ]:
+				stack.pop()
+				self.socksList.pop()
+			turn += 1
+		return turn if len( stack ) == 0 else 'impossible'
+
+class PairingSocksTest( unittest.TestCase ):
+	def test_PairingSocks( self ):
+		for testfile in getTestFileList( tag='pairingsocks' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/pairingsocks/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/pairingsocks/{}.ans'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			socksList = list( readIntegers( inputFile ) )
+
+			state = readString( solutionFile )
+			if state != 'impossible':
+				state = int( state )
+
+			print( 'Testcase {} Number of pairs of socks = {} {}'.format( testfile, N, state ) )
+			self.assertEqual( PairingSocks( socksList ).pair(), state )
+
+	def test_PairingSocks_Sample( self ):
+		socksList = [ 1, 2, 2, 1 ]
+		self.assertEqual( PairingSocks( socksList ).pair(), 4 )
+
+		socksList = [ 3, 7 ]
+		self.assertEqual( PairingSocks( socksList ).pair(), 'impossible' )
+
+		socksList = [ 5, 5, 5, 5, 5, 5 ]
+		self.assertEqual( PairingSocks( socksList ).pair(), 6 )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
