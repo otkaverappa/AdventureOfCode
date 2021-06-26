@@ -9700,5 +9700,76 @@ class StockPricesTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# grasshop.pdf
+# CTU Open Contest 2012 - "Gregory the Grasshopper"
+################################################################################
+
+class GregoryTheGrasshopper:
+	def __init__( self, rows, cols, startLocation, targetLocation ):
+		self.rows, self.cols = rows, cols
+		self.startLocation = startLocation
+		self.targetLocation = targetLocation
+
+		self.adjacentCellDelta = [ (1, 2), (1, -2), (2, 1), (2, -1), (-1, 2), (-1, -2), (-2, 1), (-2, -1) ]
+
+	def go( self ):
+		q = deque()
+		q.append( self.startLocation )
+
+		visited = set()
+		visited.add( self.startLocation )
+
+		distance = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentLocation = u, v = q.popleft()
+				if currentLocation == self.targetLocation:
+					return distance
+				for du, dv in self.adjacentCellDelta:
+					r, c = newLocation = u + du, v + dv
+					if not 0 < r <= self.rows or not 0 < c <= self.cols:
+						continue
+					if newLocation not in visited:
+						visited.add( newLocation )
+						q.append( newLocation )
+			distance += 1
+		return 'impossible'
+
+class GregoryTheGrasshopperTest( unittest.TestCase ):
+	def test_GregoryTheGrasshopper_Sample( self ):
+		self.assertEqual( GregoryTheGrasshopper( 10, 10, (10, 10), (1, 1) ).go(), 6 )
+		self.assertEqual( GregoryTheGrasshopper( 2, 2, (1, 1), (1, 2) ).go(), 'impossible' )
+		self.assertEqual( GregoryTheGrasshopper( 8, 8, (1, 1), (1, 2) ).go(), 3 )
+
+	def test_GregoryTheGrasshopper( self ):
+		with open( 'tests/grasshopper/grasshop.in' ) as inputFile, \
+		     open( 'tests/grasshopper/grasshop.out' ) as solutionFile:
+
+			testcaseCount = 0
+			while True:
+				header = readString( inputFile )
+				if len( header ) == 0:
+					break
+				testcaseCount += 1
+				rows, cols, r1, c1, r2, c2 = map( int, header.split() )
+				state = readString( solutionFile )
+				if state != 'impossible':
+					state = int( state )
+
+				formatString = 'Testcase # {} rows = {} cols = {} ({}, {}) --> ({}, {}) [{}]'
+				print( formatString.format( testcaseCount, rows, cols, r1, c1, r2, c2, state ) )
+
+				self.assertEqual( GregoryTheGrasshopper( rows, cols, (r1, c1), (r2, c2) ).go(), state )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
