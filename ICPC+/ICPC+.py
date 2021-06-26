@@ -9771,5 +9771,119 @@ class GregoryTheGrasshopperTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Waterloo Programming Contest 27-09-2015 - "Problem D: Landlocked"
+################################################################################
+
+class Landlocked:
+	def __init__( self, areaMap ):
+		self.rows, self.cols = len( areaMap ), len( areaMap[ 0 ] )
+		self.areaMap = areaMap
+		self.waterCell = 'W'
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1) ]
+
+	def analyze( self ):
+		waterCellDistance = -1
+
+		landlockedDict = dict()
+
+		q = deque()
+		visited = set()
+
+		for location in itertools.product( range( self.rows ), range( self.cols ) ):
+			u, v = location
+			if self.areaMap[ u ][ v ] == self.waterCell:
+				q.append( (location, waterCellDistance) )
+
+		while len( q ) > 0:
+			location, distance = q.popleft()
+			if location in visited:
+				continue
+			visited.add( location )
+
+			u, v = location
+			cell = self.areaMap[ u ][ v ]
+
+			for du, dv in self.adjacentCellDelta:
+				r, c = adjacentLocation = u + du, v + dv
+				if adjacentLocation in visited:
+					continue
+				if not 0 <= r < self.rows or not 0 <= c < self.cols:
+					continue
+				adjacentCell = self.areaMap[ r ][ c ]
+				
+				newDistance = distance
+				if adjacentCell != cell:
+					newDistance += 1
+				if adjacentCell not in landlockedDict or landlockedDict[ adjacentCell ] > newDistance:
+					landlockedDict[ adjacentCell ] = newDistance
+
+				if newDistance == distance:
+					q.appendleft( (adjacentLocation, newDistance) )
+				else:
+					q.append( (adjacentLocation, newDistance) )
+		
+		if self.waterCell in landlockedDict:
+			del landlockedDict[ self.waterCell ]
+		areaList = list( landlockedDict.items() )
+		areaList.sort()
+		return areaList
+
+class LandlockedTest( unittest.TestCase ):
+	def test_Landlocked( self ):
+		for testfile in getTestFileList( tag='landlocked' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/landlocked/{}.dat'.format( testfile ) ) as inputFile, \
+		     open( 'tests/landlocked/{}.diff'.format( testfile ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			areaMap = [ readString ( inputFile ) for _ in range( rows ) ]
+
+			areaList = list()
+			while True:
+				header = readString( solutionFile )
+				if len( header ) == 0:
+					break
+				landAreaToken, distance = header.split()
+				areaList.append( (landAreaToken, int( distance )) )
+
+			print( 'Testcase {} rows = {} cols = {}'.format( testfile, rows, cols ) )
+			self.assertEqual( Landlocked( areaMap ).analyze(), areaList )
+
+	def test_Landlocked_Sample( self ):
+		areaMap = [
+		'WWWWWCCDEW',
+		'WWWWCCEEEW',
+		'WTWWWCCCCW',
+		'WWFFFFFFWW',
+		'WWFAAAAFWW',
+		'WWFABCAFFW',
+		'WWFAAAAFWW'
+		]
+		areaList = [ ('A', 1), ('B', 2), ('C', 0), ('D', 1), ('E', 0), ('F', 0), ('T', 0) ]
+		self.assertEqual( Landlocked( areaMap ).analyze(), areaList )
+
+		areaMap = [
+		'WWWWWWWWW',
+		'WAAAAAAAW',
+		'WABBBBBAW',
+		'WABAAABAW',
+		'WABACABAW',
+		'WABAAABAW',
+		'WABBBBBAW',
+		'WAAAAAAAW',
+		'WWWWWWWWW'
+		]
+		areaList = [ ('A', 0), ('B', 1), ('C', 3) ]
+		self.assertEqual( Landlocked( areaMap ).analyze(), areaList )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
