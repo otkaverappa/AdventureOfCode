@@ -9885,5 +9885,140 @@ class LandlockedTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Nordic_Collegiate_Programming_Contest_2017 : "Problem I : Import Spaghetti"
+################################################################################
+
+class ImportSpaghetti:
+	def __init__( self, filenameList, importStatementDict ):
+		self.dependencyGraph = dict()
+		for filename in filenameList:
+			self.dependencyGraph[ filename ] = set()
+
+		self.trivialCycleLength1 = None
+		self.trivialCycleLength2 = None
+
+		for module, importStatements in importStatementDict.items():
+			imports = list()
+			for importStatement in importStatements:
+				# Each importStatement is of the form: "import A, B, C"
+				# Extract tokens A, B, and C, and place them in the list "imports".
+				_, * dependencies = importStatement.split()
+				for dependency in dependencies:
+					imports.append( dependency.strip( ',' ) )
+			for dependencyModule in imports:
+				self.dependencyGraph[ module ].add( dependencyModule )
+				if dependencyModule == module:
+					self.trivialCycleLength1 = module
+				if module in self.dependencyGraph[ dependencyModule ]:
+					self.trivialCycleLength2 = ' '.join( [ module, dependencyModule ] )
+
+	def _cycleFrom( self, module, maximumSearchDepth ):
+		distance = 0
+		q = deque()
+		q.append( (module, [ module ]) )
+
+		visited = set()
+		visited.add( module )
+
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentModule, path = q.popleft()
+
+				for dependencyModule in self.dependencyGraph[ currentModule ]:
+					if dependencyModule == module:
+						return path
+					if dependencyModule not in visited:
+						visited.add( dependencyModule )
+						q.append( (dependencyModule, path + [ dependencyModule ]) )
+			distance += 1
+			if distance > maximumSearchDepth:
+				break
+		return None
+
+	def analyze( self ):
+		if self.trivialCycleLength1 is not None:
+			return self.trivialCycleLength1
+		if self.trivialCycleLength2 is not None:
+			return self.trivialCycleLength2
+
+		cycle = None
+		for module in self.dependencyGraph:
+			maximumSearchDepth = float( 'inf' ) if cycle is None else len( cycle ) - 1
+			cycleFromModule = self._cycleFrom( module, maximumSearchDepth )
+			if cycleFromModule is not None:
+				cycle = cycleFromModule
+
+		return 'SHIP IT' if cycle is None else ' '.join( cycle )
+
+class ImportSpaghettiTest( unittest.TestCase ):
+	def _verifyCycle( self, detectedCycle, cycle ):
+		self.assertEqual( len( detectedCycle.split() ), len( cycle.split() ) )
+
+	def test_ImportSpaghetti( self ):
+		for testfile in getTestFileList( tag='importspaghetti' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/importspaghetti/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/importspaghetti/{}.ans'.format( testfile ) ) as solutionFile:
+
+			numberOfFiles = readInteger( inputFile )
+			filenameList = readStrings( inputFile )
+			importStatementDict = dict()
+			for _ in range( numberOfFiles ):
+				filename, lineCount = readStrings( inputFile )
+				importStatementDict[ filename ] = [ readString( inputFile ) for _ in range( int( lineCount ) ) ]
+
+			state = readString( solutionFile )
+			cycleLength = None if state == 'SHIP IT' else len( state.split() )
+
+			print( 'Testcase {} numberOfFiles = {} [{}]'.format( testfile, numberOfFiles, cycleLength ) )
+			cycleState = ImportSpaghetti( filenameList, importStatementDict ).analyze()
+
+			if state == 'SHIP IT':
+				self.assertEqual( cycleState, state )
+			elif cycleState != state:
+				self._verifyCycle( cycleState, state )
+
+	def test_ImportSpaghetti_Sample( self ):
+		filenameList = [ 'a', 'b', 'c', 'd' ]
+		importStatementDict = {
+		'a' : [ 'import d, b, c' ],
+		'b' : [ 'import d', 'import c' ],
+		'c' : [ 'import c' ],
+		'd' : [ ]
+		}
+		self.assertEqual( ImportSpaghetti( filenameList, importStatementDict ).analyze(), 'c' )
+
+		filenameList = [ 'classa', 'classb', 'myfilec', 'execd', 'libe' ]
+		importStatementDict = {
+		'classa' : [ 'import classb', 'import myfilec, libe' ],
+		'classb' : [ 'import execd' ],
+		'myfilec': [ 'import libe' ],
+		'execd'  : [ 'import libe' ],
+		'libe'   : [ ]
+		}
+		self.assertEqual( ImportSpaghetti( filenameList, importStatementDict ).analyze(), 'SHIP IT' )
+
+		filenameList = [ 'classa', 'classb', 'myfilec', 'execd', 'libe' ]
+		importStatementDict = {
+		'classa' : [ 'import classb', 'import myfilec, libe' ],
+		'classb' : [ 'import execd' ],
+		'myfilec': [ 'import libe' ],
+		'execd'  : [ 'import libe, classa' ],
+		'libe'   : [ ]
+		}
+		self._verifyCycle( ImportSpaghetti( filenameList, importStatementDict ).analyze(), 'classa classb execd' )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
