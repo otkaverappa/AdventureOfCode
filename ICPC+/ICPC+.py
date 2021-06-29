@@ -9,6 +9,7 @@ import math
 import operator
 import string
 import bisect
+from fractions import Fraction
 
 def getTestFileList( tag ):
 	return set( [ pathlib.Path( filename ).stem for filename in os.listdir( 'tests/{}'.format( tag ) ) ] )
@@ -10015,6 +10016,107 @@ class ImportSpaghettiTest( unittest.TestCase ):
 		'libe'   : [ ]
 		}
 		self._verifyCycle( ImportSpaghetti( filenameList, importStatementDict ).analyze(), 'classa classb execd' )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# arbitrage.pdf
+# CTU Open Contest 2010 - "Arbitrage ?"
+################################################################################
+
+class Arbitrage:
+	def __init__( self, currencyList, conversionRateList ):
+		self.currencyCount = len( currencyList )
+		self.conversionMatrix = [ [ float( 'inf' ) for _ in range( self.currencyCount ) ] for _ in range( self.currencyCount ) ]
+
+		currencyToIndexDict = dict()
+		for index, currency in enumerate( currencyList ):
+			currencyToIndexDict[ currency ] = index
+
+		for conversionRateString in conversionRateList:
+			fromCurrency, toCurrency, priceRatioString = conversionRateString.split()
+			A, B = map( int, priceRatioString.split( ':' ) )
+
+			i, j = currencyToIndexDict[ fromCurrency ], currencyToIndexDict[ toCurrency ]
+			self.conversionMatrix[ i ][ j ] = math.log( A / B )
+
+	def analyze( self ):
+		infinity = float( 'inf' )
+
+		for k in range( self.currencyCount ):
+			for i in range( self.currencyCount ):
+				for j in range( self.currencyCount ):
+					if self.conversionMatrix[ i ][ k ] != infinity and self.conversionMatrix[ k ][ j ] != infinity:
+						viaK = self.conversionMatrix[ i ][ k ] + self.conversionMatrix[ k ][ j ]
+						if self.conversionMatrix[ i ][ j ] == infinity or viaK < self.conversionMatrix[ i ][ j ]:
+							self.conversionMatrix[ i ][ j ] = viaK
+							if i == j and viaK < 0:
+								return 'Arbitrage'
+		return 'Ok'
+
+class ArbitrageTest( unittest.TestCase ):
+	def test_Arbitrage( self ):
+		with open( 'tests/arbitrage/arbitrage.in' ) as inputFile, \
+		     open( 'tests/arbitrage/arbitrage.out' ) as solutionFile:
+
+			testcaseCount = 0
+			while True:
+				currencyCount = readInteger( inputFile )
+				if currencyCount == 0:
+					break
+				testcaseCount += 1
+
+				currencyList = readStrings( inputFile )
+				conversions = readInteger( inputFile )
+				conversionRateList = [ readString( inputFile ) for _ in range( conversions ) ]
+				state = readString( solutionFile )
+
+				print( 'Testcase #{} currencies = {} conversions = {} [{}]'.format( testcaseCount, currencyCount, conversions, state ) )
+				self.assertEqual( Arbitrage( currencyList, conversionRateList ).analyze(), state )
+
+	def test_Arbitrage_Sample( self ):
+		currencyList = [ 'CZK', 'EUR' ]
+		conversionRateList = [
+		'CZK EUR 25:1',
+		'EUR CZK 1:25'
+		]
+		self.assertEqual( Arbitrage( currencyList, conversionRateList ).analyze(), 'Ok' )
+
+		currencyList = [ 'GBP', 'USD' ]
+		conversionRateList = [
+		'USD GBP 8:5',
+		'GBP USD 5:9'
+		]
+		self.assertEqual( Arbitrage( currencyList, conversionRateList ).analyze(), 'Arbitrage' )
+
+		currencyList = [ 'BON', 'DEM', 'CZK' ]
+		conversionRateList = [
+		'DEM BON 1:6',
+		'BON CZK 1:5',
+		'DEM CZK 1:20'
+		]
+		self.assertEqual( Arbitrage( currencyList, conversionRateList ).analyze(), 'Ok' )
+
+		currencyList = [ 'CZK', 'EUR', 'GBP' ]
+		conversionRateList = [
+		'CZK EUR 24:1',
+		'EUR GBP 5:4',
+		'GBP CZK 1:30'
+		]
+		self.assertEqual( Arbitrage( currencyList, conversionRateList ).analyze(), 'Ok' )
+
+		currencyList = [ 'CZK', 'USD', 'GBP' ]
+		conversionRateList = [
+		'CZK USD 28:1',
+		'CZK GBP 31:1',
+		'GBP CZK 1:31',
+		'USD GBP 1:1'
+		]
+		self.assertEqual( Arbitrage( currencyList, conversionRateList ).analyze(), 'Arbitrage' )
 
 ################################################################################
 ################################################################################
