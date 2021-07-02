@@ -10122,5 +10122,284 @@ class ArbitrageTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# EastCentralNorthAmericaRegionalContest2017 - "Problem E: Is-A? Has-A? Who Knowz-A?"
+################################################################################
+
+class IsAHasARelationship:
+	def __init__( self, relationshipList, queryList ):
+		self.is_a_relationship = 'is-a'
+		self.has_a_relationship = 'has-a'
+
+		self.isRelationshipGraph = defaultdict( lambda : list() )
+		self.hasRelationshipGraph = defaultdict( lambda : list() )
+
+		for relationshipString in relationshipList:
+			object1, relationship, object2 = relationshipString.split()
+			if relationship == self.is_a_relationship:
+				self.isRelationshipGraph[ object1 ].append( object2 )
+			elif relationship == self.has_a_relationship:
+				self.hasRelationshipGraph[ object1 ].append( object2 )
+
+		self.queryList = queryList
+		self.isRelationsCache = dict()
+		self.hasRelationsCache = dict()
+
+	def _query( self, queryString ):
+		object1, relationship, object2 = queryString.split()
+		if relationship == self.has_a_relationship:
+			return self._queryHasRelationship( object1, object2 )
+		else:
+			return self._queryIsRelationship( object1, object2 )
+
+	def _queryHasRelationship( self, object1, object2 ):
+		cacheKey = (object1, object2)
+		if cacheKey in self.hasRelationsCache:
+			return self.hasRelationsCache[ cacheKey ]
+
+		q = deque()
+		q.append( (object1, list(), False) )
+
+		visited = set()
+		visited.add( (object1, False) )
+
+		searchSuccessful = False
+		while len( q ) > 0:
+			fromObject, objectList, hasRelationFollowed = q.popleft()
+
+			if hasRelationFollowed and self._queryIsRelationship( fromObject, object2 ) == 'true':
+				searchSuccessful = True
+				break
+
+			for toObject in self.hasRelationshipGraph[ fromObject ]:
+				if (toObject, True) not in visited:
+					visited.add( (toObject, True) )
+					q.append( (toObject, objectList + [ fromObject ], True) )
+
+			for toObject in self.isRelationshipGraph[ fromObject ]:
+				if (toObject, hasRelationFollowed) not in visited:
+					visited.add( (toObject, hasRelationFollowed) )
+					q.append( (toObject, objectList + [ fromObject ], hasRelationFollowed) )
+		self.hasRelationsCache[ cacheKey ] = 'true' if searchSuccessful else 'false'
+		return self.hasRelationsCache[ cacheKey ]
+
+	def _queryIsRelationship( self, object1, object2 ):
+		# Trivial is-a relationship.
+		if object1 == object2:
+			return 'true'
+
+		cacheKey = (object1, object2)
+		if cacheKey in self.isRelationsCache:
+			return self.isRelationsCache[ cacheKey ]
+
+		q = deque()
+		q.append( (object1, list() ) )
+
+		visited = set()
+		visited.add( object1 )
+
+		searchSuccessful = False
+		while len( q ) > 0:
+			fromObject, objectList = q.popleft()
+
+			if fromObject == object2:
+				searchSuccessful = True
+				break
+
+			noMoreTransitions = True
+			for toObject in self.isRelationshipGraph[ fromObject ]:
+				if toObject not in visited:
+					visited.add( toObject )
+					q.append( (toObject, objectList + [ fromObject ]) )
+					noMoreTransitions = False
+			if noMoreTransitions:
+				for i in range( len( objectList ) ):
+					for j in range( i + 1, len( objectList ) ):
+						o1, o2 = objectList[ i ], objectList[ j ]
+						self.isRelationsCache[ (o1, o2) ] = 'true'
+		self.isRelationsCache[ cacheKey ] = 'true' if searchSuccessful else 'false'
+		return self.isRelationsCache[ cacheKey ]
+
+	def go( self ):
+		return [ 'Query {}: {}'.format( index + 1, self._query( queryString ) )
+		         for index, queryString in enumerate( self.queryList ) ]
+
+class IsAHasARelationshipTest( unittest.TestCase ):
+	def test_IsAHasARelationship( self ):
+		for testfile in getTestFileList( tag='is_a_has_a' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/is_a_has_a/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/is_a_has_a/{}.ans'.format( testfile ) ) as solutionFile:
+
+			relationshipCount, queryCount = readIntegers( inputFile )
+			relationshipList = [ readString( inputFile ) for _ in range( relationshipCount ) ]
+			queryList = [ readString( inputFile ) for _ in range( queryCount ) ]
+
+			resultList = [ readString( solutionFile ) for _ in range( queryCount ) ]
+
+			print( 'Testcase {} relationshipCount = {} queryCount = {}'.format( testfile, relationshipCount, queryCount ) )
+			self.assertEqual( IsAHasARelationship( relationshipList, queryList ).go(), resultList )
+
+	def test_IsAHasARelationship_Sample( self ):
+		relationshipList = [
+		'Day is-a Time',
+		'Appointment is-a Datebook',
+		'Appointment is-a Reminder',
+		'Appointment has-a Day',
+		'Datebook has-a Year',
+		]
+		queryList = [
+		'Day is-a Time',
+		'Time is-a Day',
+		'Appointment has-a Time',
+		'Appointment has-a Year',
+		'Day is-a Day'
+		]
+		resultList = [
+		'Query 1: true',
+		'Query 2: false',
+		'Query 3: true',
+		'Query 4: true',
+		'Query 5: true'
+		]
+		self.assertEqual( IsAHasARelationship( relationshipList, queryList ).go(), resultList )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# ICPC_2013_NorthAmerican_Qualification.pdf - "Problem C : Cantina of Babel"
+################################################################################
+
+class DirectedGraph:
+	def __init__( self, adjacencyList ):
+		self.vertexCount = len( adjacencyList )
+		self.adjacencyList = adjacencyList
+
+	def getStronglyConnectedComponents( self ):
+		time = -1
+		timeOfVisit = [ time for _ in range( self.vertexCount ) ]
+		minimumTimeOfVisit = [ time for _ in range( self.vertexCount ) ]
+		stack = list()
+		onStack = [ False for _ in range( self.vertexCount ) ]
+
+		strongComponentId = 0
+		stronglyConnectedComponentsDict = dict()
+
+		def _dfs( vertexId ):
+			nonlocal time, timeOfVisit, minimumTimeOfVisit, stack, onStack, strongComponentId, stronglyConnectedComponentsDict
+
+			onStack[ vertexId ] = True
+			stack.append( vertexId )
+			time += 1
+			minimumTimeOfVisit[ vertexId ] = timeOfVisit[ vertexId ] = time
+
+			for adjacentVertexId in self.adjacencyList[ vertexId ]:
+				if timeOfVisit[ adjacentVertexId ] < 0:
+					_dfs( adjacentVertexId )
+				if onStack[ adjacentVertexId ]:
+					minimumTimeOfVisit[ vertexId ] = min( minimumTimeOfVisit[ vertexId ], minimumTimeOfVisit[ adjacentVertexId ] )
+
+			if timeOfVisit[ vertexId ] != minimumTimeOfVisit[ vertexId ]:
+				return
+
+			currentComponent = set()
+			while True:
+				id_ = stack.pop()
+				currentComponent.add( id_ )
+				onStack[ id_ ] = False
+				if id_ == vertexId:
+					break
+			stronglyConnectedComponentsDict[ strongComponentId ] = currentComponent
+			strongComponentId += 1
+
+		for vertexId in range( self.vertexCount ):
+			if timeOfVisit[ vertexId ] < 0:
+				_dfs( vertexId )
+		return stronglyConnectedComponentsDict
+
+class Cantina:
+	def __init__( self, characterInfoList ):
+		languagesUnderstoodDict = defaultdict( lambda : list() )
+
+		spokenLanguages = list()
+		for characterId, characterInfo in enumerate( characterInfoList ):
+			_, spokenLanguage, * languagesUnderstood = characterInfo.split()
+			spokenLanguages.append( spokenLanguage )
+
+			languagesUnderstoodDict[ spokenLanguage ].append( characterId )
+			for language in languagesUnderstood:
+				languagesUnderstoodDict[ language ].append( characterId )
+
+		adjacencyList = [ list() for _ in range( len( characterInfoList ) ) ]
+		for characterId in range( len( characterInfoList ) ):
+			spokenLanguage = spokenLanguages[ characterId ]
+			for id_ in languagesUnderstoodDict[ spokenLanguage ]:
+				if id_ == characterId:
+					continue
+				adjacencyList[ characterId ].append( id_ )
+
+		self.graph = DirectedGraph( adjacencyList )
+		self.count = len( characterInfoList )
+
+	def go( self ):
+		stronglyConnectedComponentsDict = self.graph.getStronglyConnectedComponents()
+		
+		largestGroupSize = - float( 'inf' )
+		for connectedComponent in stronglyConnectedComponentsDict.values():
+			largestGroupSize = max( largestGroupSize, len( connectedComponent ) )
+		# Retain the largestGroupSize and let others leave.
+		return self.count - largestGroupSize
+
+class CantinaTest( unittest.TestCase ):
+	def test_Cantina( self ):
+		for testfile in getTestFileList( tag='cantinaofbabel' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/cantinaofbabel/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/cantinaofbabel/{}.ans'.format( testfile ) ) as solutionFile:
+
+			count = readInteger( inputFile )
+			characterInfoList = [ readString( inputFile ) for _ in range( count ) ]
+
+			expel = readInteger( solutionFile )
+
+			print( 'Testcase {} Number of characters = {} expel = {}'.format( testfile, count, expel ) )
+			self.assertEqual( Cantina( characterInfoList ).go(), expel )
+
+	def test_Cantina_Sample( self ):
+		characterInfoList = [
+		'Jabba-the-Hutt Huttese',
+		'Bib-Fortuna Huttese Basic',
+		'Boba-Fett Basic Huttese',
+		'Chewbacca Shyriiwook Basic',
+		'Luke Basic Jawaese Binary',
+		'Grakchawwaa Shyriiwook Basic Jawaese',
+		'R2D2 Binary Basic'
+		]
+		self.assertEqual( Cantina( characterInfoList ).go(), 2 )
+
+		characterInfoList = [
+		'Fran French Italian',
+		'Enid English German',
+		'George German Italian',
+		'Ian Italian French Spanish',
+		'Spencer Spanish Portugese',
+		'Polly Portugese Spanish'
+		]
+		self.assertEqual( Cantina( characterInfoList ).go(), 4 )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
