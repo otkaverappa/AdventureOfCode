@@ -10401,5 +10401,164 @@ class CantinaTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Water.pdf
+# 2016 ACM ICPC Southeast USA Regional Programming Contest
+################################################################################
+
+class UndirectedFlowGraph:
+	def __init__( self, vertexCount, capacityInfoList, sourceVertex, sinkVertex ):
+		self.vertexCount = vertexCount
+		self.adjacencyList = [ dict() for _ in range( vertexCount ) ]
+		self.sourceVertex, self.sinkVertex = sourceVertex, sinkVertex
+		
+		for i, j, capacity in capacityInfoList:
+			self.adjacencyList[ i ][ j ] = self.adjacencyList[ j ][ i ] = capacity
+
+	def updateCapacity( self, u, v, additionalCapacity ):
+		needRecalculation = False
+		A = self.adjacencyList[ u ].get( v, 0 )
+		B = self.adjacencyList[ v ].get( u, 0 )
+		if A == 0 or B == 0:
+			needRecalculation = True
+		self.adjacencyList[ u ][ v ] = A + additionalCapacity
+		self.adjacencyList[ v ][ u ] = B + additionalCapacity
+		return needRecalculation
+
+	def _dfs( self, currentVertex, flow, visited ):
+		if currentVertex == self.sinkVertex:
+			return flow
+		visited.add( currentVertex )
+		for adjacentVertex, capacity in self.adjacencyList[ currentVertex ].items():
+			if capacity > 0 and adjacentVertex not in visited:
+				possibleFlow = self._dfs( adjacentVertex, min( flow, capacity ), visited )
+				if possibleFlow > 0:
+					self.adjacencyList[ currentVertex ][ adjacentVertex ] -= possibleFlow
+					self.adjacencyList[ adjacentVertex ][ currentVertex ] += possibleFlow
+					return possibleFlow
+		return 0
+
+	def maximumFlow( self ):
+		flow = 0
+		while True:
+			visited = set()
+			additionalFlow = self._dfs( self.sourceVertex, float( 'inf' ), visited )
+			if additionalFlow == 0:
+				break
+			flow += additionalFlow
+		return flow
+
+class Water:
+	def __init__( self, numberOfStations, pipeInfoList, modificationInfoList ):
+		capacityInfoList = [ (s1 - 1, s2 - 1, capacity) for s1, s2, capacity in pipeInfoList ]
+		self.modificationInfoList = modificationInfoList
+		self.sourceVertex, self.sinkVertex = 0, 1
+		self.flowGraph = UndirectedFlowGraph( numberOfStations, capacityInfoList, self.sourceVertex, self.sinkVertex )
+
+	def go( self ):
+		flowList = list()
+
+		flow = self.flowGraph.maximumFlow()
+		flowList.append( flow )
+
+		for u, v, additionalCapacity in self.modificationInfoList:
+			if self.flowGraph.updateCapacity( u - 1, v - 1, additionalCapacity ):
+				flow += self.flowGraph.maximumFlow()
+			flowList.append( flow )
+		return flowList
+
+class WaterTest( unittest.TestCase ):
+	def test_Water( self ):
+		for testfile in getTestFileList( tag='water' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/water/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/water/{}.ans'.format( testfile ) ) as solutionFile:
+
+			numberOfStations, pipeCount, modificationCount = readIntegers( inputFile )
+			pipeInfoList = [ tuple( readIntegers( inputFile ) ) for _ in range( pipeCount ) ]
+			modificationInfoList = [ tuple( readIntegers( inputFile ) ) for _ in range( modificationCount ) ]
+
+			flowList = [ readInteger( solutionFile ) for _ in range( modificationCount + 1 ) ]
+
+			formatString = 'Testcase {} numberOfStations = {} pipes = {} modifications = {}'
+			print( formatString.format( testfile, numberOfStations, pipeCount, modificationCount ) )
+
+			calculatedFlowList = Water( numberOfStations, pipeInfoList, modificationInfoList ).go()
+			self.assertEqual( len( calculatedFlowList ), len( flowList ) )
+			for i in range( len( flowList ) ):
+				self.assertEqual( calculatedFlowList[ i ], flowList[ i ] )
+	
+	def test_Water_Sample( self ):
+		numberOfStations = 3
+		pipeInfoList = [ (1, 3, 10), (2, 3, 1) ]
+		modificationInfoList = [ (2, 3, 15) ]
+		self.assertEqual( Water( numberOfStations, pipeInfoList, modificationInfoList ).go(), [ 1, 10 ] )
+
+		numberOfStations = 6
+		pipeInfoList = [ (1, 3, 2), (1, 4, 6), (1, 5, 1), (3, 5, 8), (4, 5, 7), (2, 4, 3), (2, 5, 4),
+						 (2, 6, 1), (5, 6, 9), (3, 6, 5) ]
+		modificationInfoList = [ (2, 6, 9), (1, 6, 3) ]
+		self.assertEqual( Water( numberOfStations, pipeInfoList, modificationInfoList ).go(), [ 8, 9, 12 ] )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# ICPC_2012_NorthAmerican_Qualification.pdf
+# "Maze movement"
+################################################################################
+
+class MazeMovement:
+	def __init__( self, roomNumberList ):
+		roomNumberList.sort()
+		count = len( roomNumberList )
+		capacityInfoList = list()
+		
+		for i in range( count ):
+			for j in range( i + 1, count ):
+				gcd = math.gcd( roomNumberList[ i ], roomNumberList[ j ] )
+				if gcd > 1:
+					capacityInfoList.append( (i, j, gcd) )
+
+		sourceVertex, sinkVertex = 0, count - 1
+		self.flowGraph = UndirectedFlowGraph( count, capacityInfoList, sourceVertex, sinkVertex )
+
+	def go( self ):
+		return self.flowGraph.maximumFlow()
+
+class MazeMovementTest( unittest.TestCase ):
+	def test_MazeMovement( self ):
+		for testfile in getTestFileList( tag='mazemovement' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/mazemovement/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/mazemovement/{}.ans'.format( testfile ) ) as solutionFile:
+
+			roomCount = readInteger( inputFile )
+			roomNumberList = [ readInteger( inputFile ) for _ in range( roomCount ) ]
+			totalCount = readInteger( solutionFile )
+
+			print( 'Testcase {} Number of rooms = {} count = {}'.format( testfile, roomCount, totalCount ) )
+			self.assertEqual( MazeMovement( roomNumberList ).go(), totalCount )
+
+	def test_MazeMovement_Sample( self ):
+		roomNumberList = [ 4, 6, 8, 9 ]
+		self.assertEqual( MazeMovement( roomNumberList ).go(), 3 )
+
+		roomNumberList = [ 25289, 17017, 2601, 325, 225, 55223, 190969 ]
+		self.assertEqual( MazeMovement( roomNumberList ).go(), 18 )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
