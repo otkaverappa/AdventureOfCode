@@ -10560,5 +10560,381 @@ class MazeMovementTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+class HeightOrdering:
+	def __init__( self, heightListString ):
+		self.heightList = list( map( int, heightListString.split() ) )
+
+	def steps( self, removeDatasetNumber=False ):
+		if removeDatasetNumber:
+			_, * self.heightList = self.heightList
+
+		stepCount = 0
+		for i in range( 1, len( self.heightList ) ):
+			for j in range( i ):
+				if self.heightList[ j ] > self.heightList[ i ]:
+					x = self.heightList[ i ]
+					# Shift elements to the right, for the range of indices j to i - 1.
+					k = i
+					while k > j:
+						stepCount += 1
+						self.heightList[ k ] = self.heightList[ k - 1 ]
+						k = k - 1
+					self.heightList[ j ] = x
+		return stepCount
+
+class HeightOrderingTest( unittest.TestCase ):
+	def test_HeightOrdering( self ):
+		with open( 'tests/heightordering/a.in' ) as inputFile, open( 'tests/heightordering/a.out' ) as solutionFile:
+			testcaseCount = readInteger( inputFile )
+			for i in range( testcaseCount ):
+				heightListString = readString( inputFile )
+				_, stepCount = readString( solutionFile ).split()
+				stepCount = int( stepCount )
+
+				print( 'Testcase #{} stepCount = {}'.format( i + 1, stepCount ) )
+				self.assertEqual( HeightOrdering( heightListString ).steps( removeDatasetNumber=True ), stepCount )
+
+	def test_HeightOrdering_Sample( self ):
+		heightListString = '900 901 902 903 904 905 906 907 908 909 910 911 912 913 914 915 916 917 918 919'
+		self.assertEqual( HeightOrdering( heightListString ).steps(), 0 )
+
+		heightListString = '919 918 917 916 915 914 913 912 911 910 909 908 907 906 905 904 903 902 901 900'
+		self.assertEqual( HeightOrdering( heightListString ).steps(), 190 )
+
+		heightListString = '901 902 903 904 905 906 907 908 909 910 911 912 913 914 915 916 917 918 919 900'
+		self.assertEqual( HeightOrdering( heightListString ).steps(), 19 )
+
+		heightListString = '918 917 916 915 914 913 912 911 910 909 908 907 906 905 904 903 902 901 900 919'
+		self.assertEqual( HeightOrdering( heightListString ).steps(), 171 )
+
+################################################################################
+################################################################################
+################################################################################
+
+class AddThemUp:
+	def __init__( self, numberList, neededSum ):
+		self.numberList = numberList
+		self.neededSum = neededSum
+		self.upsideDownDict = {
+		0 : 0, 1 : 1, 2 : 2, 5 : 5, 6 : 9, 8 : 8, 9 : 6 
+		}
+
+	def _upsideDown( self, number ):
+		upsideDownNumber = 0
+		for digit in reversed( str( number ) ):
+			digit = int( digit )
+			if digit not in self.upsideDownDict:
+				return None
+			upsideDownNumber = upsideDownNumber * 10 + self.upsideDownDict[ digit ]
+		return upsideDownNumber
+
+	def go( self ):
+		cache = set()
+		for number in self.numberList:
+			upsideDownNumber = self._upsideDown( number )
+			
+			if self.neededSum - number in cache:
+				return 'YES'
+			if upsideDownNumber is not None and ( self.neededSum - upsideDownNumber ) in cache:
+				return 'YES'
+			
+			cache.add( number )
+			if upsideDownNumber is not None:
+				cache.add( upsideDownNumber )
+		return 'NO'
+
+class AddThemUpTest( unittest.TestCase ):
+	def test_AddThemUp_Sample( self ):
+		numberList=  [ 15, 21, 22 ]
+		neededSum = 66
+		self.assertEqual( AddThemUp( numberList, neededSum ).go(), 'NO' )
+
+		numberList=  [ 15, 21, 22 ]
+		neededSum = 63
+		self.assertEqual( AddThemUp( numberList, neededSum ).go(), 'YES' )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# German_Collegiate_Programming_Contest_2013 - "Problem B : Booking"
+################################################################################
+
+class Booking:
+	def __init__( self, reservationList, cleaningTime ):
+		self.reservationList = reservationList
+		self.cleaningTime = cleaningTime
+
+		daysPerMonth = [ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ]
+		daysPerMonthLeapYear = [ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ]
+		
+		self.cumulativeDays = [ 0 ]
+		self.cumulativeDaysLeapYear = [ 0 ]
+		for d in daysPerMonth:
+			self.cumulativeDays.append( self.cumulativeDays[ -1 ] + d )
+		for d in daysPerMonthLeapYear:	
+			self.cumulativeDaysLeapYear.append( self.cumulativeDaysLeapYear[ -1 ] + d )
+
+	def _isLeapYear( self, year ):
+		return year % 4 == 0 and ( year % 100 != 0 or year % 400 == 0 )
+
+	def _calculateEpoch( self, dateString, timeString, offset=0 ):
+		year, month, day = map( int, dateString.split( '-' ) )
+		hour, minute = map( int, timeString.split( ':' ) )
+
+		cumulativeDays = self.cumulativeDays if not self._isLeapYear( year ) else self.cumulativeDaysLeapYear
+		totalDays = ( year - 2013 ) * 365 + cumulativeDays[ month - 1 ] + day - 1
+		return totalDays * 24 * 60 + ( hour - 1 ) * 60 + minute + offset
+
+	def rooms( self ):
+		reservations = list()
+		for reservationInfoString in self.reservationList:
+			_, startDateString, startTimeString, endDateString, endTimeString = reservationInfoString.split()
+			startEpoch = self._calculateEpoch( startDateString, startTimeString )
+			endEpoch = self._calculateEpoch( endDateString, endTimeString, offset=self.cleaningTime )
+			reservations.append( (startEpoch, 'Start') )
+			reservations.append( (endEpoch, 'End') )
+		reservations.sort()
+
+		occupiedRooms = 0
+		roomsNeeded = 0
+		
+		for _, tag in reservations:
+			if tag == 'Start':
+				occupiedRooms += 1
+			else:
+				occupiedRooms -= 1
+			roomsNeeded = max( roomsNeeded, occupiedRooms )
+		return roomsNeeded 
+
+class BookingTest( unittest.TestCase ):
+	def test_Booking( self ):
+		for testfile in getTestFileList( tag='booking' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/booking/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/booking/{}.out'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for i in range( testcaseCount ):
+				N, cleaningTime = readIntegers( inputFile )
+				reservationList = [ readString( inputFile ) for _ in range( N ) ]
+
+				roomsNeeded = readInteger( solutionFile )
+
+				formatString = 'Testcase {}#{} bookings = {} cleaningTime = {} roomsNeeded = {}'
+				print( formatString.format( testfile, i + 1, N, cleaningTime, roomsNeeded ) )
+
+				self.assertEqual( Booking( reservationList, cleaningTime ).rooms(), roomsNeeded )
+
+	def test_Booking_Sample( self ):
+		reservationList = [
+		'1 2013-07-01 15:59 2013-07-08 16:30',
+		'2 2013-07-08 17:30 2013-07-15 12:00'
+		]
+		cleaningTime = 120
+		self.assertEqual( Booking( reservationList, cleaningTime ).rooms(), 2 )
+
+		reservationList = [
+		'65 2013-07-08 14:30 2013-07-08 16:00',
+		'32 2013-07-01 16:00 2013-07-15 12:00',
+		'91 2013-07-01 16:00 2013-07-08 15:00'
+		]
+		cleaningTime = 60
+		self.assertEqual( Booking( reservationList, cleaningTime ).rooms(), 3 )
+
+		reservationList = [
+		'a7 2016-02-21 14:00 2016-02-28 21:00',
+		'xx 2016-03-01 01:00 2016-03-02 12:57'
+		]
+		cleaningTime = 360
+		self.assertEqual( Booking( reservationList, cleaningTime ).rooms(), 1 )
+
+		reservationList = [
+		'a9 2016-02-21 14:00 2016-02-28 11:00',
+		'a8 2016-02-28 12:00 2016-03-11 21:00'
+		]
+		cleaningTime = 60
+		self.assertEqual( Booking( reservationList, cleaningTime ).rooms(), 1 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# German_Collegiate_Programming_Contest_2018 - "Problem C: Coolest Ski Route"
+################################################################################
+
+class CoolestSkiRoute:
+	def __init__( self, vertexCount, slopeInfo ):
+		self.vertexCount = vertexCount + 1
+		self.graph = [ list() for _ in range( self.vertexCount ) ]
+		for v1, v2, measure in slopeInfo:
+			self.graph[ v1 ].append( (v2, measure) )
+
+	def go( self ):
+		visited = [ False for _ in range( self.vertexCount ) ]
+		toposortedVertexList = list()
+
+		def _dfs( u ):
+			nonlocal visited
+			nonlocal toposortedVertexList
+			visited[ u ] = True
+			for v, _ in self.graph[ u ]:
+				if not visited[ v ]:
+					_dfs( v )
+			toposortedVertexList.append( u )
+
+		for startVertex in range( 1, self.vertexCount ):
+			if not visited[ startVertex ]:
+				_dfs( startVertex )
+		
+		distanceList = [ 0 for _ in range( self.vertexCount ) ]
+		bestMeasure = 0
+
+		for u in reversed( toposortedVertexList ):
+			for v, measure in self.graph[ u ]:
+				distanceList[ v ] = max( distanceList[ v ], distanceList[ u ] + measure )
+				bestMeasure = max( bestMeasure, distanceList[ v ] )
+		return bestMeasure
+
+class CoolestSkiRouteTest( unittest.TestCase ):
+	def test_CoolestSkiRoute( self ):
+		for testfile in getTestFileList( tag='coolestskiroute' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/coolestskiroute/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/coolestskiroute/{}.ans'.format( testfile ) ) as solutionFile:
+
+		     points, slopes = readIntegers( inputFile )
+		     slopeInfo = list()
+		     for _ in range( slopes ):
+		     	u, v, measure = readIntegers( inputFile )
+		     	slopeInfo.append( (u, v, measure) )
+
+		     bestMeasure = readInteger( solutionFile )
+
+		     print( 'Testcase {} Points = {} Number of slopes = {} bestMeasure = {}'.format( testfile, points, slopes, bestMeasure ) )
+		     self.assertEqual( CoolestSkiRoute( points, slopeInfo ).go(), bestMeasure )
+
+	def test_CoolestSkiRoute_Sample( self ):
+		vertexCount = 5
+		slopeInfo = [ (1, 2, 15), (2, 3, 12), (1, 4, 17), (4, 2, 11), (5, 4, 9) ]
+		self.assertEqual( CoolestSkiRoute( vertexCount, slopeInfo ).go(), 40 )
+
+		vertexCount = 6
+		slopeInfo = [ (1, 2, 2), (4, 5, 2), (2, 3, 3), (1, 3, 2), (5, 6, 2), (1, 2, 4) ]
+		self.assertEqual( CoolestSkiRoute( vertexCount, slopeInfo ).go(), 7 )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# German_Collegiate_Programming_Contest_2017 - "Problem D: Pants On Fire"
+################################################################################
+
+class PantsOnFire:
+	def __init__( self, factList, statementList ):
+		self.fact = 'Fact'
+		self.alternativeFact = 'Alternative Fact'
+		self.fire = 'Pants on Fire'
+
+		identityToIdDict = dict()
+		nextId = 0
+		relationshipSet = set()
+		for factString in factList:
+			A, _, _, _, B = factString.split()
+			if A not in identityToIdDict:
+				identityToIdDict[ A ] = nextId
+				nextId += 1
+			if B not in identityToIdDict:
+				identityToIdDict[ B ] = nextId
+				nextId += 1
+			relationshipSet.add( (identityToIdDict[ A ], identityToIdDict[ B ]) )
+		self.count = nextId
+
+		self.statementList = list()
+		for statementString in statementList:
+			A, _, _, _, B = statementString.split()
+			self.statementList.append( (identityToIdDict.get( A ), identityToIdDict.get( B )) )
+
+		self.relationshipMatrix = [ [ False for _ in range( self.count ) ] for _ in range( self.count ) ]
+		for u, v in relationshipSet:
+			self.relationshipMatrix[ u ][ v ] = True
+
+		for k in range( self.count ):
+			for u in range( self.count ):
+				for v in range( self.count ):
+					if not self.relationshipMatrix[ u ][ v ]:
+						self.relationshipMatrix[ u ][ v ] = self.relationshipMatrix[ u ][ k ] and self.relationshipMatrix[ k ][ v ]
+
+	def _query( self, A, B ):
+		if A is None or B is None:
+			return self.fire
+
+		if self.relationshipMatrix[ A ][ B ]:
+			return self.fact
+		elif self.relationshipMatrix[ B ][ A ]:
+			return self.alternativeFact
+		return self.fire
+
+	def analyze( self ):
+		return [ self._query( *query ) for query in self.statementList ]
+
+class PantsOnFireTest( unittest.TestCase ):
+	def test_PantsOnFire( self ):
+		for testfile in getTestFileList( tag='pantsonfire' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/pantsonfire/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/pantsonfire/{}.ans'.format( testfile ) ) as solutionFile:
+
+			facts, statements = readIntegers( inputFile )
+			factList = [ readString( inputFile ) for _ in range( facts ) ]
+			statementList = [ readString( inputFile ) for _ in range( statements ) ]
+
+			resultList = [ readString( solutionFile ) for _ in range( statements ) ]
+
+			print( 'Testcase {} facts = {} statements = {}'.format( testfile, facts, statements ) )
+			self.assertEqual( PantsOnFire( factList, statementList ).analyze(), resultList )
+
+	def test_PantsOnFire_Sample( self ):
+		factList = [
+		'Mexicans are worse than Americans',
+		'Russians are worse than Mexicans',
+		'NorthKoreans are worse than Germans',
+		'Canadians are worse than Americans'
+		]
+		statementList = [
+		'Russians are worse than Americans',
+		'Germans are worse than NorthKoreans',
+		'NorthKoreans are worse than Mexicans',
+		'NorthKoreans are worse than French',
+		'Mexicans are worse than Canadians'
+		]
+		resultList = [
+		'Fact',
+		'Alternative Fact',
+		'Pants on Fire',
+		'Pants on Fire',
+		'Pants on Fire'
+		]
+		self.assertEqual( PantsOnFire( factList, statementList ).analyze(), resultList )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
