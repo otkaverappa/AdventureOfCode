@@ -10936,5 +10936,58 @@ class PantsOnFireTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# UKIEPC2018 - "Problem L : Last Word"
+################################################################################
+
+class LastWord:
+	def __init__( self, word, commands ):
+		self.word = word
+		self.commands = commands
+
+	def go( self ):
+		i = 0
+		for startIndex, length in self.commands:
+			i += startIndex
+		return self.word[ i : i + length ]
+
+class LastWordTest( unittest.TestCase ):
+	def test_LastWord( self ):
+		for testfile in getTestFileList( tag='lastword' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/lastword/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/lastword/{}.ans'.format( testfile ) ) as solutionFile:
+
+			word = readString( inputFile )
+			numberOfCommands = readInteger( inputFile )
+			commands = list()
+			for _ in range( numberOfCommands ):
+				startIndex, length = readIntegers( inputFile )
+				commands.append( (startIndex, length) )
+
+			substring = readString( solutionFile )
+
+			print( 'Testcase {} Word length = {} Number of commands = {}'.format( testfile, len( word ), numberOfCommands ) )
+			self.assertEqual( LastWord( word, commands ).go(), substring )
+
+	def test_LastWord_Sample( self ):
+		commands = [ (1, 9), (0, 5) ]
+		self.assertEqual( LastWord( 'helloworld', commands ).go(), 'ellow' )
+
+		commands = [ (1, 24), (1, 22), (1, 20), (1, 18), (1, 16), (1, 14), (1, 12), (1, 10) ]
+		self.assertEqual( LastWord( 'abcdefghijklmnopqrstuvwxyz', commands ).go(), 'ijklmnopqr' )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
