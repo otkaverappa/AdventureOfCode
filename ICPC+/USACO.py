@@ -298,5 +298,86 @@ class CrosswordsTest( unittest.TestCase ):
 			print( 'Testcase {} rows = {} cols = {} clues = {}'.format( testfile, rows, cols, len( clueList ) ) )
 			self.assertEqual( Crosswords( rows, cols, layout ).clues(), clueList )
 
+'''
+USACO 2014 December Contest, Bronze
+
+Problem 3: Cow Jog [Mark Gordon, 2014]
+
+The cows are out exercising their hooves again!  There are N cows
+jogging on an infinitely-long single-lane track (1 <= N <= 100,000).
+Each cow starts at a distinct position on the track, and some cows jog
+at different speeds.
+
+With only one lane in the track, cows cannot pass each other.  When a
+faster cow catches up to another cow, she has to slow down to avoid
+running into the other cow, becoming part of the same running group.
+
+Eventually, no more cows will run into each other.  Farmer John
+wonders how many groups will be left when this happens.  Please help
+him compute this number.
+
+INPUT: (file cowjog.in)
+
+The first line of input contains the integer N.
+
+The following N lines each contain the initial position and speed of a
+single cow.  Position is a nonnegative integer and speed is a positive
+integer; both numbers are at most 1 billion.  All cows start at 
+distinct positions, and these will be given in increasing order in
+the input.
+
+SAMPLE INPUT:
+
+5
+0 1
+1 2
+2 3
+3 2
+6 1
+
+OUTPUT: (file cowjog.out)
+
+A single integer indicating how many groups remain.
+
+SAMPLE OUTPUT:
+
+2
+'''
+
+class CowJog:
+	def __init__( self, positionSpeedList ):
+		self.positionSpeedList = positionSpeedList
+
+	def groups( self ):
+		groupCount = 0
+		keySpeed = float( 'inf' )
+
+		for position, speed in reversed( self.positionSpeedList ):
+			if speed <= keySpeed:
+				groupCount += 1
+				keySpeed = speed
+		return groupCount
+
+class CowJogTest( unittest.TestCase ):
+	def test_CowJog_Sample( self ):
+		positionSpeedList = [ (0, 1), (1, 2), (2, 3), (3, 2), (6, 1) ]
+		self.assertEqual( CowJog( positionSpeedList ).groups(), 2 )
+
+	def test_CowJog( self ):
+		for testfile in getTestFileList( tag='cowjog' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/cowjog/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/cowjog/{}.out'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			positionSpeedList = [ tuple( readIntegers( inputFile ) ) for _ in range( N ) ]
+
+			groupCount = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} groupCount = {}'.format( testfile, N, groupCount ) )
+			self.assertEqual( CowJog( positionSpeedList ).groups(), groupCount )
+
 if __name__ == '__main__':
 	unittest.main()
