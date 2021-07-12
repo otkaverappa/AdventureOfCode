@@ -379,5 +379,257 @@ class CowJogTest( unittest.TestCase ):
 			print( 'Testcase {} N = {} groupCount = {}'.format( testfile, N, groupCount ) )
 			self.assertEqual( CowJog( positionSpeedList ).groups(), groupCount )
 
+'''
+USACO 2014 December Contest, Bronze
+
+Problem 4: Learning by Example [Brian Dean, 2014]
+
+Farmer John has been reading all about the exciting field of machine
+learning, where one can learn interesting and sometimes unexpected
+patterns by analyzing large data (he has even started calling one of
+the fields on his farm the "field of machine learning"!).  FJ decides
+to use data about his existing cow herd to build an automatic
+classifier that can guess whether a cow will have spots or not.
+
+Unfortunately, FJ hasn't been very good at keeping track of data about
+his cows.  For each of his N cows (1 <= N <= 50,000), all he knows is
+the weight of the cow, and whether the cow has spots.  Each of his
+cows has a distinct weight.  Given this data, he builds what is called
+a "nearest neighbor classifier".  To guess whether a new cow C will
+have spots or not, FJ first finds the cow C' in his herd with weight
+closest to that of C.  If C' has spots, then FJ guesses that C will
+also have spots; if C' has no spots, FJ guesses the same for C.  If
+there is not one unique nearest neighbor C' but rather a tie between
+two of FJ's cows, then FJ guesses that C will have spots if one or
+both these nearest neighbors has spots.
+
+FJ wants to test his new automatic spot predictor on a group of new
+cows that are just arriving at his farm.  After weighing these cows,
+he sees that the new shipment of cows contains a cow of every integer
+weight between A and B (inclusive).  Please determine how many of
+these cows will be classified as having spots, using FJ's new
+classifier.  Note that the classifier only makes decisions using data
+from FJ's N existing cows, not any of the new cows.  Also note that
+since A and B can both be quite large, your program will not likely
+run fast enough if it loops from A to B counting by ones.
+
+INPUT: (file learning.in) 
+
+The first line of the input contains three integers N, A, and B
+(1 <= A <= B <= 1,000,000,000).
+
+The next N lines each describe a single cow.  Each line contains
+either S W, indicating a spotted cow of weight W, or NS W, indicating
+a non-spotted cow of weight W.  Weights are all integers in the range
+1 ... 1,000,000,000. 
+
+SAMPLE INPUT:
+
+3 1 10
+S 10
+NS 4
+S 1
+
+OUTPUT: (file learning.out)
+
+A single integer giving the number of incoming cows that FJ's
+algorithm will classify as having spots.  In the example shown
+here, the incoming cows of weights 1, 2, 7, 8, 9, and 10 
+will all be classified as having spots.
+
+SAMPLE OUTPUT:
+
+6
+'''
+
+class LearningByExample:
+	def __init__( self, A, B, cowFeatureList ):
+		self.A, self.B = A, B
+
+		self.cowWeightList = list()
+		self.cowFeatureList = list()
+		for weight, feature in sorted( cowFeatureList ):
+			self.cowWeightList.append( weight )
+			self.cowFeatureList.append( feature )
+		
+		self.spot, self.noSpot = 'S', 'NS'
+
+	def spots( self ):
+		spottedCows = 0
+
+		return spottedCows
+
+class LearningByExampleTest( unittest.TestCase ):
+	def test_LearningByExample_Sample( self ):
+		A, B = 1, 10
+		cowFeatureList = [ (10, 'S'), (4, 'NS'), (1, 'S') ]
+		self.assertEqual( LearningByExample( A, B, cowFeatureList ).spots(), 6 )
+
+	def test_LearningByExample( self ):
+		for testfile in getTestFileList( tag='learning' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/learning/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/learning/{}.out'.format( testfile ) ) as solutionFile:
+
+			N, A, B = readIntegers( inputFile )
+			cowFeatureList = list()
+			for _ in range( N ):
+				feature, weight = readString( inputFile ).split()
+				cowFeatureList.append( (int( weight ), feature) )
+
+			spottedCows = readInteger( solutionFile )
+
+			print( 'Testcase {} Cows = {} [{} : {}] spottedCows = {}'.format( testfile, N, A, B, spottedCows ) )
+			self.assertEqual( LearningByExample( A, B, cowFeatureList ).spots(), spottedCows )
+
+'''
+USACO 2014 December Contest, Silver
+
+Problem 1: Piggy Back [Brian Dean, 2014]
+
+Bessie and her sister Elsie graze in different fields during the day,
+and in the evening they both want to walk back to the barn to rest.
+Being clever bovines, they come up with a plan to minimize the total
+amount of energy they both spend while walking.
+
+Bessie spends B units of energy when walking from a field to an
+adjacent field, and Elsie spends E units of energy when she walks to
+an adjacent field.  However, if Bessie and Elsie are together in the
+same field, Bessie can carry Elsie on her shoulders and both can move
+to an adjacent field while spending only P units of energy (where P
+might be considerably less than B+E, the amount Bessie and Elsie would
+have spent individually walking to the adjacent field).  If P is very
+small, the most energy-efficient solution may involve Bessie and Elsie
+traveling to a common meeting field, then traveling together piggyback
+for the rest of the journey to the barn.  Of course, if P is large, it
+may still make the most sense for Bessie and Elsie to travel
+separately.  On a side note, Bessie and Elsie are both unhappy with
+the term "piggyback", as they don't see why the pigs on the farm
+should deserve all the credit for this remarkable form of
+transportation.
+
+Given B, E, and P, as well as the layout of the farm, please compute
+the minimum amount of energy required for Bessie and Elsie to reach
+the barn.
+
+INPUT: (file piggyback.in)
+
+The first line of input contains the positive integers B, E, P, N, and
+M.  All of these are at most 40,000.  B, E, and P are described above.
+N is the number of fields in the farm (numbered 1..N, where N >= 3),
+and M is the number of connections between fields.  Bessie and Elsie
+start in fields 1 and 2, respectively.  The barn resides in field N.
+
+The next M lines in the input each describe a connection between a
+pair of different fields, specified by the integer indices of the two
+fields.  Connections are bi-directional.  It is always possible to
+travel from field 1 to field N, and field 2 to field N, along a series
+of such connections.  
+
+SAMPLE INPUT:
+
+4 4 5 8 8
+1 4
+2 3
+3 4
+4 7
+2 5
+5 6
+6 8
+7 8
+
+
+OUTPUT: (file piggyback.out)
+
+A single integer specifying the minimum amount of energy Bessie and
+Elsie collectively need to spend to reach the barn.  In the example
+shown here, Bessie travels from 1 to 4 and Elsie travels from 2 to 3
+to 4.  Then, they travel together from 4 to 7 to 8.
+
+SAMPLE OUTPUT:
+
+22
+'''
+
+class Piggyback:
+	def __init__( self, B, E, P, numberOfFields, connectionList ):
+		self.B, self.E, self.P = B, E, P
+		self.numberOfFields = numberOfFields
+		self.graph = [ list() for _ in range( numberOfFields + 1 ) ]
+		for u, v in connectionList:
+			self.graph[ u ].append( v )
+			self.graph[ v ].append( u )
+		self.bessieField, self.elsieField, self.barnLocation = 1, 2, numberOfFields
+
+	def minimumEnergy( self ):
+		distanceFromBessie = [ None for _ in range( self.numberOfFields + 1 ) ]
+		distanceFromElsie  = [ None for _ in range( self.numberOfFields + 1 ) ]
+		distanceFromBarn   = [ None for _ in range( self.numberOfFields + 1 ) ]
+
+		q = deque()
+		
+		q.append( self.bessieField )
+		distanceFromBessie[ self.bessieField ] = 0
+
+		while len( q ) > 0:
+			currentLocation = q.popleft()
+			for adjacentLocation in self.graph[ currentLocation ]:
+				if distanceFromBessie[ adjacentLocation ] is None:
+					distanceFromBessie[ adjacentLocation ] = distanceFromBessie[ currentLocation ] + 1
+					q.append( adjacentLocation )
+
+		q.append( self.elsieField )
+		distanceFromElsie[ self.elsieField ] = 0
+		while len( q ) > 0:
+			currentLocation = q.popleft()
+			for adjacentLocation in self.graph[ currentLocation ]:
+				if distanceFromElsie[ adjacentLocation ] is None:
+					distanceFromElsie[ adjacentLocation ] = distanceFromElsie[ currentLocation ] + 1
+					q.append( adjacentLocation )
+
+		q.append( self.barnLocation )
+		distanceFromBarn[ self.barnLocation ] = 0
+		while len( q ) > 0:
+			currentLocation = q.popleft()
+			for adjacentLocation in self.graph[ currentLocation ]:
+				if distanceFromBarn[ adjacentLocation ] is None:
+					distanceFromBarn[ adjacentLocation ] = distanceFromBarn[ currentLocation ] + 1
+					q.append( adjacentLocation )
+
+		energyUsage = distanceFromBessie[ self.barnLocation ] * self.B + distanceFromElsie[ self.barnLocation ] * self.E
+		for field in range( 1, self.numberOfFields + 1 ):
+			if field == self.barnLocation:
+				continue
+			# Calculate energyUsage if field is the meeting point.
+			energy = distanceFromBessie[ field ] * self.B + distanceFromElsie[ field ] * self.E + \
+			         distanceFromBarn[ field ] * self.P
+			energyUsage = min( energyUsage, energy )
+		return energyUsage
+
+class PiggybackTest( unittest.TestCase ):
+	def test_Piggyback_Sample( self ):
+		B, E, P, numberOfFields = 4, 4, 5, 8
+		connectionList = [ (1, 4), (2, 3), (3, 4), (4, 7), (2, 5), (5, 6), (6, 8), (7, 8) ]
+		self.assertEqual( Piggyback( B, E, P, numberOfFields, connectionList ).minimumEnergy(), 22 )
+
+	def test_Piggyback( self ):
+		for testfile in getTestFileList( tag='piggyback' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/piggyback/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/piggyback/{}.out'.format( testfile ) ) as solutionFile:
+
+			B, E, P, numberOfFields, numberOfConnections = readIntegers( inputFile )
+			connectionList = [ tuple( readIntegers( inputFile ) ) for _ in range( numberOfConnections ) ]
+
+			minimumEnergy = readInteger( solutionFile )
+
+			formatString = 'Testcase {} numberOfFields = {} numberOfConnections = {} minimumEnergy = {}'
+			print( formatString.format( testfile, numberOfFields, numberOfConnections, minimumEnergy ) )
+			self.assertEqual( Piggyback( B, E, P, numberOfFields, connectionList ).minimumEnergy(), minimumEnergy )
+
 if __name__ == '__main__':
 	unittest.main()
