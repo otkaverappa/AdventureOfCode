@@ -618,6 +618,230 @@ class PiggybackTest( unittest.TestCase ):
 			print( formatString.format( testfile, numberOfFields, numberOfConnections, minimumEnergy ) )
 			self.assertEqual( Piggyback( B, E, P, numberOfFields, connectionList ).minimumEnergy(), minimumEnergy )
 
+'''
+USACO 2012 US Open, Bronze Division
+
+Problem 1: Cows in a Row [Brian Dean, 2012]
+
+Farmer John's N cows (1 <= N <= 1000) are lined up in a row.  Each cow is
+identified by an integer "breed ID"; the breed ID of the ith cow in the
+lineup is B(i).
+
+FJ thinks that his line of cows will look much more impressive if there is
+a large contiguous block of cows that all have the same breed ID.  In order
+to create such a block, FJ decides remove from his lineup all the cows
+having a particular breed ID of his choosing.  Please help FJ figure out
+the length of the largest consecutive block of cows with the same breed ID
+that he can create by removing all the cows having some breed ID of his
+choosing.
+
+PROBLEM NAME: cowrow
+
+INPUT FORMAT:
+
+* Line 1: The integer N.
+
+* Lines 2..1+N: Line i+1 contains B(i), an integer in the range
+        0...1,000,000.
+
+SAMPLE INPUT (file cowrow.in):
+
+9
+2
+7
+3
+7
+7
+3
+7
+5
+7
+
+INPUT DETAILS:
+
+There are 9 cows in the lineup, with breed IDs 2, 7, 3, 7, 7, 3, 7, 5, 7.
+
+OUTPUT FORMAT:
+
+* Line 1: The largest size of a contiguous block of cows with
+        identical breed IDs that FJ can create.
+
+SAMPLE OUTPUT (file cowrow.out):
+
+4
+
+OUTPUT DETAILS:
+
+By removing all cows with breed ID 3, the lineup reduces to 2, 7, 7, 7, 7,
+5, 7.  In this new lineup, there is a contiguous block of 4 cows with the
+same breed ID (7).
+'''
+
+class CowsInARow:
+	def __init__( self, idList ):
+		self.idList = idList
+
+	def block( self ):
+		frequencyDict = dict()
+		i = j = 0
+
+		blockSize = 0
+		while j < len( self.idList ):
+			id_ = self.idList[ j ]
+			j += 1
+
+			if id_ not in frequencyDict:
+				frequencyDict[ id_ ] = 0
+			frequencyDict[ id_ ] += 1
+
+			while len( frequencyDict ) > 2:
+				id_ = self.idList[ i ]
+				i += 1
+				frequencyDict[ id_ ] -= 1
+				if frequencyDict[ id_ ] == 0:
+					del frequencyDict[ id_ ]
+			blockSize = max( blockSize, max( frequencyDict.values() ) )
+		return blockSize
+
+class CowsInARowTest( unittest.TestCase ):
+	def test_CowsInARow( self ):
+		for testfile in getTestFileList( tag='cowrow' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/cowrow/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/cowrow/{}.out'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			idList = [ readInteger( inputFile ) for _ in range( N ) ]
+
+			blockSize = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} blockSize = {}'.format( testfile, N, blockSize ) )
+			self.assertEqual( CowsInARow( idList ).block(), blockSize )
+
+	def test_CowsInARow_Sample( self ):
+		idList = [ 2, 7, 3, 7, 7, 3, 7, 5, 7 ]
+		self.assertEqual( CowsInARow( idList ).block(), 4 )
+
+'''
+USACO 2012 March Contest, Silver Division
+
+Problem 1: Tractor [Brian Dean, 2012]
+
+After a long day of work, Farmer John completely forgot that he left his
+tractor in the middle of the field.  His cows, always up to no good, decide
+to play a prank of Farmer John: they deposit N bales of hay (1 <= N <=
+50,000) at various locations in the field, so that Farmer John cannot
+easily remove the tractor without first removing some of the bales of hay.  
+
+The location of the tractor, as well as the locations of the N hay bales,
+are all points in the 2D plane with integer coordinates in the range
+1..1000.  There is no hay bale located at the initial position of the
+tractor.  When Farmer John drives his tractor, he can only move it in
+directions that are parallel to the coordinate axes (north, south, east,
+and west), and it must move in a sequence of integer amounts.  For example,
+he might move north by 2 units, then east by 3 units.  The tractor cannot
+move onto a point occupied by a hay bale.
+
+Please help Farmer John determine the minimum number of hay bales he needs
+to remove so that he can free his tractor (that is, so he can drive his
+tractor to the origin of the 2D plane).
+
+PROBLEM NAME: tractor
+
+INPUT FORMAT:
+
+* Line 1: Three space-separated integers: N, and the (x,y) starting
+        location of the tractor.
+
+* Lines 2..1+N: Each line contains the (x,y) coordinates of a bale of
+        hay.
+
+SAMPLE INPUT (file tractor.in):
+
+7 6 3
+6 2
+5 2
+4 3
+2 1
+7 3
+5 4
+6 4
+
+INPUT DETAILS:
+
+The tractor starts at (6,3).  There are 7 bales of hay, at positions (6,2),
+(5,2), (4,3), (2,1), (7,3), (5,4), and (6,4).
+
+OUTPUT FORMAT:
+
+* Line 1: The minimum number of bales of hay Farmer John must remove
+        in order to open up a path for his tractor to move to the
+        origin.
+
+SAMPLE OUTPUT (file tractor.out):
+
+1
+
+OUTPUT DETAILS:
+
+Farmer John only needs to remove one bale of hay to free his tractor.
+'''
+
+class Tractor:
+	def __init__( self, tractorLocation, hayLocations ):
+		self.tractorLocation = tractorLocation
+		self.hayLocations = set( hayLocations )
+		self.size = 1000
+
+	def go( self ):
+		q = deque()
+		q.append( (0, self.tractorLocation) )
+
+		visited = set()
+
+		while len( q ) > 0:
+			hay, currentLocation = q.popleft()
+
+			u, v = currentLocation
+			if u <= 0 or u > self.size or v <= 0 or v > self.size:
+				return hay
+
+			if currentLocation in visited:
+				continue
+			visited.add( currentLocation )
+
+			for du, dv in [ (0, 1), (0, -1), (1, 0), (-1, 0) ]:
+				adjacentLocation = x, y = u + du, v + dv
+				if adjacentLocation in self.hayLocations:
+					q.append( (hay + 1, adjacentLocation) )
+				else:
+					q.appendleft( (hay, adjacentLocation) )
+
+class TractorTest( unittest.TestCase ):
+	def test_Tractor_Sample( self ):
+		tractorLocation = (6, 3)
+		hayLocations = [ (6, 2), (5, 2), (4, 3), (2, 1), (7, 3), (5, 4), (6, 4) ]
+		self.assertEqual( Tractor( tractorLocation, hayLocations ).go(), 1 )
+
+	def test_Tractor( self ):
+		for testfile in getTestFileList( tag='tractor' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/tractor/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/tractor/{}.out'.format( testfile ) ) as solutionFile:
+
+			N, x, y = readIntegers( inputFile )
+			tractorLocation = x, y
+			hayLocations = [ tuple( readIntegers( inputFile ) ) for _ in range( N ) ]
+
+			removalCount = readInteger( solutionFile )
+
+			print( 'Testcase {} hay locations count = {} removalCount = {}'.format( testfile, N, removalCount ) )
+			self.assertEqual( Tractor( tractorLocation, hayLocations ).go(), removalCount )
+
 class USACO_Contest:
 	def __init__( self ):
 		self.problems = list()
@@ -634,6 +858,10 @@ class USACO_Contest:
 
 def test():
 	contest = USACO_Contest()
+
+	contest.register( 'USACO 2012 US Open, Bronze Division', 'Cows in a Row', CowsInARowTest )
+
+	contest.register( 'USACO 2012 March Contest, Silver Division', 'Tractor', TractorTest )
 
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Marathon', MarathonTest )
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Crosswords', CrosswordsTest )
