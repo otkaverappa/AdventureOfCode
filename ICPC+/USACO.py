@@ -842,6 +842,561 @@ class TractorTest( unittest.TestCase ):
 			print( 'Testcase {} hay locations count = {} removalCount = {}'.format( testfile, N, removalCount ) )
 			self.assertEqual( Tractor( tractorLocation, hayLocations ).go(), removalCount )
 
+'''
+USACO 2011 December Contest, Bronze Division
+
+Problem 1: Hay Bales [Brian Dean, 2011]
+
+The cows are at it again!  Farmer John has carefully arranged N (1 <= N <=
+10,000) piles of hay bales, each of the same height.  When he isn't
+looking, however, the cows move some of the hay bales between piles, so
+their heights are no longer necessarily the same.  Given the new heights of
+all the piles, please help Farmer John determine the minimum number of hay
+bales he needs to move in order to restore all the piles to their original,
+equal heights.
+
+PROBLEM NAME: haybales
+
+INPUT FORMAT:
+
+* Line 1: The number of piles, N (1 <= N <= 10,000).
+
+* Lines 2..1+N: Each line contains the number of hay bales in a single
+        pile (an integer in the range 1...10,000).
+
+SAMPLE INPUT (file haybales.in):
+
+4
+2
+10
+7
+1
+
+INPUT DETAILS:
+
+There are 4 piles, of heights 2, 10, 7, and 1.
+
+OUTPUT FORMAT:
+
+* Line 1: An integer giving the minimum number of hay bales that need
+        to be moved to restore the piles to having equal heights.
+
+SAMPLE OUTPUT (file haybales.out):
+
+7
+
+OUTPUT DETAILS:
+
+By moving 7 hay bales (3 from pile 2 to pile 1, 2 from pile 2 to pile 4, 2
+from pile 3 to pile 4), we can make all piles have height 5.
+'''
+
+class HayBales:
+	def __init__( self, heightList ):
+		self.heightList = heightList
+
+	def go( self ):
+		count = 0
+		originalHeight = sum( self.heightList ) // len( self.heightList )
+
+		for height in self.heightList:
+			if height > originalHeight:
+				count += height - originalHeight
+		return count
+
+class HayBalesTest( unittest.TestCase ):
+	def test_HayBales( self ):
+		for testfile in range( 1, 10 + 1 ):
+			with open( 'tests/usaco/haybales/I.{}'.format( testfile ) ) as inputFile, \
+			     open( 'tests/usaco/haybales/O.{}'.format( testfile ) ) as solutionFile:
+
+				N = readInteger( inputFile )
+				heightList = [ readInteger( inputFile ) for _ in range( N ) ]
+
+				movesNeeded = readInteger( solutionFile )
+
+				print( 'Testcase {} N = {} movesNeeded = {}'.format( testfile, N, movesNeeded ) )
+				self.assertEqual( HayBales( heightList ).go(), movesNeeded )
+
+	def test_HayBales_Sample( self ):
+		heightList = [ 2, 10, 7, 1 ]
+		self.assertEqual( HayBales( heightList ).go(), 7 ) 
+
+'''
+USACO 2011 December Contest, Bronze Division
+
+Problem 2: Cow Photography (Bronze) [Brian Dean, 2011]
+
+The cows are in a particularly mischievous mood today!  All Farmer John
+wants to do is take a photograph of the cows standing in a line, but they
+keep moving right before he has a chance to snap the picture.
+
+Specifically, FJ's N (1 <= N <= 20,000) cows are tagged with ID numbers
+1...N.  FJ wants to take a picture of the cows standing in a line in a
+very specific ordering, represented by the contents of an array A[1...N],
+where A[j] gives the ID number of the jth cow in the ordering.  He arranges
+the cows in this order, but just before he can press the button on his
+camera to snap the picture, up to one cow moves to a new position in the
+lineup. More precisely, either no cows move, or one cow vacates her current
+position in the lineup and then re-inserts herself at a new position in the
+lineup.  Frustrated but not deterred, FJ again arranges his cows according
+to the ordering in A, but again, right before he can snap a picture, up to
+one cow (different from the first) moves to a new position in the lineup. 
+
+The process above repeats for a total of five photographs before FJ gives
+up.  Given the contents of each photograph, see if you can reconstruct the
+original intended ordering A.  Each photograph shows an ordering of the
+cows in which up to one cow has moved to a new location, starting from the
+initial ordering in A.  Moreover, if a cow opts to move herself to a new
+location in one of the photographs, then she does not actively move in any
+of the other photographs (although she can end up at a different position
+due to other cows moving, of course).
+
+PROBLEM NAME: photo
+
+INPUT FORMAT:
+
+* Line 1: The number of cows, N (1 <= N <= 20,000).
+
+* Lines 2..5N+1: The next 5N lines describe five orderings, each one a
+        block of N contiguous lines.  Each line contains the ID of a
+        cow, an integer in the range 1..N.
+
+SAMPLE INPUT (file photo.in):
+
+5
+1 
+2 
+3 
+4 
+5
+2
+1
+3
+4
+5
+3
+1
+2
+4
+5
+4
+1
+2
+3
+5
+5
+1
+2
+3
+4
+
+INPUT DETAILS:
+
+There are 5 cows, with IDs 1, 2, 3, 4, and 5.  In each of the 5
+photos, a different cow moves to the front of the line (although the cows
+could have moved anywhere else, if they wanted).
+
+OUTPUT FORMAT:
+
+* Lines 1..N: The intended ordering A, one ID per line.
+
+SAMPLE OUTPUT (file photo.out):
+
+1
+2
+3
+4
+5
+
+OUTPUT DETAILS:
+
+The correct original ordering A[1..5] is 1,2,3,4,5.
+'''
+
+class CowPhotography:
+	def __init__( self ):
+		pass
+
+class CowPhotographyTest( unittest.TestCase ):
+	def test_CowPhotography_Sample( self ):
+		pass
+
+'''
+USACO 2012 November Contest, Bronze
+
+Problem 1: Find the Cow! [Brian Dean, 2012]
+
+Bessie the cow has escaped and is hiding on a ridge covered with tall
+grass.  Farmer John, in an attempt to recapture Bessie, has decided to
+crawl through the grass on his hands and knees so he can approach
+undetected.  Unfortunately, he is having trouble spotting Bessie from this
+vantage point. The grass in front of Farmer John looks like a string of N
+(1 <= N <= 50,000) parentheses; for example:
+
+)((()())())
+
+Farmer John knows that Bessie's hind legs look just like an adjacent pair
+of left parentheses ((, and that her front legs look exactly like a pair of
+adjacent right parentheses )).  Bessie's location can therefore be
+described by a pair of indices x < y such that (( is found at position x, and
+)) is found at position y.  Please compute the number of different such
+possible locations at which Bessie might be standing.
+
+PROBLEM NAME: cowfind
+
+INPUT FORMAT:
+
+* Line 1: A string of parentheses of length N (1 <= N <= 50,000).
+
+SAMPLE INPUT (file cowfind.in):
+
+)((()())())
+
+OUTPUT FORMAT:
+
+* Line 1: The number of possible positions at which Bessie can be
+        standing -- that is, the number of distinct pairs of indices
+        x < y at which there is the pattern (( at index x and the
+        pattern )) at index y.
+
+SAMPLE OUTPUT (file cowfind.out):
+
+4
+
+OUTPUT DETAILS:
+
+There are 4 possible locations for Bessie, indicated below:
+
+1. )((()())())
+    ^^   ^^
+
+2. )((()())())
+     ^^  ^^
+
+3. )((()())())
+     ^^     ^^
+
+4. )((()())())
+    ^^      ^^
+'''
+
+class FindTheCow:
+	def __init__( self, inputString ):
+		self.inputString = inputString
+		self.openBracket, self.closeBracket = '()'
+
+	def go( self ):
+		count = 0
+		startLocations = 0
+		for i in range( 1, len( self.inputString ) ):
+			if self.inputString[ i ] == self.inputString[ i - 1 ] == self.openBracket:
+				startLocations += 1
+			elif self.inputString[ i ] == self.inputString[ i - 1 ] == self.closeBracket:
+				count += startLocations
+		return count
+
+class FindTheCowTest( unittest.TestCase ):
+	def test_FindTheCow_Sample( self ):
+		self.assertEqual( FindTheCow( ')((()())())' ).go(), 4 )
+
+	def test_FindTheCow( self ):
+		for testfile in getTestFileList( tag='cowfind' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/cowfind/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/cowfind/{}.out'.format( testfile ) ) as solutionFile:
+
+			inputString = readString( inputFile )
+			count = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} count = {}'.format( testfile, len( inputString ), count ) )
+			self.assertEqual( FindTheCow( inputString ).go(), count )
+
+'''
+USACO 2012 November Contest, Bronze
+
+Problem 3: Horseshoes [Brian Dean, 2012]
+
+Although Bessie the cow finds every string of balanced parentheses to be
+aesthetically pleasing, she particularly enjoys strings that she calls
+"perfectly" balanced -- consisting of a string of ('s followed by a string
+of )'s having the same length.  For example:
+
+(((())))
+
+While walking through the barn one day, Bessie discovers an N x N grid of
+horseshoes on the ground, where each horseshoe is oriented so that it looks
+like either ( or ).  Starting from the upper-left corner of this grid,
+Bessie wants to walk around picking up horseshoes so that the string she
+picks up is perfectly balanced.  Please help her compute the length of the
+longest perfectly-balanced string she can obtain.
+
+In each step, Bessie can move up, down, left, or right. She can only move
+onto a grid location containing a horseshoe, and when she does this, she
+picks up the horseshoe so that she can no longer move back to the same
+location (since it now lacks a horseshoe).  She starts by picking up the
+horseshoe in the upper-left corner of the grid.  Bessie only picks up a
+series of horseshoes that forms a perfectly balanced string, and she may
+therefore not be able to pick up all the horseshoes in the grid.
+
+PROBLEM NAME: hshoe
+
+INPUT FORMAT:
+
+* Line 1: An integer N (2 <= N <= 5).
+
+* Lines 2..N+1: Each line contains a string of parentheses of length
+        N.  Collectively, these N lines describe an N x N grid of
+        parentheses.
+
+SAMPLE INPUT (file hshoe.in):
+
+4
+(())
+()((
+(()(
+))))
+
+OUTPUT FORMAT:
+
+* Line 1: The length of the longest perfectly balanced string of
+        horseshoes Bessie can collect.  If Bessie cannot collect any
+        balanced string of horseshoes (e.g., if the upper-left square
+        is a right parenthesis), output 0.
+
+SAMPLE OUTPUT (file hshoe.out):
+
+8
+
+OUTPUT DETAILS:
+
+The sequence of steps Bessie takes to obtain a balanced string of length 8
+is as follows:
+
+1())
+2)((
+345(
+876)
+'''
+
+class HorseShoes:
+	def __init__( self, layout ):
+		self.size = len( layout )
+		self.layout = layout
+
+		self.leftShoe, self.rightShoe = '()'
+		self.maximumHorseShoes = 0
+
+	def _dfs( self, currentLocation, leftShoe, rightShoe, visited ):
+		visited.add( currentLocation )
+		
+		u, v = currentLocation
+		isLeftShoe = self.layout[ u ][ v ] == self.leftShoe
+
+		if isLeftShoe:
+			leftShoe += 1
+		else:
+			rightShoe += 1
+
+		if leftShoe == rightShoe:
+			self.maximumHorseShoes = max( self.maximumHorseShoes, leftShoe + rightShoe )
+		# We cannot pick up a leftShoe if we have started picking up rightShoes.
+		elif leftShoe < rightShoe or isLeftShoe and rightShoe > 0:
+			pass
+		else:
+			for du, dv in [ (0, 1), (0, -1), (1, 0), (-1, 0) ]:
+				m, n = adjacentLocation = u + du, v + dv
+				if not 0 <= m < self.size or not 0 <= n < self.size:
+					continue
+				if adjacentLocation in visited:
+					continue
+				self._dfs( adjacentLocation, leftShoe, rightShoe, visited )
+		visited.remove( currentLocation )
+
+	def go( self ):
+		startLocation = 0, 0
+		visited = set()
+		self._dfs( startLocation, 0, 0, visited )
+		return self.maximumHorseShoes
+
+class HorseShoesTest( unittest.TestCase ):
+	def test_HorseShoes( self ):
+		for testfile in getTestFileList( tag='horseshoe' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/horseshoe/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/horseshoe/{}.out'.format( testfile ) ) as solutionFile:
+
+			size = readInteger( inputFile )
+			layout = [ readString( inputFile ) for _ in range( size ) ]
+
+			count = readInteger( solutionFile )
+
+			layoutString = '_'.join( layout )
+			print( 'Testcase {} Layout = {} count = {}'.format( testfile, layoutString, count ) )
+
+			self.assertEqual( HorseShoes( layout ).go(), count )
+
+	def test_HorseShoes_Sample( self ):
+		layout = [
+		'(())',
+		'()((',
+		'(()(',
+		'))))'
+		]
+		self.assertEqual( HorseShoes( layout ).go(), 8 )
+
+'''
+USACO 2012 December Contest, Bronze
+
+Problem 1: Meet and Greet [Brian Dean, 2012]
+
+As is commonly known, cows are very socially polite creatures: any time two
+cows meet after being apart, they greet each-other with a friendly "moo".
+
+Bessie the cow and her friend, Elsie, are walking around on a long
+path on Farmer John's farm.  For all practical purposes, we can think
+of this path as a one-dimensional number line.  Bessie and Elsie both
+start at the origin, and they both then begin walking around at
+identical speeds for some amount of time.  Given a description of the
+movements taken by each cow, please determine the number of "moos"
+exchanged.  
+
+Bessie and Elsie can stop moving at different points in time, and
+neither cow will travel for more than 1,000,000 units of time.
+
+PROBLEM NAME: greetings
+
+INPUT FORMAT:
+
+* Line 1: Two space-separated integers, B (1 <= B <= 50,000) and E 
+        (1 <= E <= 50,000).
+
+* Lines 2..1+B: These B lines describe Bessie's movements.  Each line
+        contains a positive integer followed by either "L" or "R",
+        indicating the distance Bessie moves in a direction that is
+        either left or right.  
+
+* Lines 2+B..1+B+E: These E lines describe Elsie's movements.  Each
+        line contains a positive integer followed by either "L" or
+        "R", indicating the distance Elsie moves in a direction that
+        is either left or right.
+
+SAMPLE INPUT (file greetings.in):
+
+4 5
+3 L
+5 R
+1 L
+2 R
+4 R
+1 L
+3 L
+4 R
+2 L
+
+INPUT DETAILS:
+
+Bessie moves left for 3 units of time, then right for 5 units of time, then
+left for 1 unit of time, and finally right for 2 units of time; she then
+stands still.  Elsie moves right for 4 units of time, then left for 4 units
+of time, then right for 4 units of time, then left for 2 units of time; she
+then stands still.
+
+OUTPUT FORMAT:
+
+* Line 1: An integer specifying the number of "moos" exchanged by the
+        two cows.  Their initial shared starting position at the
+        origin does not cause a "moo".
+
+SAMPLE OUTPUT (file greetings.out):
+
+3
+
+OUTPUT DETAILS:
+
+Bessie and Elsie meet after being temporarily apart at time 7, time 9, and
+time 13.
+'''
+class MeetAndGreet:
+	def __init__( self, movementInfo ):
+		self.movementInfo = movementInfo
+
+	def moo( self ):
+		mooCount = 0
+
+		time = 0
+		movementInfo_A, movementInfo_B = self.movementInfo
+		i = j = 0
+		triggerTime_A = triggerTime_B = 0
+		position_A = position_B = 0
+		directionDelta_A = directionDelta_B = None
+		
+		while True:
+			if time == triggerTime_A and i < len( movementInfo_A ):
+				timeUnits, direction = movementInfo_A[ i ]
+				i += 1
+				directionDelta_A = -1 if direction == 'L' else 1
+				triggerTime_A += timeUnits
+			elif time == triggerTime_A:
+				directionDelta_A = 0
+			
+			if time == triggerTime_B and j < len( movementInfo_B ):
+				timeUnits, direction = movementInfo_B[ j ]
+				j += 1
+				directionDelta_B = -1 if direction == 'L' else 1
+				triggerTime_B += timeUnits
+			elif time == triggerTime_B:
+				directionDelta_B = 0
+
+			position_A += directionDelta_A
+			position_B += directionDelta_B
+
+			if position_A == position_B and directionDelta_A != directionDelta_B:
+				mooCount += 1
+			time += 1
+			if time > triggerTime_A and time > triggerTime_B:
+				break
+		return mooCount
+
+class MeetAndGreetTest( unittest.TestCase ):
+	def test_MeetAndGreet( self ):
+		for testfile in getTestFileList( tag='greetings' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/greetings/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/greetings/{}.out'.format( testfile ) ) as solutionFile:
+
+			S1, S2 = readIntegers( inputFile )
+			movementInfo_A = list()
+			for _ in range( S1 ):
+				timeUnits, direction = readString( inputFile ).split()
+				movementInfo_A.append( (int( timeUnits ), direction) )
+			movementInfo_B = list()
+			for _ in range( S2 ):
+				timeUnits, direction = readString( inputFile ).split()
+				movementInfo_B.append( (int( timeUnits ), direction) )
+
+			movementInfo = [ movementInfo_A, movementInfo_B ]
+			mooCount = readInteger( solutionFile )
+
+			print( 'Testcase {} [{}, {}] mooCount = {}'.format( testfile, S1, S2, mooCount ) )
+			self.assertEqual( MeetAndGreet( movementInfo ).moo(), mooCount )
+
+	def test_MeetAndGreet_Sample( self ):
+		movementInfo = [
+		[ (3, 'L'), (5, 'R'), (1, 'L'), (2, 'R') ],
+		[ (4, 'R'), (1, 'L'), (3, 'L'), (4, 'R'), (2, 'L') ]
+		]
+		self.assertEqual( MeetAndGreet( movementInfo ).moo(), 3 )
+
+#
+# Test Infrastructure - Each test is registered with the corresponding contestTag and problemTag.
+#
 class USACO_Contest:
 	def __init__( self ):
 		self.problems = list()
@@ -859,16 +1414,22 @@ class USACO_Contest:
 def test():
 	contest = USACO_Contest()
 
-	contest.register( 'USACO 2012 US Open, Bronze Division', 'Cows in a Row', CowsInARowTest )
+	contest.register( 'USACO 2011 December Contest, Bronze Division', 'Hay Bales', HayBalesTest )
+	contest.register( 'USACO 2011 December Contest, Bronze Division', 'Cow Photography', None )
 
+	contest.register( 'USACO 2012 US Open, Bronze Division', 'Cows in a Row', CowsInARowTest )
 	contest.register( 'USACO 2012 March Contest, Silver Division', 'Tractor', TractorTest )
 
+	contest.register( 'USACO 2012 November Contest, Bronze', 'Find the Cow!', FindTheCowTest )
+	contest.register( 'USACO 2012 November Contest, Bronze', 'Horseshoes', HorseShoesTest )
+
+	contest.register( 'USACO 2012 December Contest, Bronze', 'Meet and Greet', MeetAndGreetTest )
+
+	contest.register( 'USACO 2014 December Contest, Silver', 'Piggyback', PiggybackTest )
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Marathon', MarathonTest )
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Crosswords', CrosswordsTest )
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Cow Jog', CowJogTest )
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Learning by Example', None )
-
-	contest.register( 'USACO 2014 December Contest, Silver', 'Piggyback', PiggybackTest )
 	
 	contest.run()
 
