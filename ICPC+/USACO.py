@@ -563,40 +563,27 @@ class Piggyback:
 			self.graph[ v ].append( u )
 		self.bessieField, self.elsieField, self.barnLocation = 1, 2, numberOfFields
 
+	def _bfs( self, source, distanceList ):
+		q = deque()
+		q.append( source )
+
+		distanceList[ source ] = 0
+
+		while len( q ) > 0:
+			currentLocation = q.popleft()
+			for adjacentLocation in self.graph[ currentLocation ]:
+				if distanceList[ adjacentLocation ] is None:
+					distanceList[ adjacentLocation ] = distanceList[ currentLocation ] + 1
+					q.append( adjacentLocation )
+
 	def minimumEnergy( self ):
 		distanceFromBessie = [ None for _ in range( self.numberOfFields + 1 ) ]
 		distanceFromElsie  = [ None for _ in range( self.numberOfFields + 1 ) ]
 		distanceFromBarn   = [ None for _ in range( self.numberOfFields + 1 ) ]
 
-		q = deque()
-		
-		q.append( self.bessieField )
-		distanceFromBessie[ self.bessieField ] = 0
-
-		while len( q ) > 0:
-			currentLocation = q.popleft()
-			for adjacentLocation in self.graph[ currentLocation ]:
-				if distanceFromBessie[ adjacentLocation ] is None:
-					distanceFromBessie[ adjacentLocation ] = distanceFromBessie[ currentLocation ] + 1
-					q.append( adjacentLocation )
-
-		q.append( self.elsieField )
-		distanceFromElsie[ self.elsieField ] = 0
-		while len( q ) > 0:
-			currentLocation = q.popleft()
-			for adjacentLocation in self.graph[ currentLocation ]:
-				if distanceFromElsie[ adjacentLocation ] is None:
-					distanceFromElsie[ adjacentLocation ] = distanceFromElsie[ currentLocation ] + 1
-					q.append( adjacentLocation )
-
-		q.append( self.barnLocation )
-		distanceFromBarn[ self.barnLocation ] = 0
-		while len( q ) > 0:
-			currentLocation = q.popleft()
-			for adjacentLocation in self.graph[ currentLocation ]:
-				if distanceFromBarn[ adjacentLocation ] is None:
-					distanceFromBarn[ adjacentLocation ] = distanceFromBarn[ currentLocation ] + 1
-					q.append( adjacentLocation )
+		self._bfs( self.bessieField, distanceFromBessie )
+		self._bfs( self.elsieField, distanceFromElsie )
+		self._bfs( self.barnLocation, distanceFromBarn )
 
 		energyUsage = distanceFromBessie[ self.barnLocation ] * self.B + distanceFromElsie[ self.barnLocation ] * self.E
 		for field in range( 1, self.numberOfFields + 1 ):
@@ -631,5 +618,31 @@ class PiggybackTest( unittest.TestCase ):
 			print( formatString.format( testfile, numberOfFields, numberOfConnections, minimumEnergy ) )
 			self.assertEqual( Piggyback( B, E, P, numberOfFields, connectionList ).minimumEnergy(), minimumEnergy )
 
+class USACO_Contest:
+	def __init__( self ):
+		self.problems = list()
+
+	def register( self, contestTag, problemTag, solutionTestClass=None ):
+		self.problems.append( (contestTag, problemTag, solutionTestClass) )
+
+	def run( self ):
+		for index, (contestTag, problemTag, solutionTestClass) in enumerate( self.problems ):
+			solutionState = 'OK' if solutionTestClass is not None else 'SOLUTION NOT IMPLEMENTED'
+			print( '{} Problem {} : {} [{}]'.format( contestTag, index + 1, problemTag, solutionState ) )
+			if solutionTestClass is not None:
+				unittest.main( solutionTestClass(), exit=False )
+
+def test():
+	contest = USACO_Contest()
+
+	contest.register( 'USACO 2014 December Contest, Bronze', 'Marathon', MarathonTest )
+	contest.register( 'USACO 2014 December Contest, Bronze', 'Crosswords', CrosswordsTest )
+	contest.register( 'USACO 2014 December Contest, Bronze', 'Cow Jog', CowJogTest )
+	contest.register( 'USACO 2014 December Contest, Bronze', 'Learning by Example', None )
+
+	contest.register( 'USACO 2014 December Contest, Silver', 'Piggyback', PiggybackTest )
+	
+	contest.run()
+
 if __name__ == '__main__':
-	unittest.main()
+	test()
