@@ -1653,7 +1653,145 @@ class PhotoshootTest( unittest.TestCase ):
 
 	def test_Photoshoot_Sample( self ):
 		sumList = [ 4, 6, 7, 6 ]
-		self.assertEqual( Photoshoot( sumList ).reconstruct(), [ 3, 1, 5, 2, 4 ] ) 
+		self.assertEqual( Photoshoot( sumList ).reconstruct(), [ 3, 1, 5, 2, 4 ] )
+
+'''
+USACO 2015 December Contest, Gold
+
+Problem 3. Bessie's Dream
+
+After eating too much fruit in Farmer John's kitchen, Bessie the cow is getting some very strange dreams! In her most recent dream, she is trapped in a maze in the shape of an N×M grid of tiles (1≤N,M≤1,000). She starts on the top-left tile and wants to get to the bottom-right tile. When she is standing on a tile, she can potentially move to the adjacent tiles in any of the four cardinal directions.
+But wait! Each tile has a color, and each color has a different property! Bessie's head hurts just thinking about it:
+
+If a tile is red, then it is impassable.
+If a tile is pink, then it can be walked on normally.
+If a tile is orange, then it can be walked on normally, but will make Bessie smell like oranges.
+If a tile is blue, then it contains piranhas that will only let Bessie pass if she smells like oranges.
+If a tile is purple, then Bessie will slide to the next tile in that direction (unless she is unable to cross it). If this tile is also a purple tile, then Bessie will continue to slide until she lands on a non-purple tile or hits an impassable tile. Sliding through a tile counts as a move. Purple tiles will also remove Bessie's smell.
+(If you're confused about purple tiles, the example will illustrate their use.)
+
+Please help Bessie get from the top-left to the bottom-right in as few moves as possible.
+
+INPUT FORMAT (file dream.in):
+The first line has two integers N and M, representing the number of rows and columns of the maze.
+The next N lines have M integers each, representing the maze:
+
+The integer '0' is a red tile
+The integer '1' is a pink tile
+The integer '2' is an orange tile
+The integer '3' is a blue tile
+The integer '4' is a purple tile
+The top-left and bottom-right integers will always be '1'.
+
+OUTPUT FORMAT (file dream.out):
+A single integer, representing the minimum number of moves Bessie must use to cross the maze, or -1 if it is impossible to do so.
+SAMPLE INPUT:
+4 4
+1 0 2 1
+1 1 4 1
+1 0 4 0
+1 3 1 1
+SAMPLE OUTPUT:
+10
+In this example, Bessie walks one square down and two squares to the right (and then slides one more square to the right). She walks one square up, one square left, and one square down (sliding two more squares down) and finishes by walking one more square right. This is a total of 10 moves (DRRRULDDDR).
+
+Problem credits: Nathan Pinsker, inspired by the game "Undertale".
+'''
+
+class Dream:
+	def __init__( self, rows, cols, layout ):
+		self.rows, self.cols = rows, cols
+		self.layout = layout
+		self.startLocation = 0, 0
+		self.targetLocation = self.rows - 1, self.cols - 1
+
+		self.redTile, self.pinkTile, self.orangeTile, self.blueTile, self.purpleTile = 0, 1, 2, 3, 4
+		self.adjacentLocationDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def go( self ):
+		orangeSmellDict = {
+		True : 0, False : 1
+		}
+
+		visited = [ [ [ False for _ in range( self.cols ) ] for _ in range( self.rows ) ] for _ in range( 2 ) ]
+		visitedPurpleTiles = set()
+
+		q = deque()
+		q.append( (self.startLocation, False, self.startLocation) )
+
+		visited[ orangeSmellDict[ False ] ][ 0 ][ 0 ] = True
+
+		stepCount = 0
+		while len( q ) > 0:
+			N = len( q )
+			while N > 0:
+				N = N - 1
+
+				currentLocation, orangeSmell, previousLocation = q.popleft()
+				if currentLocation == self.targetLocation:
+					return stepCount
+
+				u, v = currentLocation
+				x, y = previousLocation
+				du, dv = u - x, v - y
+				isPurpleTile = ( self.layout[ u ][ v ] == self.purpleTile )
+				if isPurpleTile and (currentLocation, du, dv) in visitedPurpleTiles:
+					continue
+				elif isPurpleTile:
+					orangeSmell = False
+					visitedPurpleTiles.add( (currentLocation, du, dv) )
+
+				def _applyMovement( du, dv ):
+					r, c = adjacentLocation = u + du, v + dv
+					smell = orangeSmell
+					if not 0 <= r < self.rows or not 0 <= c < self.cols:
+						return 'Blocked'
+					cellColor = self.layout[ r ][ c ]
+					# Red tiles are impassable.
+					if cellColor == self.redTile:
+						return 'Blocked'
+					elif cellColor == self.pinkTile:
+						pass
+					elif cellColor == self.orangeTile:
+						smell = True
+					elif cellColor == self.blueTile and not orangeSmell:
+						return 'Blocked'
+					
+					if cellColor == self.purpleTile or not visited[ orangeSmellDict[ smell ] ][ r ][ c ]:
+						visited[ orangeSmellDict[ smell ] ][ r ][ c ] = True
+						q.append( (adjacentLocation, smell, currentLocation) )
+
+				if ( isPurpleTile and _applyMovement( du, dv ) == 'Blocked' ) or not isPurpleTile:
+					for du, dv in self.adjacentLocationDelta:
+						_applyMovement( du, dv )
+			stepCount += 1
+		return -1
+
+class DreamTest( unittest.TestCase ):
+	def test_Dream( self ):
+		for testfile in getTestFileList( tag='dream' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/dream/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/dream/{}.out'.format( testfile ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			layout = [ list( readIntegers( inputFile ) ) for _ in range( rows ) ]
+			stepCount = readInteger( solutionFile )
+
+			print( 'Testcase {} [{} x {}] stepCount = {}'.format( testfile, rows, cols, stepCount ) )
+			self.assertEqual( Dream( rows, cols, layout ).go(), stepCount )
+
+	def test_Dream_Sample( self ):
+		rows, cols = 4, 4
+		layout = [
+		[ 1, 0, 2, 1 ],
+		[ 1, 1, 4, 1 ],
+		[ 1, 0, 4, 0 ],
+		[ 1, 3, 1, 1 ]
+		]
+		self.assertEqual( Dream( rows, cols, layout ).go(), 10 )
 
 ####################################################################################################
 ####################################################################################################
@@ -1692,11 +1830,15 @@ def test():
 	contest.register( 'USACO 2012 December Contest, Bronze', 'Meet and Greet', MeetAndGreetTest )
 	contest.register( 'USACO 2012 December Contest, Bronze', 'Scrambled Letters', ScrambledLettersTest )
 
+	#contest.register( 'USACO 2013 US Open, Silver', "What's Up With Gravity", GravityTest )
+
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Marathon', MarathonTest )
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Crosswords', CrosswordsTest )
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Cow Jog', CowJogTest )
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Learning by Example', None )
 	contest.register( 'USACO 2014 December Contest, Silver', 'Piggyback', PiggybackTest )
+
+	contest.register( 'USACO 2015 December Contest, Gold', "Bessie's Dream", DreamTest )
 	
 	contest.register( 'USACO 2020 January Contest, Bronze', 'Word Processor', WordProcessorTest )
 	contest.register( 'USACO 2020 January Contest, Bronze', 'Photoshoot', PhotoshootTest )
