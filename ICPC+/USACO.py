@@ -1610,30 +1610,15 @@ class Photoshoot:
 	def __init__( self, sumList ):
 		self.sumList = sumList
 
-	def _repeat( self, K, reconstructionList, usedIdSet ):
-		stack = list()
-		stack.append( (0, K, 'evaluate') )
-
-		while len( stack ) > 0:
-			index, K, command = stack.pop()
-
-			if command == 'pop':
-				reconstructionList.pop()
-				usedIdSet.remove( K )
-				continue
-
-			if index == len( self.sumList ):
-				return True
-			
-			desiredSum = self.sumList[ index ]
-			possibleId = desiredSum - K
+	def _tryToConstruct( self, reconstructionList, usedIdSet ):
+		for desiredSum in self.sumList:
+			possibleId = desiredSum - reconstructionList[ -1 ]
 			if possibleId > 0 and possibleId not in usedIdSet:
 				usedIdSet.add( possibleId )
 				reconstructionList.append( possibleId )
-				stack.append( (index + 1, possibleId, 'pop') )
-				stack.append( (index + 1, possibleId, 'evaluate') )
-		
-		return False
+			else:
+				return False
+		return True
 
 	def reconstruct( self ):
 		reconstructionList = list()
@@ -1643,10 +1628,10 @@ class Photoshoot:
 		for K in range( 1, S ):
 			reconstructionList.append( K )
 			usedIdSet.add( K )
-			if self._repeat( K, reconstructionList, usedIdSet ):
+			if self._tryToConstruct( reconstructionList, usedIdSet ):
 				break
-			usedIdSet.remove( K )
-			reconstructionList.pop()
+			usedIdSet.clear()
+			reconstructionList.clear()
 		
 		return reconstructionList
 
