@@ -2017,6 +2017,223 @@ class IcyPerimeterTest( unittest.TestCase ):
 		]
 		self.assertEqual( IcyPerimeter( size, icecreamLayout ).go(), (13, 22) )
 
+'''
+USACO 2015 December Contest, Bronze
+
+Problem 1. Fence Painting
+
+Several seasons of hot summers and cold winters have taken their toll on Farmer John's fence, and he decides it is time to repaint it, along with the help of his favorite cow, Bessie. Unfortunately, while Bessie is actually remarkably proficient at painting, she is not as good at understanding Farmer John's instructions.
+If we regard the fence as a one-dimensional number line, Farmer John paints the interval between x=a and x=b. For example, if a=3 and b=5, then Farmer John paints an interval of length 2. Bessie, misunderstanding Farmer John's instructions, paints the interval from x=c to x=d, which may possibly overlap with part or all of Farmer John's interval. Please determine the total length of fence that is now covered with paint.
+
+INPUT FORMAT (file paint.in):
+The first line of the input contains the integers a and b, separated by a space (a<b).
+The second line contains integers c and d, separated by a space (c<d).
+
+The values of a, b, c, and d all lie in the range 0…100, inclusive.
+
+OUTPUT FORMAT (file paint.out):
+Please output a single line containing the total length of the fence covered with paint.
+SAMPLE INPUT:
+7 10
+4 8
+SAMPLE OUTPUT:
+6
+Here, 6 total units of fence are covered with paint, from x=4 all the way through x=10.
+
+Problem credits: Brian Dean
+'''
+
+class FencePainting:
+	@staticmethod
+	def paint( a, b, c, d ):
+		if b <= c or d <= a:
+			return (b - a) + (d - c)
+		else:
+			return max( b, d ) - min( a, c )
+
+class FencePaintingTest( unittest.TestCase ):
+	def test_FencePainting( self ):
+		for testfile in getTestFileList( tag='fencepainting' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/fencepainting/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/fencepainting/{}.out'.format( testfile ) ) as solutionFile:
+
+			a, b = readIntegers( inputFile )
+			c, d = readIntegers( inputFile )
+			paintedLength = readInteger( solutionFile )
+			
+			print( 'Testcase {} [{}, {}] [{}, {}] paintedLength = {}'.format( testfile, a, b, c, d, paintedLength ) )
+			self.assertEqual( FencePainting.paint( a, b, c, d ), paintedLength )
+
+	def test_FencePainting_Sample( self ):
+		self.assertEqual( FencePainting.paint( 7, 10, 4, 8 ), 6 )
+
+'''
+USACO 2015 December Contest, Bronze
+
+Problem 2. Speeding Ticket
+
+Always the troublemaker, Bessie the cow has stolen Farmer John's tractor and taken off down the road!
+The road is exactly 100 miles long, and Bessie drives the entire length of the road before ultimately being pulled over by a police officer, who gives Bessie a ticket for exceeding the speed limit, for having an expired license, and for operating a motor vehicle while being a cow. While Bessie concedes that the last two tickets are probably valid, she questions whether the police officer was correct in issuing the speeding ticket, and she wants to determine for herself if she has indeed driven faster than the speed limit for part of her journey.
+
+The road is divided into N segments, each described by a positive integer length in miles, as well as an integer speed limit in the range 1…100 miles per hour. As the road is 100 miles long, the lengths of all N segments add up to 100. For example, the road might start with a segment of length 45 miles, with speed limit 70, and then it might end with a segment of length 55 miles, with speed limit 60.
+
+Bessie's journey can also be described by a series of segments, M of them. During each segment, she travels for a certain positive integer number of miles, at a certain integer speed. For example, she might begin by traveling 50 miles at a speed of 65, then another 50 miles at a speed of 55. The lengths of all M segments add to 100 total miles. Farmer John's tractor can drive 100 miles per hour at its fastest.
+
+Given the information above, please determine the maximum amount over the speed limit that Bessie travels during any part of her journey.
+
+INPUT FORMAT (file speeding.in):
+The first line of the input contains N and M, separated by a space.
+The next N lines each contain two integers describing a road segment, giving its length and speed limit.
+
+The next M lines each contain two integers describing a segment in Bessie's journey, giving the length and also the speed at which Bessie was driving.
+
+OUTPUT FORMAT (file speeding.out):
+Please output a single line containing the maximum amount over the speed limit Bessie drove during any part of her journey. If she never exceeds the speed limit, please output 0.
+SAMPLE INPUT:
+3 3
+40 75
+50 35
+10 45
+40 76
+20 30
+40 40
+SAMPLE OUTPUT:
+5
+In this example, the road contains three segments (40 miles at 75 miles per hour, followed by 50 miles at 35 miles per hour, then 10 miles at 45 miles per hour). Bessie drives for three segments (40 miles at 76 miles per hour, 20 miles at 30 miles per hour, and 40 miles at 40 miles per hour). During her first segment, she is slightly over the speed limit, but her last segment is the worst infraction, during part of which she is 5 miles per hour over the speed limit. The correct answer is therefore 5.
+
+Problem credits: Austin Bannister and Brian Dean
+'''
+
+class SpeedingTicket:
+	@staticmethod
+	def excessSpeed( speedLimitInfoList, drivingSpeedInfoList ):
+		cumulativeDistanceList = list()
+		speedLimitList = list()
+		cumulativeDistance = 0
+		
+		for segmentDistance, segmentSpeedLimit in speedLimitInfoList:
+			cumulativeDistance += segmentDistance
+			cumulativeDistanceList.append( cumulativeDistance )
+			speedLimitList.append( segmentSpeedLimit )
+
+		_excessSpeed = 0
+		index = 0
+		distanceTraveled = 0
+		
+		for distance, speed in drivingSpeedInfoList:
+			distanceTraveled += distance
+
+			while distanceTraveled > cumulativeDistanceList[ index ]:
+				_excessSpeed = max( _excessSpeed, speed - speedLimitList[ index ] )
+				index += 1
+			_excessSpeed = max( _excessSpeed, speed - speedLimitList[ index ] )
+			if distanceTraveled == cumulativeDistanceList[ index ]:
+				index += 1
+		return _excessSpeed
+
+class SpeedingTicketTest( unittest.TestCase ):
+	def  test_SpeedingTicket( self ):
+		for testfile in getTestFileList( tag='speedingticket' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/speedingticket/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/speedingticket/{}.out'.format( testfile ) ) as solutionFile:
+
+			N, M = readIntegers( inputFile )
+			speedLimitInfoList = [ tuple( readIntegers( inputFile ) ) for _ in range( N ) ]
+			drivingSpeedInfoList = [ tuple( readIntegers( inputFile ) ) for _ in range( M ) ]
+			excessSpeed = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} M = {} excessSpeed = {}'.format( testfile, N, M, excessSpeed ) )
+			self.assertEqual( SpeedingTicket.excessSpeed( speedLimitInfoList, drivingSpeedInfoList ), excessSpeed )
+
+	def test_SpeedingTicket_Sample( self ):
+		speedLimitInfoList = [ (40, 75), (50, 35), (10, 45) ]
+		drivingSpeedInfoList = [ (40, 76), (20, 30), (40, 40) ]
+		self.assertEqual( SpeedingTicket.excessSpeed( speedLimitInfoList, drivingSpeedInfoList ), 5 )
+
+'''
+USACO 2015 December Contest, Silver
+
+Problem 3. Breed Counting
+
+Farmer John's N cows, conveniently numbered 1…N, are all standing in a row (they seem to do so often that it now takes very little prompting from Farmer John to line them up). Each cow has a breed ID: 1 for Holsteins, 2 for Guernseys, and 3 for Jerseys. Farmer John would like your help counting the number of cows of each breed that lie within certain intervals of the ordering.
+INPUT FORMAT (file bcount.in):
+The first line of input contains N and Q (1≤N≤100,000, 1≤Q≤100,000).
+The next N lines contain an integer that is either 1, 2, or 3, giving the breed ID of a single cow in the ordering.
+
+The next Q lines describe a query in the form of two integers a,b (a≤b).
+
+OUTPUT FORMAT (file bcount.out):
+For each of the Q queries (a,b), print a line containing three numbers: the number of cows numbered a…b that are Holsteins (breed 1), Guernseys (breed 2), and Jerseys (breed 3).
+SAMPLE INPUT:
+6 3
+2
+1
+1
+3
+2
+1
+1 6
+3 3
+2 4
+SAMPLE OUTPUT:
+3 2 1
+1 0 0
+2 0 1
+Problem credits: Nick Wu
+'''
+
+class BreedCounting:
+	def __init__( self, breedIdList, queryList ):
+		self.breedIdList = breedIdList
+		self.queryList = queryList
+		self.idHolstein, self.idGuernsey, self.idJersey = 1, 2, 3
+
+	def process( self ):
+		cumulativeSumList = [ [ 0 ], [ 0 ], [ 0 ] ]
+
+		for breedId in self.breedIdList:
+			for index in range( len( cumulativeSumList ) ):
+				# index 0..2 is mapped to the breedId from 1..3
+				count = 1 if index + 1 == breedId else 0
+				cumulativeSumList[ index ].append( count + cumulativeSumList[ index ][ -1 ] )
+
+		resultList = list()
+		for low, high in self.queryList:
+			countList = list()
+			for index in range( len( cumulativeSumList ) ):
+				count = cumulativeSumList[ index ][ high ] - cumulativeSumList[ index ][ low - 1 ]
+				countList.append( count )
+			resultList.append( tuple( countList ) )
+		return resultList
+
+class BreedCountingTest( unittest.TestCase ):
+	def test_BreedCounting( self ):
+		for testfile in getTestFileList( tag='breedcounting' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/breedcounting/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/breedcounting/{}.out'.format( testfile ) ) as solutionFile:
+
+			N, Q = readIntegers( inputFile )
+			breedIdList = [ readInteger( inputFile ) for _ in range( N ) ]
+			queryList = [ tuple( readIntegers( inputFile ) ) for _ in range( Q ) ]
+			resultList = [ tuple( readIntegers( solutionFile ) ) for _ in range( Q ) ]
+
+			print( 'Testcase {} N = {} Q = {}'.format( testfile, N, Q ) )
+			self.assertEqual( BreedCounting( breedIdList, queryList ).process(), resultList )
+
+	def test_BreedCounting_Sample( self ):
+		breedIdList = [ 2, 1, 1, 3, 2, 1 ]
+		queryList = [ (1, 6), (3, 3), (2, 4) ]
+		self.assertEqual( BreedCounting( breedIdList, queryList ).process(), [ (3, 2, 1), (1, 0, 0), (2, 0, 1 ) ] )
+
 ####################################################################################################
 ####################################################################################################
 #
@@ -2062,7 +2279,10 @@ def test():
 	#contest.register( 'USACO 2014 December Contest, Bronze', 'Learning by Example', None )
 	contest.register( 'USACO 2014 December Contest, Silver', 'Piggyback', PiggybackTest )
 
+	contest.register( 'USACO 2015 December Contest, Bronze', 'Fence Painting', FencePaintingTest )
+	contest.register( 'USACO 2015 December Contest, Bronze', 'Speeding Ticket', SpeedingTicketTest )
 	contest.register( 'USACO 2015 December Contest, Silver', 'Switching on the Lights', LightsTest )
+	contest.register( 'USACO 2015 December Contest, Silver', 'Breed Counting', BreedCountingTest )
 	contest.register( 'USACO 2015 December Contest, Gold', "Bessie's Dream", DreamTest )
 
 	contest.register( 'USACO 2019 January Contest, Silver', 'Icy Perimeter', IcyPerimeterTest )
