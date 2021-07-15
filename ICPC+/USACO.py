@@ -1735,11 +1735,11 @@ class Dream:
 				x, y = previousLocation
 				du, dv = u - x, v - y
 				isPurpleTile = ( self.layout[ u ][ v ] == self.purpleTile )
-				if isPurpleTile and (currentLocation, du, dv) in visitedPurpleTiles:
+				if isPurpleTile and (currentLocation, previousLocation) in visitedPurpleTiles:
 					continue
 				elif isPurpleTile:
 					orangeSmell = False
-					visitedPurpleTiles.add( (currentLocation, du, dv) )
+					visitedPurpleTiles.add( (currentLocation, previousLocation) )
 
 				def _applyMovement( du, dv ):
 					r, c = adjacentLocation = u + du, v + dv
@@ -1793,6 +1793,230 @@ class DreamTest( unittest.TestCase ):
 		]
 		self.assertEqual( Dream( rows, cols, layout ).go(), 10 )
 
+'''
+USACO 2015 December Contest, Silver
+
+Problem 1. Switching on the Lights
+
+Farmer John has recently built an enormous barn consisting of an N×N grid of rooms (2≤N≤100), numbered from (1,1) up to (N,N). Being somewhat afraid of the dark, Bessie the cow wants to turn on the lights in as many rooms as possible.
+Bessie starts in room (1,1), the only room that is initially lit. In some rooms, she will find light switches that she can use to toggle the lights in other rooms; for example there might be a switch in room (1,1) that toggles the lights in room (1,2). Bessie can only travel through lit rooms, and she can only move from a room (x,y) to its four adjacent neighbors (x−1,y), (x+1,y), (x,y−1) and (x,y+1) (or possibly fewer neighbors if this room is on the boundary of the grid).
+
+Please determine the maximum number of rooms Bessie can illuminate.
+
+INPUT FORMAT (file lightson.in):
+The first line of input contains integers N and M (1≤M≤20,000).
+The next M lines each describe a single light switch with four integers x, y, a, b, that a switch in room (x,y) can be used to toggle the lights in room (a,b). Multiple switches may exist in any room, and multiple switches may toggle the lights of any room.
+
+OUTPUT FORMAT (file lightson.out):
+A single line giving the maximum number of rooms Bessie can illuminate.
+SAMPLE INPUT:
+ 
+3 6
+1 1 1 2
+2 1 2 2
+1 1 1 3
+2 3 3 1
+1 3 1 2
+1 3 2 1
+SAMPLE OUTPUT:
+5
+Here, Bessie can use the switch in (1,1) to turn on lights in (1,2) and (1,3). She can then walk to (1,3) and turn on the lights in (2,1), from which she can turn on the lights in (2,2). The switch in (2,3) is inaccessible to her, being in an unlit room. She can therefore illuminate at most 5 rooms.
+
+Problem credits: Austin Bannister and Brian Dean
+'''
+
+class Lights:
+	def __init__( self, N, switchInfo ):
+		self.N = N
+		
+		self.switchInfoDict = defaultdict( lambda : list() )
+		for (x, y, a, b) in switchInfo:
+			self.switchInfoDict[ (x, y) ].append( (a, b) )
+		
+		self.adjacentLocationDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def go( self ):
+		startLocation = 1, 1
+		
+		q = deque()
+		q.append( startLocation )
+
+		visited = [ [ False for _ in range( self.N + 1 ) ] for _ in range( self.N + 1 ) ]
+		visited[ 1 ][ 1 ] = True
+
+		illuminatedRooms = set()
+		illuminatedRooms.add( startLocation )
+
+		adjacentUnlitRooms = set()
+
+		while len( q ) > 0:
+			u, v = currentLocation = q.popleft()
+
+			for targetRoom in self.switchInfoDict[ currentLocation ]:
+				illuminatedRooms.add( targetRoom )
+				if targetRoom in adjacentUnlitRooms:
+					adjacentUnlitRooms.remove( targetRoom )
+					x, y = targetRoom
+					visited[ x ][ y ] = True
+					q.append( targetRoom )
+
+			for du, dv in self.adjacentLocationDelta:
+				x, y = adjacentLocation = u + du, v + dv
+				if not 0 < x <= self.N or not 0 < y <= self.N or visited[ x ][ y ]:
+					continue
+				if adjacentLocation in illuminatedRooms:
+					visited[ x ][ y ] = True
+					q.append( adjacentLocation )
+				else:
+					adjacentUnlitRooms.add( adjacentLocation )
+
+		return len( illuminatedRooms )
+
+class LightsTest( unittest.TestCase ):
+	def test_Lights( self ):
+		for testfile in getTestFileList( tag='lights' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/lights/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/lights/{}.out'.format( testfile ) ) as solutionFile:
+
+			N, numberOfSwitches = readIntegers( inputFile )
+			switchInfo = [ tuple( readIntegers( inputFile ) ) for _ in range( numberOfSwitches ) ]
+			illuminatedRooms = readInteger( solutionFile )
+
+			formatString = 'Testcase {} N = {} numberOfSwitches = {} illuminatedRooms = {}'
+			print( formatString.format( testfile, N, numberOfSwitches, illuminatedRooms ) )
+
+			self.assertEqual( Lights( N, switchInfo ).go(), illuminatedRooms )
+
+	def test_Lights_Sample( self ):
+		N = 3
+		switchInfo = [
+		(1, 1, 1, 2),
+		(2, 1, 2, 2),
+		(1, 1, 1, 3),
+		(2, 3, 3, 1),
+		(1, 3, 1, 2),
+		(1, 3, 2, 1)
+		]
+		self.assertEqual( Lights( N, switchInfo ).go(), 5 )
+
+'''
+USACO 2019 January Contest, Silver
+
+Problem 2. Icy Perimeter
+
+Farmer John is going into the ice cream business! He has built a machine that produces blobs of ice cream but unfortunately in somewhat irregular shapes, and he is hoping to optimize the machine to make the shapes produced as output more reasonable.
+The configuration of ice cream output by the machine can be described using an N×N grid (1≤N≤1000) as follows:
+
+##....
+....#.
+.#..#.
+.#####
+...###
+....##
+Each '.' character represents empty space and each '#' character represents a 1×1 square cell of ice cream.
+
+Unfortunately, the machine isn't working very well at the moment and might produce multiple disconnected blobs of ice cream (the figure above has two). A blob of ice cream is connected if you can reach any ice cream cell from every other ice cream cell in the blob by repeatedly stepping to adjacent ice cream cells in the north, south, east, and west directions.
+
+Farmer John would like to find the area and perimeter of the blob of ice cream having the largest area. The area of a blob is just the number of '#' characters that are part of the blob. If multiple blobs tie for the largest area, he wants to know the smallest perimeter among them. In the figure above, the smaller blob has area 2 and perimeter 6, and the larger blob has area 13 and perimeter 22.
+
+Note that a blob could have a "hole" in the middle of it (empty space surrounded by ice cream). If so, the boundary with the hole also counts towards the perimeter of the blob. Blobs can also appear nested within other blobs, in which case they are treated as separate blobs. For example, this case has a blob of area 1 nested within a blob of area 16:
+
+#####
+#...#
+#.#.#
+#...#
+#####
+Knowing both the area and perimeter of a blob of ice cream is important, since Farmer John ultimately wants to minimize the ratio of perimeter to area, a quantity he calls the icyperimetric measure of his ice cream. When this ratio is small, the ice cream melts slower, since it has less surface area relative to its mass.
+
+INPUT FORMAT (file perimeter.in):
+The first line of input contains N, and the next N lines describe the output of the machine. At least one '#' character will be present.
+OUTPUT FORMAT (file perimeter.out):
+Please output one line containing two space-separated integers, the first being the area of the largest blob, and the second being its perimeter. If multiple blobs are tied for largest area, print the information for whichever of these has the smallest perimeter.
+SAMPLE INPUT:
+6
+##....
+....#.
+.#..#.
+.#####
+...###
+....##
+SAMPLE OUTPUT:
+13 22
+Problem credits: Brian Dean
+'''
+
+class IcyPerimeter:
+	def __init__( self, size, icecreamLayout ):
+		self.size = size
+		self.icecreamLayout = icecreamLayout
+
+		self.emptyCell, self.icecreamCell = '.#'
+		self.adjacentLocationDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def _floodFill( self, r, c, visited ):
+		area = perimeter = 0
+
+		q = deque()
+		q.append( (r, c) )
+
+		visited[ r ][ c ] = True
+		area += 1
+
+		while len( q ) > 0:
+			u, v = q.popleft()
+			for du, dv in self.adjacentLocationDelta:
+				r, c = u + du, v + dv
+				if not 0 <= r < self.size or not 0 <= c < self.size or self.icecreamLayout[ r ][ c ] == self.emptyCell:
+					perimeter += 1
+					continue
+				if not visited[ r ][ c ]:
+					visited[ r ][ c ] = True
+					area += 1
+					q.append( (r, c) )
+		return area, perimeter
+
+	def go( self ):
+		visited = [ [ False for _ in range( self.size ) ] for _ in range( self.size ) ]
+
+		area, perimeter =  0, 0
+		for r, c in itertools.product( range( self.size ), range( self.size ) ):
+			if self.icecreamLayout[ r ][ c ] == self.icecreamCell and not visited[ r ][ c ]:
+				blockArea, blockPerimeter = self._floodFill( r, c, visited )
+				if blockArea > area or blockArea == area and blockPerimeter < perimeter:
+					area, perimeter = blockArea, blockPerimeter
+		return area, perimeter
+
+class IcyPerimeterTest( unittest.TestCase ):
+	def test_IcyPerimeter( self ):
+		for testfile in getTestFileList( tag='icyperimeter' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/icyperimeter/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/icyperimeter/{}.out'.format( testfile ) ) as solutionFile:
+
+			size = readInteger( inputFile )
+			icecreamLayout = [ readString( inputFile ) for _ in range( size ) ]
+			area, perimeter = readIntegers( solutionFile )
+
+			print( 'Testcase {} size = {} area = {} perimeter = {}'.format( testfile, size, area, perimeter ) )
+			self.assertEqual( IcyPerimeter( size, icecreamLayout ).go(), (area, perimeter) )
+
+	def test_IcyPerimeter_Sample( self ):
+		size = 6
+		icecreamLayout = [
+		'##....',
+		'....#.',
+		'.#..#.',
+		'.#####',
+		'...###',
+		'....##'
+		]
+		self.assertEqual( IcyPerimeter( size, icecreamLayout ).go(), (13, 22) )
+
 ####################################################################################################
 ####################################################################################################
 #
@@ -1819,7 +2043,7 @@ def test():
 	contest = USACO_Contest()
 
 	contest.register( 'USACO 2011 December Contest, Bronze Division', 'Hay Bales', HayBalesTest )
-	contest.register( 'USACO 2011 December Contest, Bronze Division', 'Cow Photography', None )
+	#contest.register( 'USACO 2011 December Contest, Bronze Division', 'Cow Photography', None )
 
 	contest.register( 'USACO 2012 March Contest, Silver Division', 'Tractor', TractorTest )
 	contest.register( 'USACO 2012 US Open, Bronze Division', 'Cows in a Row', CowsInARowTest )
@@ -1835,10 +2059,13 @@ def test():
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Marathon', MarathonTest )
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Crosswords', CrosswordsTest )
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Cow Jog', CowJogTest )
-	contest.register( 'USACO 2014 December Contest, Bronze', 'Learning by Example', None )
+	#contest.register( 'USACO 2014 December Contest, Bronze', 'Learning by Example', None )
 	contest.register( 'USACO 2014 December Contest, Silver', 'Piggyback', PiggybackTest )
 
+	contest.register( 'USACO 2015 December Contest, Silver', 'Switching on the Lights', LightsTest )
 	contest.register( 'USACO 2015 December Contest, Gold', "Bessie's Dream", DreamTest )
+
+	contest.register( 'USACO 2019 January Contest, Silver', 'Icy Perimeter', IcyPerimeterTest )
 	
 	contest.register( 'USACO 2020 January Contest, Bronze', 'Word Processor', WordProcessorTest )
 	contest.register( 'USACO 2020 January Contest, Bronze', 'Photoshoot', PhotoshootTest )
