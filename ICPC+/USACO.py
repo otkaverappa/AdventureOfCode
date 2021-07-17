@@ -2453,6 +2453,209 @@ class UdderedTest( unittest.TestCase ):
 		inputString = 'mood'
 		self.assertEqual( Uddered( alphabet, inputString ).analyze(), 3 )
 
+'''
+USACO 2013 November Contest, Bronze
+
+Problem 1. Combination Lock
+
+Problem 1: Combination Lock [Brian Dean, 2013]
+
+Farmer John's cows keep escaping from his farm and causing mischief. To try
+and prevent them from leaving, he purchases a fancy combination lock to
+keep his cows from opening the pasture gate. 
+
+Knowing that his cows are quite clever, Farmer John wants to make sure they
+cannot easily open the lock by simply trying many different combinations. 
+The lock has three dials, each numbered 1..N (1 <= N <= 100), where 1 and N
+are adjacent since the dials are circular.  There are two combinations that
+open the lock, one set by Farmer John, and also a "master" combination set
+by the lock maker.  The lock has a small tolerance for error, however, so
+it will open even if the numbers on the dials are each within at most 2
+positions of a valid combination.  For example, if Farmer John's
+combination is (1,2,3) and the master combination is (4,5,6), the lock will
+open if its dials are set to (1,N,5) (since this is close enough to Farmer
+John's combination) or to (2,4,8) (since this is close enough to the master
+combination).  Note that (1,5,6) would not open the lock, since it is not
+close enough to any one single combination.
+
+Given Farmer John's combination and the master combination, please
+determine the number of distinct settings for the dials that will open the
+lock.  Order matters, so the setting (1,2,3) is distinct from (3,2,1).
+
+PROBLEM NAME: combo
+
+INPUT FORMAT:
+
+* Line 1: The integer N.
+
+* Line 2: Three space-separated integers, specifying Farmer John's
+        combination.
+
+* Line 3: Three space-separated integers, specifying the master
+        combination (possibly the same as Farmer John's combination).
+
+SAMPLE INPUT (file combo.in):
+
+50
+1 2 3
+5 6 7
+
+INPUT DETAILS:
+
+Each dial is numbered 1..50.  Farmer John's combination is (1,2,3), and the
+master combination is (5,6,7).
+
+OUTPUT FORMAT:
+
+* Line 1: The number of distinct dial settings that will open the
+        lock.
+
+SAMPLE OUTPUT (file combo.out):
+
+249
+'''
+
+class CombinationLock:
+	def __init__( self, N, combination, masterCombination ):
+		self.N = N
+		self.combination = combination
+		self.masterCombination = masterCombination
+		self.tolerance = 2
+
+	def _possibilitySet( self, digit ):
+		possibilitySet = set()
+		for tolerance in range( - self.tolerance, self.tolerance + 1 ):
+			possibleDigit = ( ( digit + tolerance ) % self.N ) + 1
+			possibilitySet.add( possibleDigit )
+		return possibilitySet
+
+	def dial( self ):
+		A = B = AB = 1
+		for i in range( len( self.combination ) ):
+			S1 = self._possibilitySet( self.combination[ i ] )
+			S2 = self._possibilitySet( self.masterCombination[ i ] )
+			A = A * len( S1 )
+			B = B * len( S2 )
+			AB = AB * len( set.intersection( S1, S2 ) )
+		return A + B - AB
+
+class CombinationLockTest( unittest.TestCase ):
+	def test_CombinationLock( self ):
+		for testfile in getTestFileList( tag='combinationlock' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/combinationlock/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/combinationlock/{}.out'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			combination = list( readIntegers( inputFile ) )
+			masterCombination = list( readIntegers( inputFile ) )
+			possibleDials = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} possibleDials = {}'.format( testfile, N, possibleDials ) )
+			self.assertEqual( CombinationLock( N, combination, masterCombination ).dial(), possibleDials )
+
+	def test_CombinationLock_Sample( self ):
+		self.assertEqual( CombinationLock( 50, [ 1, 2, 3 ], [ 5, 6, 7 ] ).dial(), 249 )
+
+'''
+USACO 2016 December Contest, Gold
+
+Problem 2. Cow Checklist
+
+Every day, Farmer John walks through his pasture to check on the well-being of each of his cows. On his farm he has two breeds of cows, Holsteins and Guernseys. His H Holsteins are conveniently numbered 1…H, and his G Guernseys are conveniently numbered 1…G (1≤H≤1000,1≤G≤1000). Each cow is located at a point in the 2D plane (not necessarily distinct).
+Farmer John starts his tour at Holstein 1, and ends at Holstein H. He wants to visit each cow along the way, and for convenience in maintaining his checklist of cows visited so far, he wants to visit the Holsteins and Guernseys in the order in which they are numbered. In the sequence of all H+G cows he visits, the Holsteins numbered 1…H should appear as a (not necessarily contiguous) subsequence, and likewise for the Guernseys. Otherwise stated, the sequence of all H+G cows should be formed by interleaving the list of Holsteins numbered 1…H with the list of Guernseys numbered 1…G.
+
+When FJ moves from one cow to another cow traveling a distance of D, he expends D2 energy. Please help him determine the minimum amount of energy required to visit all his cows according to a tour as described above.
+
+INPUT FORMAT (file checklist.in):
+The first line of input contains H and G, separated by a space.
+The next H lines contain the x and y coordinates of the H Holsteins, and the next G lines after that contain coordinates of the Guernseys. Each coordinate is an integer in the range 0…1000.
+
+OUTPUT FORMAT (file checklist.out):
+Write a single line of output, giving the minimum energy required for FJ's tour of all the cows.
+SAMPLE INPUT:
+3 2
+0 0
+1 0
+2 0
+0 3
+1 3
+SAMPLE OUTPUT:
+20
+Problem credits: Brian Dean
+'''
+
+class CowChecklist:
+	def __init__( self, positionList1, positionList2 ):
+		self.positionList1 = positionList1
+		self.positionList2 = positionList2
+
+	def _energy( self, position1, position2 ):
+		x1, y1 = position1
+		x2, y2 = position2
+		return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
+
+	def minimumEnergy( self ):
+		M, N = len( self.positionList1 ), len( self.positionList2 )
+		endsAtIndex_i, endsAtIndex_j = 0, 1
+		energyMatrix = [ [ [ 0 for _ in range( 2 ) ] for _ in range( N + 1 ) ] for _ in range( M + 1 ) ]
+
+		positionList1 = [ self.positionList1[ 0 ] ] + self.positionList1
+		positionList2 = [ self.positionList2[ 0 ] ] + self.positionList2
+
+		for i in range( M + 1 ):
+			for j in range( N + 1 ):
+				if i == j == 0:
+					continue
+				elif i == 0:
+					energyMatrix[ i ][ j ][ endsAtIndex_i ] = energyMatrix[ i ][ j ][ endsAtIndex_j ] = float( 'inf' )
+					continue
+				elif j == 0:
+					energyMatrix[ i ][ j ][ endsAtIndex_i ] = energyMatrix[ i - 1 ][ j ][ endsAtIndex_i ] + \
+					self._energy( positionList1[ i ], positionList1[ i - 1 ] )
+					energyMatrix[ i ][ j ][ endsAtIndex_j ] = float( 'inf' )
+					continue
+
+				energy_i_j = self._energy( positionList1[ i ], positionList2[ j ] )
+				energy_i_i = self._energy( positionList1[ i ], positionList1[ i - 1 ] )
+				energy_j_j = self._energy( positionList2[ j ], positionList2[ j - 1 ] )
+
+				# Sequence of moves ending at index i.
+				A = energyMatrix[ i - 1 ][ j ][ endsAtIndex_i ] + energy_i_i
+				B = energyMatrix[ i - 1 ][ j ][ endsAtIndex_j ] + energy_i_j
+				energyMatrix[ i ][ j ][ endsAtIndex_i ] = min( A, B )
+
+				# Sequence of moves ending at index j.
+				A = energyMatrix[ i ][ j - 1 ][ endsAtIndex_i ] + energy_i_j
+				B = energyMatrix[ i ][ j - 1 ][ endsAtIndex_j ] + energy_j_j
+				energyMatrix[ i ][ j ][ endsAtIndex_j ] = min( A, B )
+
+		return energyMatrix[ M ][ N ][ endsAtIndex_i ]
+
+class CowChecklistTest( unittest.TestCase ):
+	def test_CowChecklist( self ):
+		for testfile in getTestFileList( tag='checklist' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/checklist/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/checklist/{}.out'.format( testfile ) ) as solutionFile:
+
+			M, N = readIntegers( inputFile )
+			positionList1 = [ tuple( readIntegers( inputFile ) ) for _ in range( M ) ]
+			positionList2 = [ tuple( readIntegers( inputFile ) ) for _ in range( N ) ]
+			minimumEnergy = readInteger( solutionFile )
+
+			print( 'Testcase {} M = {} N = {} minimumEnergy = {}'.format( testfile, M, N, minimumEnergy ) )
+			self.assertEqual( CowChecklist( positionList1, positionList2 ).minimumEnergy(), minimumEnergy )
+
+	def test_CowChecklist_Sample( self ):
+		positionList1 = [ (0, 0), (1, 0), (2, 0) ]
+		positionList2 = [ (0, 3), (1, 3) ]
+		self.assertEqual( CowChecklist( positionList1, positionList2 ).minimumEnergy(), 20 )
+
 ####################################################################################################
 ####################################################################################################
 #
@@ -2490,6 +2693,7 @@ def test():
 	contest.register( 'USACO 2012 December Contest, Bronze', 'Meet and Greet', MeetAndGreetTest )
 	contest.register( 'USACO 2012 December Contest, Bronze', 'Scrambled Letters', ScrambledLettersTest )
 
+	contest.register( 'USACO 2013 November Contest, Bronze', 'Combination Lock', CombinationLockTest )
 	#contest.register( 'USACO 2013 US Open, Silver', "What's Up With Gravity", GravityTest )
 
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Marathon', MarathonTest )
@@ -2505,6 +2709,8 @@ def test():
 	contest.register( 'USACO 2015 December Contest, Silver', 'High Card Wins', HighCardWinsTest )
 	contest.register( 'USACO 2015 December Contest, Gold', 'Fruit Feast', DreamTest )
 	contest.register( 'USACO 2015 December Contest, Gold', "Bessie's Dream", DreamTest )
+
+	contest.register( 'USACO 2016 December Contest, Gold', 'Cow Checklist', CowChecklistTest )
 
 	contest.register( 'USACO 2019 January Contest, Silver', 'Icy Perimeter', IcyPerimeterTest )
 	
