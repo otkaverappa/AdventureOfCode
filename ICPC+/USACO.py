@@ -2897,6 +2897,82 @@ class CowDanceShowTest( unittest.TestCase ):
 		danceDurationList = [ 4, 7, 8, 6, 4 ]
 		self.assertEqual( CowDanceShow( N, Tmax, danceDurationList ).optimalStageSize(), 4 )
 
+'''
+USACO 2017 January Contest, Silver
+
+Problem 2. Hoof, Paper, Scissors
+
+You have probably heard of the game "Rock, Paper, Scissors". The cows like to play a similar game they call "Hoof, Paper, Scissors".
+The rules of "Hoof, Paper, Scissors" are simple. Two cows play against each-other. They both count to three and then each simultaneously makes a gesture that represents either a hoof, a piece of paper, or a pair of scissors. Hoof beats scissors (since a hoof can smash a pair of scissors), scissors beats paper (since scissors can cut paper), and paper beats hoof (since the hoof can get a papercut). For example, if the first cow makes a "hoof" gesture and the second a "paper" gesture, then the second cow wins. Of course, it is also possible to tie, if both cows make the same gesture.
+
+Farmer John wants to play against his prize cow, Bessie, at N games of "Hoof, Paper, Scissors" (1≤N≤100,000). Bessie, being an expert at the game, can predict each of FJ's gestures before he makes it. Unfortunately, Bessie, being a cow, is also very lazy. As a result, she tends to play the same gesture multiple times in a row. In fact, she is only willing to switch gestures at most once over the entire set of games. For example, she might play "hoof" for the first x games, then switch to "paper" for the remaining N−x games.
+
+Given the sequence of gestures FJ will be playing, please determine the maximum number of games that Bessie can win.
+
+INPUT FORMAT (file hps.in):
+The first line of the input file contains N.
+The remaining N lines contains FJ's gestures, each either H, P, or S.
+
+OUTPUT FORMAT (file hps.out):
+Print the maximum number of games Bessie can win, given that she can only change gestures at most once.
+SAMPLE INPUT:
+5
+P
+P
+H
+P
+S
+SAMPLE OUTPUT:
+4
+Problem credits: Mark Chen and Brian Dean
+'''
+
+class HoofPaperScissorsSilver:
+	def __init__( self, moveInfoList ):
+		self.moveInfoList = moveInfoList
+		self.winningMoves = set( [ ('H', 'S'), ('S', 'P'), ('P', 'H') ] )
+		self.validMoves = 'HSP'
+
+	def maximumWins( self ):
+		cumulativeSumList = [ [ 0 ], [ 0 ], [ 0 ] ]
+		for farmerMove in self.moveInfoList:
+			for index, bessieMove in enumerate( self.validMoves ):
+				count = 1 if (bessieMove, farmerMove) in self.winningMoves else 0
+				cumulativeSumList[ index ].append( cumulativeSumList[ index ][ -1 ] + count )
+		
+		N = len( self.moveInfoList )
+		bestWinCount = 0
+		for K in range( 1, N + 1 ):
+			# Make K moves corresponding to self.validMoves[ i ] and N - K moves corresponding to
+			# self.validMoves[ j ].
+			for i in range( len( self.validMoves ) ):
+				for j in range( len( self.validMoves ) ):
+					if i == j:
+						continue
+					winCount = cumulativeSumList[ i ][ K ] + ( cumulativeSumList[ j ][ -1 ] - cumulativeSumList[ j ][ K ] )
+					bestWinCount = max( winCount, bestWinCount )
+		return bestWinCount
+
+class HoofPaperScissorsSilverTest( unittest.TestCase ):
+	def test_HoofPaperScissorsSilver( self ):
+		for testfile in getTestFileList( tag='hoof_silver' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/hoof_silver/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/hoof_silver/{}.out'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			moveInfoList = [ readString( inputFile ) for _ in range( N ) ]
+			bestWinCount = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} bestWinCount = {}'.format( testfile, N, bestWinCount ) )
+			self.assertEqual( HoofPaperScissorsSilver( moveInfoList ).maximumWins(), bestWinCount )
+
+	def test_HoofPaperScissorsSilver_Sample( self ):
+		moveInfoList = [ 'P', 'P', 'H', 'P', 'S' ]
+		self.assertEqual( HoofPaperScissorsSilver( moveInfoList ).maximumWins(), 4 )
+
 ####################################################################################################
 ####################################################################################################
 #
@@ -2956,6 +3032,7 @@ def test():
 	contest.register( 'USACO 2017 January Contest, Bronze', "Don't Be Last!", LastTest )
 	contest.register( 'USACO 2017 January Contest, Bronze', 'Hoof, Paper, Scissors', HoofPaperScissorsTest )
 	contest.register( 'USACO 2017 January Contest, Silver', 'Cow Dance Show', CowDanceShowTest )
+	contest.register( 'USACO 2017 January Contest, Silver', 'Hoof, Paper, Scissors', HoofPaperScissorsSilverTest )
 
 	contest.register( 'USACO 2019 January Contest, Silver', 'Icy Perimeter', IcyPerimeterTest )
 	
