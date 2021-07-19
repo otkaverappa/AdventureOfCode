@@ -3162,6 +3162,382 @@ class CowWaitTest( unittest.TestCase ):
 		waitListInfo = [ (2, 1), (8, 3), (5, 7) ]
 		self.assertEqual( CowWait( waitListInfo ).process(), 15 )
 
+'''
+USACO 2017 February Contest, Silver
+
+Problem 2. Why Did the Cow Cross the Road II
+
+The long road through Farmer John's farm has N crosswalks across it, conveniently numbered 1…N (1≤N≤100,000). To allow cows to cross at these crosswalks, FJ installs electric crossing signals, which light up with a green cow icon when it is ok for the cow to cross, and red otherwise. Unfortunately, a large electrical storm has damaged some of his signals. Given a list of the damaged signals, please compute the minimum number of signals that FJ needs to repair in order for there to exist some contiguous block of at least K working signals.
+INPUT FORMAT (file maxcross.in):
+The first line of input contains N, K, and B (1≤B,K≤N). The next B lines each describe the ID number of a broken signal.
+OUTPUT FORMAT (file maxcross.out):
+Please compute the minimum number of signals that need to be repaired in order for there to be a contiguous block of K working signals somewhere along the road.
+SAMPLE INPUT:
+10 6 5
+2
+10
+1
+5
+9
+SAMPLE OUTPUT:
+1
+Problem credits: Brian Dean
+'''
+
+class BrokenSignal:
+	def __init__( self, N, K, brokenSignalList ):
+		self.N, self.K = N, K
+		self.brokenSignalList = brokenSignalList
+
+	def process( self ):
+		brokenSignals = set( self.brokenSignalList )
+		i, j = 0, 1
+
+		brokenSignalCount = 0
+		minimumSignalsRepaired = float( 'inf' )
+
+		while j <= self.N:
+			windowLength = j - i
+			if j in brokenSignals:
+				brokenSignalCount += 1
+			if windowLength == self.K:
+				minimumSignalsRepaired = min( minimumSignalsRepaired, brokenSignalCount )
+				i = i + 1
+				if i in brokenSignals:
+					brokenSignalCount -= 1
+			j += 1
+		return minimumSignalsRepaired
+
+class BrokenSignalTest( unittest.TestCase ):
+	def test_BrokenSignal( self ):
+		for testfile in getTestFileList( tag='brokensignal' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/brokensignal/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/brokensignal/{}.out'.format( testfile ) ) as solutionFile:
+
+			N, K, B = readIntegers( inputFile )
+			brokenSignalList = [ readInteger( inputFile ) for _ in range( B ) ]
+			minimumSignalsRepaired = readInteger( solutionFile )
+
+			print( 'Testcase N = {} K = {} minimumSignalsRepaired = {}'.format( N, K, minimumSignalsRepaired ) )
+			self.assertEqual( BrokenSignal( N, K, brokenSignalList ).process(), minimumSignalsRepaired )
+
+	def test_BrokenSignal_Sample( self ):
+		N, K = 10, 6
+		brokenSignalList = [ 2, 10, 1, 5, 9 ]
+		self.assertEqual( BrokenSignal( N, K, brokenSignalList ).process(), 1 )
+
+'''
+USACO 2017 February Contest, Gold
+
+Problem 1. Why Did the Cow Cross the Road
+
+Why did the cow cross the road? Well, one reason is that Farmer John's farm simply has a lot of roads, making it impossible for his cows to travel around without crossing many of them.
+FJ's farm is arranged as an N×N square grid of fields (3≤N≤100), with a set of N−1 north-south roads and N−1 east-west roads running through the interior of the farm serving as dividers between the fields. A tall fence runs around the external perimeter, preventing cows from leaving the farm. Bessie the cow can move freely from any field to any other adjacent field (north, east, south, or west), as long as she carefully looks both ways before crossing the road separating the two fields. It takes her T units of time to cross a road (0≤T≤1,000,000).
+
+One day, FJ invites Bessie to visit his house for a friendly game of chess. Bessie starts out in the north-west corner field and FJ's house is in the south-east corner field, so Bessie has quite a walk ahead of her. Since she gets hungry along the way, she stops at every third field she visits to eat grass (not including her starting field, but including possibly the final field in which FJ's house resides). Some fields are grassier than others, so the amount of time required for stopping to eat depends on the field in which she stops.
+
+Please help Bessie determine the minimum amount of time it will take to reach FJ's house.
+
+INPUT FORMAT (file visitfj.in):
+The first line of input contains N and T. The next N lines each contain N positive integers (each at most 100,000) describing the amount of time required to eat grass in each field. The first number of the first line is the north-west corner.
+OUTPUT FORMAT (file visitfj.out):
+Print the minimum amount of time required for Bessie to travel to FJ's house.
+SAMPLE INPUT:
+4 2
+30 92 36 10
+38 85 60 16
+41 13 5 68
+20 97 13 80
+SAMPLE OUTPUT:
+31
+The optimal solution for this example involves moving east 3 squares (eating the "10"), then moving south twice and west once (eating the "5"), and finally moving south and east to the goal.
+
+Problem credits: Brian Dean
+'''
+
+class TimeToCross:
+	def __init__( self, T, fieldSize, fieldInfo ):
+		self.T, self.fieldSize = T, fieldSize
+		self.fieldInfo = fieldInfo
+		self.grassEatingInterval = 3
+
+		self.adjacentLocationDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def timeTaken( self ):
+		startLocation = 0, 0
+		targetLocation = self.fieldSize - 1, self.fieldSize - 1
+
+		q = list()
+		q.append( (0, startLocation, 0) )
+
+		timeTakenDict = dict()
+		timeTakenDict[ (startLocation, 0) ] = 0
+
+		while len( q ) > 0:
+			timeTaken, currentLocation, stepCount = heapq.heappop( q )
+			if currentLocation == targetLocation:
+				return timeTaken
+
+			if timeTakenDict[ (currentLocation, stepCount) ] < timeTaken:
+				continue
+
+			u, v = currentLocation
+			stepCount = ( stepCount + 1 ) % self.grassEatingInterval
+			for du, dv in self.adjacentLocationDelta:
+				x, y = adjacentLocation = u + du, v + dv
+				if not 0 <= x < self.fieldSize or not 0 <= y < self.fieldSize:
+					continue
+				
+				newTimeTaken = timeTaken + self.T
+				if stepCount == 0:
+					newTimeTaken += self.fieldInfo[ x ][ y ]
+
+				if (adjacentLocation, stepCount) not in timeTakenDict or newTimeTaken < timeTakenDict[ (adjacentLocation, stepCount) ]:
+					timeTakenDict[ (adjacentLocation, stepCount) ] = newTimeTaken
+					heapq.heappush( q, (newTimeTaken, adjacentLocation, stepCount) )
+
+class TimeToCrossTest( unittest.TestCase ):
+	def test_TimeToCross( self ):
+		for testfile in getTestFileList( tag='timetocross' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/timetocross/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/timetocross/{}.out'.format( testfile ) ) as solutionFile:
+
+			fieldSize, T = readIntegers( inputFile )
+			fieldInfo = [ list( readIntegers( inputFile ) ) for _ in range( fieldSize ) ]
+			timeTaken = readInteger( solutionFile )
+
+			print( 'Testcase {} fieldSize = {} timeTaken = {}'.format( testfile, fieldSize, timeTaken ) )
+			self.assertEqual( TimeToCross( T, fieldSize, fieldInfo ).timeTaken(), timeTaken )
+
+	def test_TimeToCross_Sample( self ):
+		T, fieldSize = 2, 4
+		fieldInfo = [
+		[ 30, 92, 36, 10 ],
+		[ 38, 85, 60, 16 ],
+		[ 41, 13,  5, 68 ],
+		[ 20, 97, 13, 80 ]
+		]
+		self.assertEqual( TimeToCross( T, fieldSize, fieldInfo ).timeTaken(), 31 )
+
+'''
+USACO 2017 US Open Contest, Bronze
+
+Problem 1. The Lost Cow
+
+Farmer John has lost his prize cow Bessie, and he needs to find her!
+Fortunately, there is only one long path running across the farm, and Farmer John knows that Bessie has to be at some location on this path. If we think of the path as a number line, then Farmer John is currently at position x and Bessie is currently at position y (unknown to Farmer John). If Farmer John only knew where Bessie was located, he could walk directly to her, traveling a distance of |x−y|. Unfortunately, it is dark outside and Farmer John can't see anything. The only way he can find Bessie is to walk back and forth until he eventually reaches her position.
+
+Trying to figure out the best strategy for walking back and forth in his search, Farmer John consults the computer science research literature and is somewhat amused to find that this exact problem has not only been studied by computer scientists in the past, but that it is actually called the "Lost Cow Problem" (this is actually true!).
+
+The recommended solution for Farmer John to find Bessie is to move to position x+1, then reverse direction and move to position x−2, then to position x+4, and so on, in a "zig zag" pattern, each step moving twice as far from his initial starting position as before. As he has read during his study of algorithms for solving the lost cow problem, this approach guarantees that he will at worst travel 9 times the direct distance |x−y| between himself and Bessie before he finds her (this is also true, and the factor of 9 is actually the smallest such worst case guarantee any strategy can achieve).
+
+Farmer John is curious to verify this result. Given x and y, please compute the total distance he will travel according to the zig-zag search strategy above until he finds Bessie.
+
+INPUT FORMAT (file lostcow.in):
+The single line of input contains two distinct space-separated integers x and y. Both are in the range 0…1,000.
+OUTPUT FORMAT (file lostcow.out):
+Print one line of output, containing the distance Farmer John will travel to reach Bessie.
+SAMPLE INPUT:
+3 6
+SAMPLE OUTPUT:
+9
+Problem credits: Brian Dean
+'''
+
+class LostCow:
+	@staticmethod
+	def distance( x, y ):
+		totalDistance = 0
+		delta = 1
+
+		previous_x1 = x
+		found = False
+		while not found:
+			x1 = x + delta
+			if previous_x1 < y <= x1 or x1 <= y < previous_x1:
+				found = True
+				x1 = y
+			totalDistance += abs( x1 - previous_x1 )
+			previous_x1 = x1
+			delta = delta * -2
+		return totalDistance
+
+class LostCowTest( unittest.TestCase ):
+	def test_LostCow( self ):
+		for testfile in getTestFileList( tag='lostcow' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/lostcow/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/lostcow/{}.out'.format( testfile ) ) as solutionFile:
+
+			x, y = readIntegers( inputFile )
+			totalDistance = readInteger( solutionFile )
+
+			print( 'Testcase {} x = {} y = {} totalDistance = {}'.format( testfile, x, y, totalDistance ) )
+			self.assertEqual( LostCow.distance( x, y ), totalDistance )
+
+	def test_LostCow_Sample( self ):
+		self.assertEqual( LostCow.distance( 3, 6 ), 9 )
+
+'''
+USACO 2017 US Open Contest, Bronze
+
+Problem 2. Bovine Genomics
+
+Farmer John owns N cows with spots and N cows without spots. Having just completed a course in bovine genetics, he is convinced that the spots on his cows are caused by mutations at a single location in the bovine genome.
+At great expense, Farmer John sequences the genomes of his cows. Each genome is a string of length M built from the four characters A, C, G, and T. When he lines up the genomes of his cows, he gets a table like the following, shown here for N=3:
+
+Positions:    1 2 3 4 5 6 7 ... M
+
+Spotty Cow 1: A A T C C C A ... T
+Spotty Cow 2: G A T T G C A ... A
+Spotty Cow 3: G G T C G C A ... A
+
+Plain Cow 1:  A C T C C C A ... G
+Plain Cow 2:  A C T C G C A ... T
+Plain Cow 3:  A C T T C C A ... T
+Looking carefully at this table, he surmises that position 2 is a potential location in the genome that could explain spottiness. That is, by looking at the character in just this position, Farmer John can predict which of his cows are spotty and which are not (here, A or G means spotty and C means plain; T is irrelevant since it does not appear in any of Farmer John's cows at position 2). Position 1 is not sufficient by itself to explain spottiness, since an A in this position might indicate a spotty cow or a plain cow.
+
+Given the genomes of Farmer John's cows, please count the number of locations that could potentially, by themselves, explain spottiness.
+
+INPUT FORMAT (file cownomics.in):
+The first line of input contains N and M, both positive integers of size at most 100. The next N lines each contain a string of M characters; these describe the genomes of the spotty cows. The final N lines describe the genomes of the plain cows.
+OUTPUT FORMAT (file cownomics.out):
+Please count the number of positions (an integer in the range 0…M) in the genome that could potentially explain spottiness. A location potentially explains spottiness if the spottiness trait can be predicted with perfect accuracy among Farmer John's population of cows by looking at just this one location in the genome.
+SAMPLE INPUT:
+3 8
+AATCCCAT
+GATTGCAA
+GGTCGCAA
+ACTCCCAG
+ACTCGCAT
+ACTTCCAT
+SAMPLE OUTPUT:
+1
+Problem credits: Brian Dean
+'''
+
+class BovineGenomics:
+	@staticmethod
+	def analyze( M, genomeList ):
+		N = len( genomeList )
+		count = 0
+		for column in range( M ):
+			spottyCowSet = set()
+			plainCowSet = set()
+			for row in range( N // 2 ):
+				spottyCowSet.add( genomeList[ row ][ column ] )
+				plainCowSet.add( genomeList[ row + ( N // 2 ) ][ column ] )
+			if set.isdisjoint( spottyCowSet, plainCowSet ):
+				count += 1
+		return count
+
+class BovineGenomicsTest( unittest.TestCase ):
+	def test_BovineGenomics( self ):
+		for testfile in getTestFileList( tag='genomics' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/genomics/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/genomics/{}.out'.format( testfile ) ) as solutionFile:
+
+			N, M = readIntegers( inputFile )
+			genomeList = [ readString( inputFile ) for _ in range( 2 * N ) ]
+			count = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} count = {}'.format( testfile, N, count ) )
+			self.assertEqual( BovineGenomics.analyze( M, genomeList ), count )
+
+	def test_BovineGenomics_Sample( self ):
+		M = 8
+		genomeList = [
+		'AATCCCAT',
+		'GATTGCAA',
+		'GGTCGCAA',
+		'ACTCCCAG',
+		'ACTCGCAT',
+		'ACTTCCAT'
+		]
+		self.assertEqual( BovineGenomics.analyze( M, genomeList ), 1 )
+
+'''
+USACO 2017 US Open Contest, Silver
+
+Problem 1. Paired Up
+
+Farmer John finds that his cows are each easier to milk when they have another cow nearby for moral support. He therefore wants to take his M cows (M≤1,000,000,000, M even) and partition them into M/2 pairs. Each pair of cows will then be ushered off to a separate stall in the barn for milking. The milking in each of these M/2 stalls will take place simultaneously.
+To make matters a bit complicated, each of Farmer John's cows has a different milk output. If cows of milk outputs A and B are paired up, then it takes a total of A+B units of time to milk them both.
+
+Please help Farmer John determine the minimum possible amount of time the entire milking process will take to complete, assuming he pairs the cows up in the best possible way.
+
+INPUT FORMAT (file pairup.in):
+The first line of input contains N (1≤N≤100,000). Each of the next N lines contains two integers x and y, indicating that FJ has x cows each with milk output y (1≤y≤1,000,000,000). The sum of the x's is M, the total number of cows.
+OUTPUT FORMAT (file pairup.out):
+Print out the minimum amount of time it takes FJ's cows to be milked, assuming they are optimally paired up.
+SAMPLE INPUT:
+3
+1 8
+2 5
+1 2
+SAMPLE OUTPUT:
+10
+Here, if the cows with outputs 8+2 are paired up, and those with outputs 5+5 are paired up, the both stalls take 10 units of time for milking. Since milking takes place simultaneously, the entire process would therefore complete after 10 units of time. Any other pairing would be sub-optimal, resulting in a stall taking more than 10 units of time to milk.
+
+Problem credits: Brian Dean
+'''
+
+class PairedUp:
+	def __init__( self, milkOutputList ):
+		self.milkOutputList = [ (milkOutput, numberOfCows) for (numberOfCows, milkOutput) in milkOutputList ]
+		self.milkOutputList.sort()
+
+	def minimumTime( self ):
+		_minimumTime = - float( 'inf' )
+		i, j = 0, len( self.milkOutputList ) - 1
+		while i <= j:
+			milkOutput_A, numberOfCows_A = self.milkOutputList[ i ]
+			milkOutput_B, numberOfCows_B = self.milkOutputList[ j ]
+			timeTaken = milkOutput_A + milkOutput_B
+			_minimumTime = max( _minimumTime, milkOutput_A + milkOutput_B )
+
+			if numberOfCows_A > numberOfCows_B:
+				j = j - 1
+				self.milkOutputList[ i ] = milkOutput_A, numberOfCows_A - numberOfCows_B
+			elif numberOfCows_A < numberOfCows_B:
+				i = i + 1
+				self.milkOutputList[ j ] = milkOutput_B, numberOfCows_B - numberOfCows_A
+			else:
+				i = i + 1
+				j = j - 1
+		return _minimumTime
+
+class PairedUpTest( unittest.TestCase ):
+	def test_PairedUp( self ):
+		for testfile in getTestFileList( tag='pairedup' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/pairedup/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/pairedup/{}.out'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			milkOutputList = [ tuple( readIntegers( inputFile ) ) for _ in range( N ) ]
+			minimumTime = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} minimumTime = {}'.format( testfile, N, minimumTime ) )
+			self.assertEqual( PairedUp( milkOutputList ).minimumTime(), minimumTime )
+
+	def test_PairedUp_Sample( self ):
+		milkOutputList = [ (1, 8), (2, 5), (1, 2) ]
+		self.assertEqual( PairedUp( milkOutputList ).minimumTime(), 10 )
+
 ####################################################################################################
 ####################################################################################################
 #
@@ -3249,6 +3625,12 @@ def test():
 	contest.register( 'USACO 2017 February Contest, Bronze', 'Why Did the Cow Cross the Road', CrossTheRoadTest )
 	contest.register( 'USACO 2017 February Contest, Bronze', 'Why Did the Cow Cross the Road II', CrossTheCircularRoadTest )
 	contest.register( 'USACO 2017 February Contest, Bronze', 'Why Did the Cow Cross the Road III', CowWaitTest )
+	contest.register( 'USACO 2017 February Contest, Silver', 'Why Did the Cow Cross the Road II', BrokenSignalTest )
+	contest.register( 'USACO 2017 February Contest, Gold', 'Why Did the Cow Cross the Road', TimeToCrossTest )
+
+	contest.register( 'USACO 2017 US Open Contest, Bronze', 'The Lost Cow', LostCowTest )
+	contest.register( 'USACO 2017 US Open Contest, Bronze', 'Bovine Genomics', BovineGenomicsTest )
+	contest.register( 'USACO 2017 US Open Contest, Silver', 'Paired Up', PairedUpTest )
 
 	contest.register( 'USACO 2019 January Contest, Silver', 'Icy Perimeter', IcyPerimeterTest )
 	
