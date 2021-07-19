@@ -2973,6 +2973,195 @@ class HoofPaperScissorsSilverTest( unittest.TestCase ):
 		moveInfoList = [ 'P', 'P', 'H', 'P', 'S' ]
 		self.assertEqual( HoofPaperScissorsSilver( moveInfoList ).maximumWins(), 4 )
 
+'''
+USACO 2017 February Contest, Bronze
+
+Problem 1. Why Did the Cow Cross the Road
+
+While the age-old question of why chickens cross roads has been addressed in great depth by the scientific community, surprisingly little has been published in the research literature on the related subject of cow crossings. Farmer John, well-aware of the importance of this issue, is thrilled when he is contacted by a local university asking for his assistance in conducting a scientific study of why cows cross roads. He eagerly volunteers to help.
+As part of the study, Farmer John has been asked to document the number of times each of his cows crosses the road. He carefully logs data about his cows' locations, making a series of N observations over the course of a single day. Each observation records the ID number of a cow (an integer in the range 1…10, since Farmer John has 10 cows), as well as which side of the road the cow is on.
+
+Based on the data recorded by Farmer John, please help him count the total number of confirmed crossings. A confirmed crossing occurs when a consecutive sightings of a cow place it on different sides of the road.
+
+INPUT FORMAT (file crossroad.in):
+The first line of input contains the number of observations, N, a positive integer at most 100. Each of the next N lines contains one observation, and consists of a cow ID number followed by its position indicated by either zero or one (zero for one side of the road, one for the other side).
+OUTPUT FORMAT (file crossroad.out):
+Please compute the total number of confirmed crossings.
+SAMPLE INPUT:
+8
+3 1
+3 0
+6 0
+2 1
+4 1
+3 0
+4 0
+3 1
+SAMPLE OUTPUT:
+3
+In this example, cow 3 crosses twice -- she first appears on side 1, then later appears on side 0, and then later still appears back on side 1. Cow 4 definitely crosses once. Cows 2 and 6 do not appear to cross.
+
+Problem credits: Brian Dean
+'''
+
+class CrossTheRoad:
+	@staticmethod
+	def countCrossings( infoList ):
+		count = 0
+		locationDict = dict()
+		for cowId, sideOfRoad in infoList:
+			currentLocation = locationDict.get( cowId )
+			if currentLocation is not None and currentLocation != sideOfRoad:
+				count += 1
+			locationDict[ cowId ] = sideOfRoad
+		return count
+
+class CrossTheRoadTest( unittest.TestCase ):
+	def test_CrossTheRoad( self ):
+		for testfile in getTestFileList( tag='crosstheroad' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/crosstheroad/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/crosstheroad/{}.out'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			infoList = [ tuple( readIntegers( inputFile ) ) for _ in range( N ) ]
+			crossings = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} crossings = {}'.format( testfile, N, crossings ) )
+			self.assertEqual( CrossTheRoad.countCrossings( infoList ), crossings )
+
+	def test_CrossTheRoad_Sample( self ):
+		infoList = [ (3, 1), (3, 0), (6, 0), (2, 1), (4, 1), (3, 0), (4, 0), (3, 1) ]
+		self.assertEqual( CrossTheRoad.countCrossings( infoList ), 3 )
+
+'''
+USACO 2017 February Contest, Bronze
+
+Problem 2. Why Did the Cow Cross the Road II
+
+The layout of Farmer John's farm is quite peculiar, with a large circular road running around the perimeter of the main field on which his cows graze during the day. Every morning, the cows cross this road on their way towards the field, and every evening they all cross again as they leave the field and return to the barn.
+As we know, cows are creatures of habit, and they each cross the road the same way every day. Each cow crosses into the field at a different point from where she crosses out of the field, and all of these crossing points are distinct from each-other. Farmer John owns exactly 26 cows, which he has lazily named A through Z (he is not sure what he will do if he ever acquires a 27th cow...), so there are precisely 52 crossing points around the road. Farmer John records these crossing points concisely by scanning around the circle clockwise, writing down the name of the cow for each crossing point, ultimately forming a string with 52 characters in which each letter of the alphabet appears exactly twice. He does not record which crossing points are entry points and which are exit points.
+
+Looking at his map of crossing points, Farmer John is curious how many times various pairs of cows might cross paths during the day. He calls a pair of cows (a,b) a "crossing" pair if cow a's path from entry to exit must cross cow b's path from entry to exit. Please help Farmer John count the total number of crossing pairs.
+
+INPUT FORMAT (file circlecross.in):
+The input consists of a single line containing a string of 52 upper-case characters. Each letter of the alphabet appears exactly twice.
+OUTPUT FORMAT (file circlecross.out):
+Please print the total number of crossing pairs.
+SAMPLE INPUT:
+ABCCABDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTTUUVVWWXXYYZZ
+SAMPLE OUTPUT:
+1
+In this example, only cows A and B are a crossing pair.
+
+Problem credits: Brian Dean
+'''
+
+class CrossTheCircularRoad:
+	@staticmethod
+	def countCrossingPairs( infoString ):
+		crossingPairsCount = 0
+
+		stack = list()
+		inStack = set()
+		for letter in infoString:
+			if letter in inStack:
+				removalList = list()
+				while True:
+					topElement = stack.pop()
+					if topElement == letter:
+						break
+					crossingPairsCount += 1
+					removalList.append( topElement )
+				for element in reversed( removalList ):
+					stack.append( element )
+				inStack.remove( letter )
+			else:
+				inStack.add( letter )
+				stack.append( letter )
+
+		return crossingPairsCount
+
+class CrossTheCircularRoadTest( unittest.TestCase ):
+	def test_CrossTheCircularRoad( self ):
+		for testfile in getTestFileList( tag='crossthecircularroad' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/crossthecircularroad/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/crossthecircularroad/{}.out'.format( testfile ) ) as solutionFile:
+
+			infoString = readString( inputFile )
+			crossingPairsCount = readInteger( solutionFile )
+
+			print( 'Testcase {} infoString = {} count = {}'.format( testfile, infoString, crossingPairsCount ) )
+			self.assertEqual( CrossTheCircularRoad.countCrossingPairs( infoString ), crossingPairsCount )
+
+	def test_CrossTheCircularRoad_Sample( self ):
+		infoString = 'ABCCABDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTTUUVVWWXXYYZZ'
+		self.assertEqual( CrossTheCircularRoad.countCrossingPairs( infoString ), 1 )
+
+'''
+USACO 2017 February Contest, Bronze
+
+Problem 3. Why Did the Cow Cross the Road III
+
+Farmer John, in his old age, has unfortunately become increasingly grumpy and paranoid. Forgetting the extent to which bovine diversity helped his farm truly flourish over the years, he has recently decided to build a huge fence around the farm, discouraging cows from neighboring farms from visiting, and completely prohibiting entry from a handful of neighboring farms. The cows are quite upset by this state of affairs, not only since they can no longer visit with their friends, but since it has caused them to cancel participation in the International Milking Olympiad, an event to which they look forward all year.
+Neighboring cows that still have the ability to enter Farmer John's property find the process has become more arduous, as they can enter only through a single gate where each cow is subject to intense questioning, often causing the cows to queue up in a long line.
+
+For each of the N cows visiting the farm, you are told the time she arrives at the gate and the duration of time required for her to answer her entry questions. Only one cow can be undergoing questioning at any given time, so if many cows arrive near the same time, they will likely need to wait in line to be processed one by one. For example, if a cow arrives at time 5 and answers questions for 7 units of time, another cow arriving at time 8 would need to wait until time 12 to start answering questions herself.
+
+Please determine the earliest possible time by which all cows are able to enter the farm.
+
+INPUT FORMAT (file cowqueue.in):
+The first line of input contains N, a positive integer at most 100. Each of the next N lines describes one cow, giving the time it arrives and the time it requires for questioning; each of these numbers are positive integers at most 1,000,000.
+OUTPUT FORMAT (file cowqueue.out):
+Please determine the minimum possible time at which all the cows could have completed processing.
+SAMPLE INPUT:
+3
+2 1
+8 3
+5 7
+SAMPLE OUTPUT:
+15
+Here, first cow arrives at time 2 and is quickly processed. The gate remains briefly idle until the third cow arrives at time 5, and begins processing. The second cow then arrives at time 8 and waits until time 5+7=12 to start answering questions, finishing at time 12+3 = 15.
+
+Problem credits: Brian Dean
+'''
+
+class CowWait:
+	def __init__( self, waitListInfo ):
+		self.waitListInfo = waitListInfo
+
+	def process( self ):
+		timeStamp = 0
+		for arrivalTime, timeTaken in sorted( self.waitListInfo ):
+			startTime = max( timeStamp, arrivalTime )
+			timeStamp = startTime + timeTaken
+		return timeStamp
+
+class CowWaitTest( unittest.TestCase ):
+	def test_CowWait( self ):
+		for testfile in getTestFileList( tag='cowwait' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/cowwait/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/cowwait/{}.out'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			waitListInfo = [ tuple( readIntegers( inputFile ) ) for _ in range( N ) ]
+			timeTaken = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} timeTaken = {}'.format( testfile, N, timeTaken ) )
+			self.assertEqual( CowWait( waitListInfo ).process(), timeTaken )
+
+	def test_CowWait_Sample( self ):
+		waitListInfo = [ (2, 1), (8, 3), (5, 7) ]
+		self.assertEqual( CowWait( waitListInfo ).process(), 15 )
+
 ####################################################################################################
 ####################################################################################################
 #
@@ -2981,11 +3170,34 @@ class HoofPaperScissorsSilverTest( unittest.TestCase ):
 ####################################################################################################
 ####################################################################################################
 
+class DuplicateTag( Exception ):
+	def __init__( self, contestTag, problemTag ):
+		self.contestTag, self.problemTag = contestTag, problemTag
+
+	def __repr__( self ):
+		return 'Duplicate Tag ({}, {})'.format( self.contestTag, self.problemTag )
+
+class DuplicateSolutionClass( Exception ):
+	pass
+
 class USACO_Contest:
 	def __init__( self ):
+		self.contestProblemTagSet = set()
+		self.solutionTestClassSet = set()
+		
 		self.problems = list()
 
 	def register( self, contestTag, problemTag, solutionTestClass=None ):
+		# (contestTag, problemTag) and solutionTestClass should be unique.
+		contestProblemTag = (contestTag, problemTag)
+		if contestProblemTag in self.contestProblemTagSet:
+			raise DuplicateTag( contestTag, problemTag )
+		if solutionTestClass is not None and solutionTestClass in self.solutionTestClassSet:
+			raise DuplicateSolutionClass()
+
+		self.contestProblemTagSet.add( contestProblemTag )
+		self.solutionTestClassSet.add( solutionTestClass )
+
 		self.problems.append( (contestTag, problemTag, solutionTestClass) )
 
 	def run( self ):
@@ -3024,7 +3236,7 @@ def test():
 	contest.register( 'USACO 2015 December Contest, Silver', 'Switching on the Lights', LightsTest )
 	contest.register( 'USACO 2015 December Contest, Silver', 'Breed Counting', BreedCountingTest )
 	contest.register( 'USACO 2015 December Contest, Silver', 'High Card Wins', HighCardWinsTest )
-	contest.register( 'USACO 2015 December Contest, Gold', 'Fruit Feast', DreamTest )
+	contest.register( 'USACO 2015 December Contest, Gold', 'Fruit Feast', FruitFeastTest )
 	contest.register( 'USACO 2015 December Contest, Gold', "Bessie's Dream", DreamTest )
 
 	contest.register( 'USACO 2016 December Contest, Gold', 'Cow Checklist', CowChecklistTest )
@@ -3033,6 +3245,10 @@ def test():
 	contest.register( 'USACO 2017 January Contest, Bronze', 'Hoof, Paper, Scissors', HoofPaperScissorsTest )
 	contest.register( 'USACO 2017 January Contest, Silver', 'Cow Dance Show', CowDanceShowTest )
 	contest.register( 'USACO 2017 January Contest, Silver', 'Hoof, Paper, Scissors', HoofPaperScissorsSilverTest )
+
+	contest.register( 'USACO 2017 February Contest, Bronze', 'Why Did the Cow Cross the Road', CrossTheRoadTest )
+	contest.register( 'USACO 2017 February Contest, Bronze', 'Why Did the Cow Cross the Road II', CrossTheCircularRoadTest )
+	contest.register( 'USACO 2017 February Contest, Bronze', 'Why Did the Cow Cross the Road III', CowWaitTest )
 
 	contest.register( 'USACO 2019 January Contest, Silver', 'Icy Perimeter', IcyPerimeterTest )
 	
