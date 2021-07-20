@@ -3538,6 +3538,278 @@ class PairedUpTest( unittest.TestCase ):
 		milkOutputList = [ (1, 8), (2, 5), (1, 2) ]
 		self.assertEqual( PairedUp( milkOutputList ).minimumTime(), 10 )
 
+'''
+USACO 2011 November Contest, Bronze Division
+
+Problem 2: Awkward Digits [Brian Dean]
+
+Bessie the cow is just learning how to convert numbers between different
+bases, but she keeps making errors since she cannot easily hold a pen
+between her two front hooves.  
+
+Whenever Bessie converts a number to a new base and writes down the result,
+she always writes one of the digits wrong.  For example, if she converts
+the number 14 into binary (i.e., base 2), the correct result should be
+"1110", but she might instead write down "0110" or "1111".  Bessie never
+accidentally adds or deletes digits, so she might write down a number with
+a leading digit of "0" if this is the digit she gets wrong.
+
+Given Bessie's output when converting a number N into base 2 and base 3,
+please determine the correct original value of N (in base 10). You can
+assume N is at most 1 billion, and that there is a unique solution for N.
+
+Please feel welcome to consult any on-line reference you wish regarding
+base-2 and base-3 numbers, if these concepts are new to you.
+
+PROBLEM NAME: digits
+
+INPUT FORMAT:
+
+* Line 1: The base-2 representation of N, with one digit written
+        incorrectly.
+
+* Line 2: The base-3 representation of N, with one digit written
+        incorrectly.
+
+SAMPLE INPUT (file digits.in):
+
+1010
+212
+
+INPUT DETAILS:
+
+When Bessie incorrectly converts N into base 2, she writes down
+"1010".  When she incorrectly converts N into base 3, she writes down "212".
+
+OUTPUT FORMAT:
+
+* Line 1: The correct value of N.
+
+SAMPLE OUTPUT (file digits.out):
+
+14
+
+OUTPUT DETAILS:
+
+The correct value of N is 14 ("1110" in base 2, "112" in base 3).
+'''
+
+class AwkwardDigits:
+	@staticmethod
+	def analyze( base2String, base3String ):
+		base2Digits = '01'
+		base3Digits = '012'
+
+		base2PossibilitySet = set()
+		for i, digit in enumerate( base2String ):
+			for tryDigit in base2Digits:
+				if ( i == 0 and tryDigit == '0' ) or tryDigit == digit:
+					continue
+				possibility = base2String[ : i ] + tryDigit + base2String[ i + 1 : ]
+				base2PossibilitySet.add( int( possibility, base=2 ) )
+
+		for i, digit in enumerate( base3String ):
+			for tryDigit in base3Digits:
+				if ( i == 0 and tryDigit == '0' ) or tryDigit == digit:
+					continue
+				possibility = base3String[ : i ] + tryDigit + base3String[ i + 1 : ]
+				number = int( possibility, base=3 )
+				if number in base2PossibilitySet:
+					return number
+
+class AwkwardDigitsTest( unittest.TestCase ):
+	def test_AwkwardDigits( self ):
+		for testfile in range( 1, 11 ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/digits/I.{}'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/digits/O.{}'.format( testfile ) ) as solutionFile:
+
+			base2String = readString( inputFile )
+			base3String = readString( inputFile )
+			number = readInteger( solutionFile )
+
+			print( 'Testcase {} [{}] [{}] [{}]'.format( testfile, base2String, base3String, number ) )
+			self.assertEqual( AwkwardDigits.analyze( base2String, base3String ), number )
+
+	def test_AwkwardDigits_Sample( self ):
+		self.assertEqual( AwkwardDigits.analyze( '1010', '212' ), 14 )
+
+'''
+USACO 2011 November Contest, Bronze Division
+
+Problem 4: Cow Beauty Pageant (Bronze Level) [Brian Dean]
+
+Hearing that the latest fashion trend was cows with two spots on their
+hides, Farmer John has purchased an entire herd of two-spot cows. 
+Unfortunately, fashion trends tend to change quickly, and the most popular
+current fashion is cows with only one spot!  
+
+FJ wants to make his herd more fashionable by painting each of his cows in
+such a way that merges their two spots into one.  The hide of a cow is
+represented by an N by M (1 <= N,M <= 50) grid of characters like this:
+
+................
+..XXXX....XXX...
+...XXXX....XX...
+.XXXX......XXX..
+........XXXXX...
+.........XXX....
+
+Here, each 'X' denotes part of a spot.  Two 'X's belong to the same spot if
+they are vertically or horizontally adjacent (diagonally adjacent does not
+count), so the figure above has exactly two spots.  All of the cows in FJ's
+herd have exactly two spots.
+
+FJ wants to use as little paint as possible to merge the two spots into
+one.  In the example above, he can do this by painting only three
+additional characters with 'X's (the new characters are marked with '*'s
+below to make them easier to see).
+
+................
+..XXXX....XXX...
+...XXXX*...XX...
+.XXXX..**..XXX..
+........XXXXX...
+.........XXX....
+
+Please help FJ determine the minimum number of new 'X's he must paint in
+order to merge two spots into one large spot.
+
+PROBLEM NAME: pageant
+
+INPUT FORMAT:
+
+* Line 1: Two space-separated integers, N and M.
+
+* Lines 2..1+N: Each line contains a length-M string of 'X's and '.'s
+        specifying one row of the cow hide pattern.
+
+SAMPLE INPUT (file pageant.in):
+
+6 16
+................
+..XXXX....XXX...
+...XXXX....XX...
+.XXXX......XXX..
+........XXXXX...
+.........XXX....
+
+INPUT DETAILS:
+
+The pattern in the input shows a cow hide with two distinct spots, labeled
+1 and 2 below:
+
+................
+..1111....222...
+...1111....22...
+.1111......222..
+........22222...
+.........222....
+
+OUTPUT FORMAT:
+
+* Line 1: The minimum number of new 'X's that must be added to the
+        input pattern in order to obtain one single spot.
+
+SAMPLE OUTPUT (file pageant.out):
+
+3
+
+OUTPUT DETAILS:
+
+Three 'X's suffice to join the two spots into one:
+
+................
+..1111....222...
+...1111X...22...
+.1111..XX..222..
+........22222...
+.........222....
+'''
+
+class CowBeautyPageant:
+	def __init__( self, rows, cols, layout ):
+		self.rows, self.cols = rows, cols
+		self.layout = layout
+
+		self.emptyCell, self.spotCell = '.X'
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def paint( self ):
+		spotLocation = None
+		for i, j in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.layout[ i ][ j ] == self.spotCell:
+				spotLocation = i, j
+				break
+
+		boundaryCells = set()
+		
+		q = deque()
+		q.append( spotLocation )
+		
+		visited = set()
+		visited.add( spotLocation )
+
+		while len( q ) > 0:
+			u, v = currentCell = q.popleft()
+
+			for du, dv in self.adjacentCellDelta:
+				x, y = adjacentCell = u + du, v + dv
+				if not 0 <= x < self.rows or not 0 <= y < self.cols:
+					continue
+				if self.layout[ x ][ y ] == self.emptyCell:
+					boundaryCells.add( adjacentCell )
+				elif self.layout[ x ][ y ] == self.spotCell and adjacentCell not in visited:
+					visited.add( adjacentCell )
+					q.append( adjacentCell )
+
+		for boundaryCell in boundaryCells:
+			q.append( (boundaryCell, 1) )
+
+		while len( q ) > 0:
+			currentCell, distance = q.popleft()
+
+			u, v = currentCell
+			for du, dv in self.adjacentCellDelta:
+				x, y = adjacentCell = u + du, v + dv
+				if not 0 <= x < self.rows or not 0 <= y < self.cols:
+					continue
+				if self.layout[ x ][ y ] == self.spotCell and adjacentCell not in visited:
+					return distance
+				elif self.layout[ x ][ y ] == self.emptyCell and adjacentCell not in visited:
+					visited.add( adjacentCell )
+					q.append( (adjacentCell, distance + 1) )
+
+class CowBeautyPageantTest( unittest.TestCase ):
+	def test_CowBeautyPageant( self ):
+		for testfile in range( 1, 11 ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/pageant/I.{}'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/pageant/O.{}'.format( testfile ) ) as solutionFile:
+
+			rows, cols = readIntegers( inputFile )
+			layout = [ readString( inputFile ) for _ in range( rows ) ]
+			count = readInteger( solutionFile )
+
+			print( 'Testcase {} rows = {} cols = {} count = {}'.format( testfile, rows, cols, count ) )
+			self.assertEqual( CowBeautyPageant( rows, cols, layout ).paint(), count )
+
+	def test_CowBeautyPageant_Sample( self ):
+		rows, cols = 6, 16
+		layout = [
+		'................',
+		'..XXXX....XXX...',
+		'...XXXX....XX...',
+		'.XXXX......XXX..',
+		'........XXXXX...',
+		'.........XXX....'
+		]
+		self.assertEqual( CowBeautyPageant( rows, cols, layout ).paint(), 3 )
+
 ####################################################################################################
 ####################################################################################################
 #
@@ -3585,6 +3857,9 @@ class USACO_Contest:
 
 def test():
 	contest = USACO_Contest()
+
+	contest.register( 'USACO 2011 November Contest, Bronze Division', 'Awkward Digits', AwkwardDigitsTest )
+	contest.register( 'USACO 2011 November Contest, Bronze Division', 'Cow Beauty Pageant', CowBeautyPageantTest )
 
 	contest.register( 'USACO 2011 December Contest, Bronze Division', 'Hay Bales', HayBalesTest )
 	#contest.register( 'USACO 2011 December Contest, Bronze Division', 'Cow Photography', None )
