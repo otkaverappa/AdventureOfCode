@@ -4647,6 +4647,139 @@ class PerimeterSilverTest( unittest.TestCase ):
                          (10007, 200003), (10007, 200004), (10006, 200005) ]
 		self.assertEqual( PerimeterSilver( positionList ).perimeter(), 14 )
 
+'''
+USACO 2014 March Contest, Bronze
+
+Problem 3: Cow Art [Brian Dean, 2014]
+
+A little known fact about cows is the fact that they are red-green
+colorblind, meaning that red and green look identical to them.  This makes
+it especially difficult to design artwork that is appealing to cows as well
+as humans.
+
+Consider a square painting that is described by an N x N grid of characters
+(1 <= N <= 100), each one either R (red), G (green), or B (blue).  A
+painting is interesting if it has many colored "regions" that can
+be distinguished from each-other.  Two characters belong to the same
+region if they are directly adjacent (east, west, north, or south), and
+if they are indistinguishable in color.  For example, the painting
+
+RRRBB
+GGBBB
+BBBRR
+BBRRR
+RRRRR
+
+has 4 regions (2 red, 1 blue, and 1 green) if viewed by a human, but only 3
+regions (2 red-green, 1 blue) if viewed by a cow.  
+
+Given a painting as input, please help compute the number of regions in the
+painting when viewed by a human and by a cow.
+
+PROBLEM NAME: cowart
+
+INPUT FORMAT:
+
+* Line 1: The integer N.
+
+* Lines 2..1+N: Each line contains a string with N characters,
+        describing one row of a painting.
+
+SAMPLE INPUT (file cowart.in):
+
+5
+RRRBB
+GGBBB
+BBBRR
+BBRRR
+RRRRR
+
+OUTPUT FORMAT:
+
+* Line 1: Two space-separated integers, telling the number of regions
+        in the painting when viewed by a human and by a cow.
+
+SAMPLE OUTPUT (file cowart.out):
+
+4 3
+'''
+
+class CowArt:
+	def __init__( self, layout ):
+		self.size = len( layout )
+		self.layout = layout
+		self.adjacentLocationDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+		self.redColor, self.greenColor = 'RG'
+
+	def _floodFill( self, location, visited, cowVision=False ):
+		stack = list()
+		stack.append( location )
+
+		while len( stack ) > 0:
+			u, v = stack.pop()
+			if visited[ u ][ v ]:
+				continue
+			visited[ u ][ v ] = True
+
+			color_A = self.layout[ u ][ v ]
+
+			for du, dv in self.adjacentLocationDelta:
+				x, y = adjacentLocation = u + du, v + dv
+				if not 0 <= x < self.size or not 0 <= y < self.size:
+					continue
+
+				color_B = self.layout[ x ][ y ]
+
+				identicalColor = ( color_A == color_B )
+				identicalColorForCows = identicalColor or (color_A, color_B) == (self.redColor, self.greenColor) or \
+				                                          (color_A, color_B) == (self.greenColor, self.redColor)
+
+				if not cowVision and identicalColor:
+					stack.append( adjacentLocation )
+				elif cowVision and identicalColorForCows:
+					stack.append( adjacentLocation )
+
+	def analyze( self ):
+		visited = [ [ False for _ in range( self.size ) ] for _ in range( self.size ) ]
+		visitedCowVision = [ [ False for _ in range( self.size ) ] for _ in range( self.size ) ]
+
+		count = cowVisionCount = 0
+		for i, j in itertools.product( range( self.size ), range( self.size ) ):
+			location = i, j
+			if not visited[ i ][ j ]:
+				self._floodFill( location, visited, cowVision=False )
+				count += 1
+			if not visitedCowVision[ i ][ j ]:
+				self._floodFill( location, visitedCowVision, cowVision=True )
+				cowVisionCount += 1
+		return count, cowVisionCount
+
+class CowArtTest( unittest.TestCase ):
+	def test_CowArt( self ):
+		for testfile in getTestFileList( tag='cowart' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/cowart/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/cowart/{}.out'.format( testfile ) ) as solutionFile:
+
+			size = readInteger( inputFile )
+			layout = [ readString( inputFile ) for _ in range( size ) ]
+			count = tuple( readIntegers( solutionFile ) )
+
+			print( 'Testcase {} size = {} count = {}'.format( testfile, size, count ) )
+			self.assertEqual( CowArt( layout ).analyze(), count )
+
+	def test_CowArt_Sample( self ):
+		layout = [
+		'RRRBB',
+		'GGBBB',
+		'BBBRR',
+		'BBRRR',
+		'RRRRR'
+		]
+		self.assertEqual( CowArt( layout ).analyze(), (4, 3) )
+
 ####################################################################################################
 ####################################################################################################
 #
@@ -4724,6 +4857,8 @@ def test():
 	contest.register( 'USACO 2013 November Contest, Bronze', 'Combination Lock', CombinationLockTest )
 	
 	#contest.register( 'USACO 2013 US Open, Silver', "What's Up With Gravity", GravityTest )
+
+	contest.register( 'USACO 2014 March Contest, Bronze', 'Cow Art', CowArtTest )
 
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Marathon', MarathonTest )
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Crosswords', CrosswordsTest )
