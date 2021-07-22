@@ -3810,6 +3810,843 @@ class CowBeautyPageantTest( unittest.TestCase ):
 		]
 		self.assertEqual( CowBeautyPageant( rows, cols, layout ).paint(), 3 )
 
+'''
+USACO 2011 November Contest, Silver Division
+
+Problem 2: Cow Lineup [Brian Dean]
+
+Farmer John has hired a professional photographer to take a picture of some
+of his cows.  Since FJ's cows represent a variety of different breeds, he
+would like the photo to contain at least one cow from each distinct breed
+present in his herd.
+
+FJ's N cows are all standing at various positions along a line, each
+described by an integer position (i.e., its x coordinate) as well as an
+integer breed ID.  FJ plans to take a photograph of a contiguous range of
+cows along the line.  The cost of this photograph is equal its size -- that
+is, the difference between the maximum and minimum x coordinates of the
+cows in the range of the photograph.  
+
+Please help FJ by computing the minimum cost of a photograph in which there
+is at least one cow of each distinct breed appearing in FJ's herd.
+
+PROBLEM NAME: lineup
+
+INPUT FORMAT:
+
+* Line 1: The number of cows, N (1 <= N <= 50,000).
+
+* Lines 2..1+N: Each line contains two space-separated positive
+        integers specifying the x coordinate and breed ID of a single
+        cow.  Both numbers are at most 1 billion.
+
+SAMPLE INPUT (file lineup.in):
+
+6
+25 7
+26 1
+15 1
+22 3
+20 1
+30 1
+
+INPUT DETAILS:
+
+There are 6 cows, at positions 25,26,15,22,20,30, with respective breed IDs
+7,1,1,3,1,1.
+
+OUTPUT FORMAT:
+
+* Line 1: The smallest cost of a photograph containing each distinct
+        breed ID.
+
+SAMPLE OUTPUT (file lineup.out):
+
+4
+
+OUTPUT DETAILS:
+
+The range from x=22 up through x=26 (of total size 4) contains each of the
+distinct breed IDs 1, 3, and 7 represented in FJ's herd.
+'''
+
+class CowLineup:
+	@staticmethod
+	def minimumCost( infoList ):
+		infoList.sort()
+
+		distinctBreeds = set()
+		for _, breedId in infoList:
+			distinctBreeds.add( breedId )
+		numberOfBreeds = len( distinctBreeds )
+
+		breedCountDict = dict()
+		cost = float( 'inf' )
+		
+		i = j = 0
+		while j < len( infoList ):
+			x2, breedId = infoList[ j ]
+			if breedId not in breedCountDict:
+				breedCountDict[ breedId ] = 0
+			breedCountDict[ breedId ] += 1
+
+			j += 1
+
+			while len( breedCountDict ) == numberOfBreeds:
+				x1, breedId = infoList[ i ]
+				cost = min( cost, x2 - x1 )
+
+				breedCountDict[ breedId ] -= 1
+				if breedCountDict[ breedId ] == 0:
+					del breedCountDict[ breedId ]
+
+				i += 1
+		return cost
+
+class CowLineupTest( unittest.TestCase ):
+	def test_CowLineup( self ):
+		for testfile in range( 1, 13 ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/cowlineup/I.{}'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/cowlineup/O.{}'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			infoList = [ tuple( readIntegers( inputFile ) ) for _ in range( N ) ]
+			cost = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} cost = {}'.format( testfile, N, cost ) )
+			self.assertEqual( CowLineup.minimumCost( infoList ), cost )
+
+	def test_CowLineup_Sample( self ):
+		infoList = [ (25, 7), (26, 1), (15, 1), (22, 3), (20, 1), (30, 1) ]
+		self.assertEqual( CowLineup.minimumCost( infoList ), 4 )
+
+'''
+USACO 2012 January Contest, Bronze Division
+
+Problem 2: Haybale Stacking [Brian Dean, 2012]
+
+Feeling sorry for all the mischief she has caused around the farm recently,
+Bessie has agreed to help Farmer John stack up an incoming shipment of hay
+bales.  
+
+She starts with N (1 <= N <= 1,000,000, N odd) empty stacks, numbered 1..N.
+FJ then gives her a sequence of K instructions (1 <= K <= 25,000), each of
+the form "A B", meaning that Bessie should add one new haybale to the top
+of each stack in the range A..B.  For example, if Bessie is told "10 13",
+then she should add a haybale to each of the stacks 10, 11, 12, and 13.
+
+After Bessie finishes stacking haybales according to his instructions, FJ
+would like to know the median height of his N stacks -- that is, the height
+of the middle stack if the stacks were to be arranged in sorted order
+(conveniently, N is odd, so this stack is unique).  Please help Bessie
+determine the answer to FJ's question.
+
+PROBLEM NAME: stacking
+
+INPUT FORMAT:
+
+* Line 1: Two space-separated integers, N K.
+
+* Lines 2..1+K: Each line contains one of FJ's instructions in the
+        form of two space-separated integers A B (1 <= A <= B <= N).
+
+SAMPLE INPUT (file stacking.in):
+
+7 4
+5 5
+2 4
+4 6
+3 5
+
+INPUT DETAILS:
+
+There are N=7 stacks, and FJ issues K=4 instructions.  The first
+instruction is to add a haybale to stack 5, the second is to add haybales
+to stacks 2..4, etc.
+
+OUTPUT FORMAT:
+
+* Line 1: The median height of a stack after Bessie completes the
+        instructions.
+
+SAMPLE OUTPUT (file stacking.out):
+
+1
+
+OUTPUT DETAILS:
+
+After Bessie is finished, the stacks have heights 0,1,2,3,3,1,0.  The median
+stack height is 1, since 1 is the middle element in the sorted ordering
+0,0,1,1,2,3,3.
+'''
+
+class HaybaleStacking:
+	def __init__( self, N, K, instructionList ):
+		self.N, self.K = N, K
+		self.instructionList = instructionList
+
+	def median( self ):
+		haybaleStacks = [ 0 for _ in range( self.N + 1 ) ]
+		for (i, j) in self.instructionList:
+			haybaleStacks[ i - 1 ] += 1
+			haybaleStacks[ j ] -= 1
+		
+		haybaleStacks.pop()
+		offset = 0
+		for i in range( len( haybaleStacks ) ):
+			offset += haybaleStacks[ i ]
+			haybaleStacks[ i ] = offset
+		haybaleStacks.sort()
+		return haybaleStacks[ ( self.N - 1 ) // 2 ]
+
+class HaybaleStackingTest( unittest.TestCase ):
+	def test_HaybaleStacking( self ):
+		for testfile in getTestFileList( tag='haybalestacking' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/haybalestacking/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/haybalestacking/{}.out'.format( testfile ) ) as solutionFile:
+
+			N, K = readIntegers( inputFile )
+			instructionList = [ tuple( readIntegers( inputFile ) ) for _ in range( K ) ]
+			median = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} K = {} median = {}'.format( testfile, N, K, median ) ) 
+			self.assertEqual( HaybaleStacking( N, K, instructionList ).median(), median )
+
+	def test_HaybaleStacking_Sample( self ):
+		N, K = 7, 4
+		instructionList = [ (5, 5), (2, 4), (4, 6), (3, 5) ]
+		self.assertEqual( HaybaleStacking( N, K, instructionList ).median(), 1 )
+
+'''
+USACO 2013 January Contest, Silver
+
+Problem 3: Party Invitations [Travis Hance, 2012]
+
+Farmer John is throwing a party and wants to invite some of his cows to
+show them how much he cares about his herd.  However, he also wants to
+invite the smallest possible number of cows, remembering all too well the
+disaster that resulted the last time he invited too many cows to a party.
+
+Among FJ's cows, there are certain groups of friends that are hard to
+separate.  For any such group (say, of size k), if FJ invites at least k-1
+of the cows in the group to the party, then he must invite the final cow as
+well, thereby including the entire group.  Groups can be of any size and
+may even overlap with each-other, although no two groups contain exactly
+the same set of members.  The sum of all group sizes is at most 250,000.
+
+Given the groups among FJ's cows, please determine the minimum number of
+cows FJ can invite to his party, if he decides that he must definitely
+start by inviting cow #1 (his cows are conveniently numbered 1..N, with N
+at most 1,000,000).
+
+PROBLEM NAME: invite
+
+INPUT FORMAT:
+
+* Line 1: Two space-separated integers: N (the number of cows), and G
+        (the number of groups).
+
+* Lines 2..1+G: Each line describes a group of cows.  It starts with
+        an integer giving the size S of the group, followed by the S
+        cows in the group (each an integer in the range 1..N).
+
+SAMPLE INPUT (file invite.in):
+
+10 4
+2 1 3
+2 3 4
+6 1 2 3 4 6 7
+4 4 3 2 1
+
+INPUT DETAILS:
+
+There are 10 cows and 4 groups.  The first group contains cows 1 and 3, and
+so on.
+
+OUTPUT FORMAT:
+
+* Line 1: The minimum number of cows FJ can invite to his party.
+
+SAMPLE OUTPUT (file invite.out):
+
+4
+
+OUTPUT DETAILS:
+
+In addition to cow #1, FJ must invite cow #3 (due to the first group
+constraint), cow #4 (due to the second group constraint), and also cow #2
+(due to the final group constraint).
+'''
+
+class PartyInvitations:
+	def __init__( self, N, groupInfo ):
+		self.N = N
+		self.groupInfo = [ set( groupInfoList ) for groupInfoList in groupInfo ]
+		self.startCowId = 1
+
+	def minimumInvites( self ):
+		groupInfoDict = defaultdict( lambda : list() )
+		for index, cowIdSet in enumerate( self.groupInfo ):
+			for cowId in cowIdSet:
+				groupInfoDict[ cowId ].append( index )
+
+		evaluationStack = list()
+		evaluationStack.append( self.startCowId )
+
+		processed = set()
+
+		count = 0
+		while len( evaluationStack ) > 0:
+			cowId = evaluationStack.pop()
+			if cowId in processed:
+				continue
+			processed.add( cowId )
+
+			count += 1
+			for index in groupInfoDict[ cowId ]:
+				cowIdSet = self.groupInfo[ index ]
+				cowIdSet.remove( cowId )
+				if len( cowIdSet ) == 1:
+					evaluationStack.append( min( cowIdSet ) )
+		return count
+
+class PartyInvitationsTest( unittest.TestCase ):
+	def test_PartyInvitations( self ):
+		for testfile in getTestFileList( tag='partyinvitations' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/partyinvitations/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/partyinvitations/{}.out'.format( testfile ) ) as solutionFile:
+
+			N, groupCount = readIntegers( inputFile )
+			groupInfo = list()
+			for _ in range( groupCount ):
+				groupInfoList = list( readIntegers( inputFile ) )
+				groupInfo.append( groupInfoList[ 1 : ] ) # The first element is the length of the list.
+			minimumInvites = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} groupCount = {} minimumInvites = {}'.format( testfile, N, groupCount, minimumInvites ) )
+			self.assertEqual( PartyInvitations( 10, groupInfo ).minimumInvites(), minimumInvites )
+
+	def test_PartyInvitations_Sample( self ):
+		groupInfo = [ [ 1, 3 ], [ 3, 4 ], [ 1, 2, 3, 4, 6, 7 ], [ 4, 3, 2, 1 ] ]
+		self.assertEqual( PartyInvitations( 10, groupInfo ).minimumInvites(), 4 )
+
+'''
+USACO 2013 January Contest, Gold
+
+Problem 1: Cow Lineup [Brian Dean and Daniel Dara, 2012]
+
+Farmer John's N cows (1 <= N <= 100,000) are lined up in a row.  Each cow is
+identified by an integer "breed ID" in the range 0...1,000,000,000; the
+breed ID of the ith cow in the lineup is B(i).  Multiple cows can share the
+same breed ID.
+
+FJ thinks that his line of cows will look much more impressive if there is
+a large contiguous block of cows that all have the same breed ID.  In order
+to create such a block, FJ chooses up to K breed IDs and removes from his
+lineup all the cows having those IDs.  Please help FJ figure out
+the length of the largest consecutive block of cows with the same breed ID
+that he can create by doing this.
+
+PROBLEM NAME: lineup
+
+INPUT FORMAT:
+
+* Line 1: Two space-separated integers: N and K.
+
+* Lines 2..1+N: Line i+1 contains the breed ID B(i).
+
+SAMPLE INPUT (file lineup.in):
+
+9 1
+2
+7
+3
+7
+7
+3
+7
+5
+7
+
+INPUT DETAILS:
+
+There are 9 cows in the lineup, with breed IDs 2, 7, 3, 7, 7, 3, 7, 5, 7. 
+FJ would like to remove up to 1 breed ID from this lineup.
+
+OUTPUT FORMAT:
+
+* Line 1: The largest size of a contiguous block of cows with
+        identical breed IDs that FJ can create.
+
+SAMPLE OUTPUT (file lineup.out):
+
+4
+
+OUTPUT DETAILS:
+
+By removing all cows with breed ID 3, the lineup reduces to 2, 7, 7, 7, 7,
+5, 7.  In this new lineup, there is a contiguous block of 4 cows with the
+same breed ID (7).
+'''
+
+class CowLineupGold:
+	def __init__( self, N, K, breedIdList ):
+		self.N, self.K = N, K
+		self.breedIdList = breedIdList
+
+	def consecutiveBlock( self ):
+		frequencyDict = dict()
+		i = j = 0
+
+		maximumBlockSize = 0
+		q = deque()
+		
+		while j < len( self.breedIdList ):
+			breedId = self.breedIdList[ j ]
+			frequency = frequencyDict.get( breedId, 0 ) + 1
+			frequencyDict[ breedId ] = frequency
+
+			while len( q ) > 0:
+				breedId_q, frequency_q = q[ -1 ]
+				if frequency_q < frequency:
+					q.pop()
+				else:
+					break
+			q.append( (breedId, frequency) )
+
+			j = j + 1
+
+			while len( frequencyDict ) > self.K + 1:
+				breedId = self.breedIdList[ i ]
+				frequencyDict[ breedId ] -= 1
+				if frequencyDict[ breedId ] == 0:
+					del frequencyDict[ breedId ]
+
+				breedId_q, frequency_q = q[ 0 ]
+				if breedId_q == breedId:
+					q.popleft()
+
+				i = i + 1
+
+			_, frequency = q[ 0 ]
+			maximumBlockSize = max( maximumBlockSize, frequency )
+		return maximumBlockSize
+
+class CowLineupGoldTest( unittest.TestCase ):
+	def test_CowLineupGold( self ):
+		for testfile in getTestFileList( tag='cowlineup_gold' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/cowlineup_gold/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/cowlineup_gold/{}.out'.format( testfile ) ) as solutionFile:
+
+			N, K = readIntegers( inputFile )
+			breedIdList = [ readInteger( inputFile ) for _ in range( N ) ]
+			consecutiveBlock = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} K = {} consecutiveBlock = {}'.format( testfile, N, K, consecutiveBlock ) )
+			self.assertEqual( CowLineupGold( N, K, breedIdList ).consecutiveBlock(), consecutiveBlock )
+
+	def test_CowLineupGold_Sample( self ):
+		N, K = 9, 1
+		breedIdList = [ 2, 7, 3, 7, 7, 3, 7, 5, 7 ]
+		self.assertEqual( CowLineupGold( N, K, breedIdList ).consecutiveBlock(), 4 )
+
+'''
+USACO 2013 February Contest, Bronze
+
+Problem 1: Message Relay [Brian Dean, 2013]
+
+Farmer John's N cows (1 <= N <= 1000) are conveniently numbered from 1..N.
+Using an old-fashioned communicating mechanism based on tin cans and
+strings, the cows have figured out how to communicate between each-other
+without Farmer John noticing. 
+
+Each cow can forward messages to at most one other cow: for cow i, the
+value F(i) tells you the index of the cow to which cow i will forward any
+messages she receives (this number is always different from i).  If F(i) 
+is zero, then cow i does not forward messages.  
+
+Unfortunately, the cows have realized the possibility that messages
+originating at certain cows might ultimately get stuck in loops, forwarded
+around in a cycle forever.  A cow is said to be "loopy" if a message sent
+from that cow will ultimately get stuck in a loop.  The cows want to avoid
+sending messages from loopy cows.  Please help them by counting the total
+number of FJ's cows that are not loopy.
+
+PROBLEM NAME: relay
+
+INPUT FORMAT:
+
+* Line 1: The number of cows, N.
+
+* Lines 2..1+N: Line i+1 contains the value of F(i).
+
+SAMPLE INPUT (file relay.in):
+
+5
+0
+4
+1
+5
+4
+
+INPUT DETAILS:
+
+There are 5 cows.  Cow 1 does not forward messages.  Cow 2 forwards
+messages to cow 4, and so on.
+
+OUTPUT FORMAT:
+
+* Line 1: The total number of non-loopy cows.
+
+SAMPLE OUTPUT (file relay.out):
+
+2
+
+OUTPUT DETAILS:
+
+Cow 1 is not loopy since she does not forward messages.  Cow 3 is also
+not loopy since she forwards messages to cow 1, who then does not forward
+messages onward.  All other cows are loopy.
+'''
+
+class MessageRelay:
+	def __init__( self, N, messageRelayInfo ):
+		self.numberOfCows = N
+		self.messageRelayInfo = [ None ] + messageRelayInfo # Add a dummy element so that indices 1..N are valid.
+
+	def notLoopy( self ):
+		loopy = [ None for _ in range( self.numberOfCows + 1 ) ]
+
+		def _analyze( cowId ):
+			relay = set()
+			while True:
+				# A loop is present. All cowId present in the relay are to be marked as loopy.
+				if cowId in relay:
+					for cowId in relay:
+						loopy[ cowId ] = True
+					break
+				relay.add( cowId )
+				if self.messageRelayInfo[ cowId ] == 0:
+					for cowId in relay:
+						loopy[ cowId ] = False
+					break
+				cowId = self.messageRelayInfo[ cowId ]
+				
+		for cowId in range( 1, self.numberOfCows + 1 ):
+			_analyze( cowId )
+		
+		return sum( [ 1 if not loopy[ cowId ] else 0 for cowId in range( 1, self.numberOfCows + 1 ) ] )
+
+class MessageRelayTest( unittest.TestCase ):
+	def test_MessageRelay( self ):
+		for testfile in getTestFileList( tag='messagerelay' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/messagerelay/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/messagerelay/{}.out'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			messageRelayInfo = [ readInteger( inputFile ) for _ in range( N ) ]
+			notLoopy = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} notLoopy = {}'.format( testfile, N, notLoopy ) )
+			self.assertEqual( MessageRelay( N, messageRelayInfo ).notLoopy(), notLoopy )
+
+	def test_MessageRelay_Sample( self ):
+		N = 5
+		messageRelayInfo = [ 0, 4, 1, 5, 4 ]
+		self.assertEqual( MessageRelay( N, messageRelayInfo ).notLoopy(), 2 )
+
+'''
+USACO 2013 February Contest, Bronze
+
+Problem 3: Perimeter [Brian Dean, 2013]
+
+Farmer John has arranged N hay bales (1 <= N <= 10,000) in the middle of
+one of his fields.  If we think of the field as a 100 x 100 grid of 1 x 1
+square cells, each hay bale occupies exactly one of these cells (no two hay
+bales occupy the same cell, of course).
+
+FJ notices that his hay bales all form one large connected region, meaning
+that starting from any bale, one can reach any other bale by taking a
+series of steps either north, south, east, or west onto directly adjacent
+bales.  The connected region of hay bales may however contain "holes" --
+empty regions that are completely surrounded by hay bales. 
+
+Please help FJ determine the perimeter of the region formed by his hay
+bales.  Note that holes do not contribute to the perimeter.
+
+PROBLEM NAME: perimeter
+
+INPUT FORMAT:
+
+* Line 1: The number of hay bales, N.
+
+* Lines 2..1+N: Each line contains the (x,y) location of a single hay
+        bale, where x and y are integers both in the range 1..100. 
+        Position (1,1) is the lower-left cell in FJ's field, and
+        position (100,100) is the upper-right cell.
+
+SAMPLE INPUT (file perimeter.in):
+
+8
+5 3
+5 4
+8 4
+5 5
+6 3
+7 3
+7 4
+6 5
+
+INPUT DETAILS:
+
+The connected region consisting of hay bales looks like this:
+
+XX 
+X XX
+XXX
+
+OUTPUT FORMAT:
+
+* Line 1: The perimeter of the connected region of hay bales.
+
+SAMPLE OUTPUT (file perimeter.out):
+
+14
+
+OUTPUT DETAILS:
+
+The length of the perimeter of the connected region is 14 (for example, the
+left side of the region contributes a length of 3 to this total).  Observe
+that the hole in the middle does not contribute to this number.
+'''
+
+class Perimeter:
+	def __init__( self, positionList ):
+		maximum_x_or_y = 100
+		self.size = maximum_x_or_y + 1
+		self.emptyCell, self.haybale, self.blueMark = '.HX'
+		self.field = [ [ self.emptyCell for _ in range( self.size + 1 ) ] for _ in range( self.size + 1 ) ]
+
+		for x, y in positionList:
+			self.field[ x ][ y ] = self.haybale
+		self.anyHaybalePosition = positionList.pop()
+
+		self.adjacentLocationDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def perimeter( self ):
+		origin = 0, 0
+		q = deque()
+		q.append( origin )
+
+		# Using breadth first search, mark empty locations outside the hay.
+		while len( q ) > 0:
+			u, v = q.popleft()
+			if self.field[ u ][ v ] == self.blueMark:
+				continue
+			self.field[ u ][ v ] = self.blueMark
+			for du, dv in self.adjacentLocationDelta:
+				adjacentLocation = x, y = u + du, v + dv
+				if 0 <= x <= self.size and 0 <= y <= self.size and self.field[ x ][ y ] == self.emptyCell:
+					q.append( adjacentLocation )
+
+		# From any position where a haybale is present, do a breadth first search. Count the number
+		# of marked cells.
+		q = deque()
+		q.append( self.anyHaybalePosition )
+
+		visited = set()
+		visited.add( self.anyHaybalePosition )
+
+		perimeter = 0
+		while len( q ) > 0:
+			u, v = q.popleft()
+			for du, dv in self.adjacentLocationDelta:
+				x, y = adjacentLocation = u + du, v + dv
+				if not 0 <= x <= self.size or not 0 <= y <= self.size:
+					continue
+				if self.field[ x ][ y ] == self.haybale and adjacentLocation not in visited:
+					visited.add( adjacentLocation )
+					q.append( adjacentLocation )
+				elif self.field[ x ][ y ] == self.blueMark:
+					perimeter += 1
+		return perimeter
+
+class PerimeterTest( unittest.TestCase ):
+	def test_Perimeter( self ):
+		for testfile in getTestFileList( tag='perimeter' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/perimeter/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/perimeter/{}.out'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			positionList = [ tuple( readIntegers( inputFile ) ) for _ in range( N ) ]
+			perimeter = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} perimeter = {}'.format( testfile, N, perimeter ) )
+			self.assertEqual( Perimeter( positionList ).perimeter(), perimeter )
+
+	def test_Perimeter_Sample( self ):
+		positionList = [ (5, 3), (5, 4), (8, 4), (5, 5), (6, 3), (7, 3), (7, 4), (6, 5) ]
+		self.assertEqual( Perimeter( positionList ).perimeter(), 14 )
+
+'''
+USACO 2013 February Contest, Silver
+
+Problem 1: Perimeter [Brian Dean, 2013]
+
+Farmer John has arranged N hay bales (1 <= N <= 50,000) in the middle of
+one of his fields.  If we think of the field as a 1,000,000 x 1,000,000
+grid of 1 x 1 square cells, each hay bale occupies exactly one of these
+cells (no two hay bales occupy the same cell, of course).
+
+FJ notices that his hay bales all form one large connected region, meaning
+that starting from any bale, one can reach any other bale by taking a
+series of steps either north, south, east, or west onto directly adjacent
+bales.  The connected region of hay bales may however contain "holes" --
+empty regions that are completely surrounded by hay bales. 
+
+Please help FJ determine the perimeter of the region formed by his hay
+bales.  Note that holes do not contribute to the perimeter.
+
+PROBLEM NAME: perimeter
+
+INPUT FORMAT:
+
+* Line 1: The number of hay bales, N.
+
+* Lines 2..1+N: Each line contains the (x,y) location of a single hay
+        bale, where x and y are integers both in the range
+        1..1,000,000. Position (1,1) is the lower-left cell in FJ's
+        field, and position (1000000,1000000) is the upper-right cell.
+
+SAMPLE INPUT (file perimeter.in):
+
+8
+10005 200003
+10005 200004
+10008 200004
+10005 200005
+10006 200003
+10007 200003
+10007 200004
+10006 200005
+
+INPUT DETAILS:
+
+The connected region consisting of hay bales looks like this:
+
+XX 
+X XX
+XXX
+
+OUTPUT FORMAT:
+
+* Line 1: The perimeter of the connected region of hay bales.
+
+SAMPLE OUTPUT (file perimeter.out):
+
+14
+
+OUTPUT DETAILS:
+
+The length of the perimeter of the connected region is 14 (for example, the
+left side of the region contributes a length of 3 to this total).  Observe
+that the hole in the middle does not contribute to this number.
+'''
+
+class PerimeterSilver:
+	def __init__( self, positionList ):
+		self.haybaleLocations = set( positionList )
+		self.minimumHaybalePosition = min( positionList )
+
+		self.adjacentLocationDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+		self.diagonalLocationDelta = [ (1, 1), (1, -1), (-1, 1), (-1, -1) ]
+
+	def _adjacentToHay( self, location ):
+		u, v = location
+		for du, dv in self.adjacentLocationDelta + self.diagonalLocationDelta:
+			adjacentLocation = u + du, v + dv
+			if adjacentLocation in self.haybaleLocations:
+				return True
+		return False
+
+	def perimeter( self ):
+		x, y = self.minimumHaybalePosition
+		x = x - 1
+		anyBoundaryCell = x, y
+
+		q = deque()
+		q.append( anyBoundaryCell )
+
+		boundaryCells = set()
+		boundaryCells.add( anyBoundaryCell )
+
+		while len( q ) > 0:
+			u, v = q.popleft()
+			for du, dv in self.adjacentLocationDelta:
+				x, y = adjacentLocation = u + du, v + dv
+				if adjacentLocation in self.haybaleLocations:
+					continue
+				if adjacentLocation not in boundaryCells and self._adjacentToHay( adjacentLocation ):
+					boundaryCells.add( adjacentLocation )
+					q.append( adjacentLocation )
+
+		perimeter = 0
+		q = deque()
+		q.append( self.minimumHaybalePosition )
+
+		visited = set()
+		visited.add( self.minimumHaybalePosition )
+
+		while len( q ) > 0:
+			u, v = q.popleft()
+			for du, dv in self.adjacentLocationDelta:
+				adjacentLocation = u + du, v + dv
+				if adjacentLocation in boundaryCells:
+					perimeter += 1
+				elif adjacentLocation in self.haybaleLocations and adjacentLocation not in visited:
+					visited.add( adjacentLocation )
+					q.append( adjacentLocation )
+		return perimeter
+
+class PerimeterSilverTest( unittest.TestCase ):
+	def test_PerimeterSilver( self ):
+		for testfile in getTestFileList( tag='perimeter_silver' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/usaco/perimeter_silver/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/usaco/perimeter_silver/{}.out'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			positionList = [ tuple( readIntegers( inputFile ) ) for _ in range( N ) ]
+			perimeter = readInteger( solutionFile )
+
+			print( 'Testcase {} N = {} perimeter = {}'.format( testfile, N, perimeter ) )
+			self.assertEqual( PerimeterSilver( positionList ).perimeter(), perimeter )
+
+	def test_PerimeterSilver_Sample( self ):
+		positionList = [ (10005, 200003), (10005, 200004), (10008, 200004), (10005, 200005), (10006, 200003),
+                         (10007, 200003), (10007, 200004), (10006, 200005) ]
+		self.assertEqual( PerimeterSilver( positionList ).perimeter(), 14 )
+
 ####################################################################################################
 ####################################################################################################
 #
@@ -3860,11 +4697,15 @@ def test():
 
 	contest.register( 'USACO 2011 November Contest, Bronze Division', 'Awkward Digits', AwkwardDigitsTest )
 	contest.register( 'USACO 2011 November Contest, Bronze Division', 'Cow Beauty Pageant', CowBeautyPageantTest )
+	contest.register( 'USACO 2011 November Contest, Silver Division', 'Cow Lineup', CowLineupTest )
 
 	contest.register( 'USACO 2011 December Contest, Bronze Division', 'Hay Bales', HayBalesTest )
 	#contest.register( 'USACO 2011 December Contest, Bronze Division', 'Cow Photography', None )
 
+	contest.register( 'USACO 2012 January Contest, Bronze Division', 'Haybale Stacking', HaybaleStackingTest )
+
 	contest.register( 'USACO 2012 March Contest, Silver Division', 'Tractor', TractorTest )
+	
 	contest.register( 'USACO 2012 US Open, Bronze Division', 'Cows in a Row', CowsInARowTest )
 
 	contest.register( 'USACO 2012 November Contest, Bronze', 'Find the Cow!', FindTheCowTest )
@@ -3873,7 +4714,15 @@ def test():
 	contest.register( 'USACO 2012 December Contest, Bronze', 'Meet and Greet', MeetAndGreetTest )
 	contest.register( 'USACO 2012 December Contest, Bronze', 'Scrambled Letters', ScrambledLettersTest )
 
+	contest.register( 'USACO 2013 January Contest, Silver', 'Party Invitations', PartyInvitationsTest )
+	contest.register( 'USACO 2013 January Contest, Gold', 'Cow Lineup', CowLineupGoldTest )
+
+	contest.register( 'USACO 2013 February Contest, Bronze', 'Message Relay', MessageRelayTest )
+	contest.register( 'USACO 2013 February Contest, Bronze', 'Perimeter', PerimeterTest )
+	contest.register( 'USACO 2013 February Contest, Silver', 'Perimeter', PerimeterSilverTest )
+
 	contest.register( 'USACO 2013 November Contest, Bronze', 'Combination Lock', CombinationLockTest )
+	
 	#contest.register( 'USACO 2013 US Open, Silver', "What's Up With Gravity", GravityTest )
 
 	contest.register( 'USACO 2014 December Contest, Bronze', 'Marathon', MarathonTest )
