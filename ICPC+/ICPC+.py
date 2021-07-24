@@ -10939,10 +10939,6 @@ class PantsOnFireTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 ################################################################################
-
-################################################################################
-################################################################################
-################################################################################
 # UKIEPC2018 - "Problem L : Last Word"
 ################################################################################
 
@@ -10984,6 +10980,79 @@ class LastWordTest( unittest.TestCase ):
 
 		commands = [ (1, 24), (1, 22), (1, 20), (1, 18), (1, 16), (1, 14), (1, 12), (1, 10) ]
 		self.assertEqual( LastWord( 'abcdefghijklmnopqrstuvwxyz', commands ).go(), 'ijklmnopqr' )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# German_Collegiate_Programming_Contest_2012 - "Problem I : Touchscreen Keyboard"
+################################################################################
+
+class TouchScreenKeyboard:
+	def __init__( self ):
+		keyboard = [
+		'qwertyuiop',
+		'asdfghjkl*',
+		'zxcvbnm***'
+		]
+		self.positionDict = dict()
+		rows, cols = len( keyboard ), len( keyboard[ 0 ] )
+		for i, j in itertools.product( range( rows ), range( cols ) ):
+			self.positionDict[ keyboard[ i ][ j ] ] = (i, j)
+
+	def _distance( self, word1, word2 ):
+		def _distanceBetween( fromCharacter, toCharacter ):
+			r1, c1 = self.positionDict[ fromCharacter ]
+			r2, c2 = self.positionDict[ toCharacter ]
+			return abs( r1 - r2 ) + abs( c1 - c2 )
+
+		count = 0
+		for fromCharacter, toCharacter in zip( word1, word2 ):
+			count += _distanceBetween( fromCharacter, toCharacter )
+		return count
+
+	def sort( self, word, suggestionList ):
+		resultList = [ (self._distance( word, suggestion), suggestion) for suggestion in suggestionList ]
+		resultList.sort()
+		return [ (word, distance) for (distance, word) in resultList ]
+
+class TouchScreenKeyboardTest( unittest.TestCase ):
+	def test_TouchScreenKeyboard( self ):
+		for testfile in getTestFileList( tag='touchscreen' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/touchscreen/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/touchscreen/{}.out'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for i in range( testcaseCount ):
+				typedWord, suggestionCount = readString( inputFile ).split()
+				suggestionCount = int( suggestionCount )
+				suggestionList = [ readString( inputFile ) for _ in range( suggestionCount ) ]
+
+				resultList = list()
+				for _ in range( suggestionCount ):
+					word, distance = readString( solutionFile ).split()
+					resultList.append( (word, int( distance)) )
+
+				formatString = 'Testcase {}#{} word length = {} suggestionCount = {}'
+				print( formatString.format( testfile, i + 1, len( typedWord ), suggestionCount ) )
+				self.assertEqual( TouchScreenKeyboard().sort( typedWord, suggestionList ), resultList )
+
+	def test_TouchScreenKeyboard_Sample( self ):
+		word = 'ifpv'
+		suggestionList = [ 'iopc', 'icpc', 'gcpc' ]
+		resultList = [ ('icpc', 3), ('gcpc', 7), ('iopc', 7) ]
+		self.assertEqual( TouchScreenKeyboard().sort( word, suggestionList ), resultList )
+
+		word = 'edc'
+		suggestionList = [ 'wsx', 'edc', 'rfv', 'plm', 'qed' ]
+		resultList = [ ('edc', 0), ('rfv', 3), ('wsx', 3), ('qed', 4), ('plm', 17) ]
+		self.assertEqual( TouchScreenKeyboard().sort( word, suggestionList ), resultList )
 
 ################################################################################
 ################################################################################
