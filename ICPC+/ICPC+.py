@@ -11058,5 +11058,121 @@ class TouchScreenKeyboardTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# German_Collegiate_Programming_Contest_2013 - "Problem F : Peg Solitaire"
+################################################################################
+
+class PegSolitaire:
+	def __init__( self, boardLayout ):
+		self.rows, self.cols = len( boardLayout ), len( boardLayout[ 0 ] )
+		self.boardLayout = boardLayout
+		self.blockedCell, self.peg, self.holeCell = '#o.'
+
+		self.pegPositions = list()
+		self.blockedCells = set()
+		for u, v in itertools.product( range( self.rows ), range( self.cols ) ):
+			if self.boardLayout[ u ][ v ] == self.peg:
+				self.pegPositions.append( (u, v) )
+			elif self.boardLayout[ u ][ v ] == self.blockedCell:
+				self.blockedCells.add( (u, v) )
+
+		# Add the boundary cells to self.blockedCells.
+		for row in range( self.rows ):
+			self.blockedCells.add( (row, -1) )
+			self.blockedCells.add( (row, self.cols) )
+		for col in range( self.cols ):
+			self.blockedCells.add( (-1, col) )
+			self.blockedCells.add( (self.rows, col) )
+
+		self.adjacentCellDelta = [ (0, 1), (0, -1), (1, 0), (-1, 0) ]
+
+	def _play( self, pegPositionSet, totalMovesMade ):
+		if len( pegPositionSet ) == 1:
+			return 1, totalMovesMade
+
+		bestMove = len( pegPositionSet ), totalMovesMade
+
+		for pegPosition in list( pegPositionSet ):
+			# Try to move the peg at position "pegPosition"
+			u, v = pegPosition
+			for du, dv in self.adjacentCellDelta:
+				x, y = adjacentPosition = u + du, v + dv
+				# To move the peg, another peg should be adjacent to it.
+				if adjacentPosition not in pegPositionSet:
+					continue
+				movePosition = x + du, y + dv
+				# The position to which the current peg is to be moved, shouldn't already contain another peg.
+				if movePosition in self.blockedCells or movePosition in pegPositionSet:
+					continue
+				# Make the move. The peg moves from pegPosition to movePosition.
+				pegPositionSet.remove( pegPosition )
+				pegPositionSet.add( movePosition )
+				pegPositionSet.remove( adjacentPosition )
+				
+				bestMove = min( bestMove, self._play( pegPositionSet, totalMovesMade + 1 ) )
+				
+				# Backtrack !! Reset the move we just made.
+				pegPositionSet.add( adjacentPosition )
+				pegPositionSet.remove( movePosition )
+				pegPositionSet.add( pegPosition )
+		return bestMove
+
+	def go( self ):
+		pegPositionSet = set( self.pegPositions )
+		return self._play( pegPositionSet, 0 )
+
+class PegSolitaireTest( unittest.TestCase ):
+	def test_PegSolitaire( self ):
+		for testfile in getTestFileList( tag='pegsolitaire' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/pegsolitaire/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/pegsolitaire/{}.out'.format( testfile ) ) as solutionFile:
+
+			testcaseCount = readInteger( inputFile )
+			for i in range( testcaseCount ):
+				boardLayout = [ readString( inputFile ) for _ in range( 5 ) ]
+				readString( inputFile ) # Read the empty line after each board.
+
+				bestMove = tuple( readIntegers( solutionFile ) )
+
+				print( 'Testcase {}#{} bestMove = {}'.format( testfile, i + 1, bestMove ) )
+				self.assertEqual( PegSolitaire( boardLayout ).go(), bestMove )
+
+	def test_PegSolitaire_Sample( self ):
+		boardLayout = [
+		'###...###',
+		'..oo.....',
+		'.....oo..',
+		'.........',
+		'###...###'
+		]
+		self.assertEqual( PegSolitaire( boardLayout ).go(), (1, 3) )
+
+		boardLayout = [
+		'###...###',
+		'..oo.o...',
+		'...o.oo..',
+		'...oo....',
+		'###...###'
+		]
+		self.assertEqual( PegSolitaire( boardLayout ).go(), (1, 7) )
+
+		boardLayout = [
+		'###o..###',
+		'.o.oo....',
+		'o.o......',
+		'.o.o.....',
+		'###...###'
+		]
+		self.assertEqual( PegSolitaire( boardLayout ).go(), (1, 7) )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
