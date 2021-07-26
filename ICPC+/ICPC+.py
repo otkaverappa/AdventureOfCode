@@ -30,6 +30,9 @@ def readRawString( file ):
 def readAllStrings( file ):
 	return [ line.strip() for line in file.readlines() ]
 
+def readAllIntegers( file ):
+	return list( map( int, readAllStrings( file ) ) )
+
 def readTokens( file ):
 	return readString( file ).split()
 
@@ -11169,6 +11172,296 @@ class PegSolitaireTest( unittest.TestCase ):
 		'###...###'
 		]
 		self.assertEqual( PegSolitaire( boardLayout ).go(), (1, 7) )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# UKIEPC2015 - "Problem C : Conversation Log"
+################################################################################
+
+class ConversationLog:
+	def __init__( self, logList ):
+		self.logList = logList
+		self.allClearString = 'ALL CLEAR'
+
+	def analyze( self ):
+		userSet = set()
+		wordFreqDict = dict()
+		wordPresenceDict = defaultdict( lambda : set() )
+
+		for logLine in self.logList:
+			username, * wordList = logLine.split()
+			userSet.add( username )
+			for word in wordList:
+				frequency = wordFreqDict.get( word, 0 )
+				wordFreqDict[ word ] = frequency + 1
+				wordPresenceDict[ word ].add( username )
+
+		wordList = list()
+		for word, presenceSet in wordPresenceDict.items():
+			if len( presenceSet ) == len( userSet ):
+				frequency = wordFreqDict[ word ]
+				wordList.append( (-frequency, word) )
+
+		if len( wordList ) == 0:
+			return [ self.allClearString ]
+		wordList.sort()
+		return [ word for (_, word) in wordList ]
+
+class ConversationLogTest( unittest.TestCase ):
+	def test_ConversationLog( self ):
+		for testfile in getTestFileList( tag='conversationlog' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/conversationlog/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/conversationlog/{}.ans'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			logList = [ readString( inputFile ) for _ in range( N ) ]
+			wordList = readAllStrings( solutionFile )
+
+			print( 'Testcase {} logList length = {}'.format( testfile, N ) )
+			self.assertEqual( ConversationLog( logList ).analyze(), wordList )
+
+	def test_ConversationLog_Sample( self ):
+		logList = [
+		'Jepson no no no no nobody never',
+		'Ashley why ever not',
+		'Marcus no not never nobody',
+		'Bazza no never know nobody',
+		'Hatty why no nobody',
+		'Hatty nobody never know why nobody',
+		'Jepson never no nobody',
+		'Ashley never never nobody no'
+		]
+		self.assertEqual( ConversationLog( logList ).analyze(), [ 'no', 'nobody', 'never' ] )
+
+		logList = [
+		'Villain avast',
+		'Scoundrel ahoy'
+		]
+		self.assertEqual( ConversationLog( logList ).analyze(), [ 'ALL CLEAR' ] )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# German_Collegiate_Programming_Contest_2019 - "Problem B: Bouldering"
+################################################################################
+
+class Bouldering:
+	def __init__( self, layout, reach, stamina ):
+		self.layout = layout
+		self.reach = reach
+		self.stamina = stamina
+		self.emptyCell = '.'
+
+	def _distance( self, point1, point2 ):
+		x1, y1 = point1
+		x2, y2 = point2
+		return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
+
+	def go( self ):
+		rows, cols = len( self.layout ), len( self.layout[ 0 ] )
+		positionList = list()
+		for u, v in itertools.product( range( rows ), range( cols ) ):
+			if self.layout[ u ][ v ] != self.emptyCell:
+				positionList.append( (u, v) )
+
+		graph = defaultdict( lambda : list() )
+		for i in range( len( positionList ) ):
+			for j in range( i + 1, len( positionList ) ):
+				distance = self._distance( positionList[ i ], positionList[ j ] )
+				if distance <= self.reach * self.reach:
+					graph[ positionList[ i ] ].append( positionList[ j ] )
+					graph[ positionList[ j ] ].append( positionList[ i ] )
+
+		startLocation, targetLocation = max( positionList ), min( positionList )
+		distanceTraversed = 0
+		u, v = startLocation
+		energyExpended = int( self.layout[ u ][ v ] )
+
+		maximumDifficulty = 9
+		self.stamina = min( self.stamina, rows * cols * maximumDifficulty )
+
+		q = list()
+		q.append( (distanceTraversed, energyExpended, startLocation) )
+
+		distanceDict = dict()
+		distanceDict[ (startLocation, energyExpended) ] = distanceTraversed
+
+		while len( q ) > 0:
+			distanceTraversed, energyExpended, currentLocation = heapq.heappop( q )
+			u, v = currentLocation
+
+			if currentLocation == targetLocation:
+				return distanceTraversed
+
+			for adjacentLocation in graph[ currentLocation ]:
+				newDistanceTraversed = distanceTraversed + math.sqrt( self._distance( currentLocation, adjacentLocation ) )
+				x, y = adjacentLocation
+				newEnergyExpended = energyExpended + int( self.layout[ x ][ y ] )
+
+				if newEnergyExpended > self.stamina:
+					continue
+
+				distanceKey = adjacentLocation, newEnergyExpended
+				if distanceKey not in distanceDict or distanceDict[ distanceKey ] > newDistanceTraversed:
+					distanceDict[ distanceKey ] = newDistanceTraversed
+					heapq.heappush( q, (newDistanceTraversed, newEnergyExpended, adjacentLocation) )
+		return 'impossible'
+
+class BoulderingTest( unittest.TestCase ):
+	def _compare( self, A, B ):
+		if isinstance( B, str ):
+			self.assertEqual( A, B )
+		else:
+			delta = float( '1e-6' )
+			assert abs( A - B ) <= delta
+
+	def test_Bouldering( self ):
+		for testfile in getTestFileList( tag='bouldering' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/bouldering/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/bouldering/{}.ans'.format( testfile ) ) as solutionFile:
+
+			rows, cols, reach, stamina = readIntegers( inputFile )
+			layout = [ readString( inputFile ) for _ in range( rows ) ]
+			distance = readString( solutionFile )
+			if distance != 'impossible':
+				distance = float( distance )
+
+			print( 'Testcase {} reach = {} stamina = {} distance = {}'.format( testfile, reach, stamina, distance ) )
+			self._compare( Bouldering( layout, reach, stamina ).go(), distance )
+
+	def test_Bouldering_Sample( self ):
+		layout = [
+		'...........',
+		'........3..',
+		'.......3.1.',
+		'...........',
+		'.......2...',
+		'.....2.....',
+		'.1.1.......',
+		'.....2.....',
+		'.1.........',
+		'...2.......',
+		'.1.........',
+		'...........'
+		]
+		reach, stamina = 3, 11
+		self._compare( Bouldering( layout, reach, stamina ).go(), 13.543203766865055 )
+
+		layout = [
+		'......1.........',
+		'....1..1.1......',
+		'..2........1....',
+		'...2......1.....',
+		'.....4.1..2..1..',
+		'................',
+		'.......1........',
+		'................'
+		]
+		reach, stamina = 3, 15
+		self._compare( Bouldering( layout, reach, stamina ).go(), 6.414213562373095 )
+
+		layout = [
+		'...2......',
+		'..........',
+		'...5.2....',
+		'..........',
+		'.....3....',
+		'....5.....',
+		'..2....2..',
+		'..1.......',
+		'....2.....',
+		'..1.......'
+		]
+		reach, stamina = 2, 10
+		self._compare( Bouldering( layout, reach, stamina ).go(), 'impossible' )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# Croatian_Regional_Competition_in_Informatics_2007.pdf
+################################################################################
+
+class Bard:
+	def __init__( self, N, eveningInfoList ):
+		self.N = N
+		self.eveningInfoList = eveningInfoList
+		self.bard = 1
+
+	def allSongs( self ):
+		totalSongs = 0
+		songsKnown = [ set() for _ in range( self.N + 1 ) ]
+
+		for eveningInfo in self.eveningInfoList:
+			bardIsPresent = self.bard in eveningInfo # Linear search to know whether the bard is present.
+			if bardIsPresent:
+				totalSongs += 1
+				newSongId = totalSongs
+				for villager in eveningInfo:
+					if villager == self.bard:
+						continue
+					songsKnown[ villager ].add( newSongId )
+			else:
+				allSongs = set()
+				for villager in eveningInfo:
+					allSongs.update( songsKnown[ villager ] )
+				for villager in eveningInfo:
+					songsKnown[ villager ].update( allSongs )
+
+		villagerList = list()
+		for villager in range( 1, len( songsKnown ) ):
+			if villager == self.bard or len( songsKnown[ villager ] ) == totalSongs:
+				villagerList.append( villager )
+		return villagerList
+
+class BardTest( unittest.TestCase ):
+	def test_Bard( self ):
+		for i in range( 10 ):
+			with open( 'tests/bard/bard.in.{}'.format( i + 1 ) ) as inputFile, \
+			     open( 'tests/bard/bard.out.{}'.format( i + 1 ) ) as solutionFile:
+
+				N = readInteger( inputFile )
+				numberOfEvenings = readInteger( inputFile )
+				eveningInfoList = list()
+				for _ in range( numberOfEvenings ):
+					eveningInfo = list( readIntegers( inputFile ) ) [ 1 : ] # The first value is the size of the list, which we don't need.
+					eveningInfoList.append( eveningInfo )
+
+				villagerList = readAllIntegers( solutionFile )
+
+				print( 'Testcase {} N = {} numberOfEvenings = {}'.format( i + 1, N, numberOfEvenings ) )
+				self.assertEqual( Bard( N, eveningInfoList ).allSongs(), villagerList )
+
+	def test_Bard_Sample( self ):
+		N = 4
+		eveningInfoList = [ [ 1, 2 ], [ 2, 3, 4 ], [ 4, 2, 1 ] ]
+		self.assertEqual( Bard( N, eveningInfoList ).allSongs(), [ 1, 2, 4 ] )
+
+		N = 8
+		eveningInfoList = [ [ 1, 3, 5, 4 ], [ 5, 6 ], [ 6, 7, 8 ], [ 6, 2 ], [ 2, 6, 8, 1 ] ]
+		self.assertEqual( Bard( N, eveningInfoList ).allSongs(), [ 1, 2, 6, 8 ] )
+
+		N = 5
+		eveningInfoList = [ [ 1, 3 ], [ 2, 1 ], [ 2, 1, 4, 5 ] ]
+		self.assertEqual( Bard( N, eveningInfoList ).allSongs(), [ 1 ] )
 
 ################################################################################
 ################################################################################

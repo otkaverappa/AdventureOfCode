@@ -1,0 +1,8 @@
+-2502116472325971270
+25 			# x
+25		 	# y
+2 3 		# range min max
+100 500 	# s min max
+1 9			# steps min max
+2			# mode: 0 fills all, 1 generates trees (bottom-weighted), 2 generates points randomly
+0.3			# fill percent
