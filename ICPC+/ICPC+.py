@@ -11467,5 +11467,113 @@ class BardTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+# KTH_Challenge_2020.pdf - "Problem F : Proofs"
+################################################################################
+
+class Proof:
+	def __init__( self, proofStatementList ):
+		self.proofStatementList = proofStatementList
+		self.correctString = 'correct'
+
+	def analyze( self ):
+		conclusions = set()
+		for i, proofStatement in enumerate( self.proofStatementList ):
+			lhs, rhs = proofStatement.split( '->' )
+			lhs, rhs = lhs.strip(), rhs.strip()
+			if len( lhs ) == 0:
+				conclusions.add( rhs )
+			else:
+				for assumption in lhs.split():
+					if assumption not in conclusions:
+						return '{}'.format( i + 1 )
+				conclusions.add( rhs )
+		return self.correctString
+
+class ProofTest( unittest.TestCase ):
+	def test_Proof( self ):
+		for testfile in getTestFileList( tag='proofs' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/proofs/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/proofs/{}.ans'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			proofStatementList = [ readString( inputFile ) for _ in range( N ) ]
+			state = readString( solutionFile )
+
+			print( 'Testcase {} N = {} state = {}'.format( testfile, N, state ) )
+			self.assertEqual( Proof( proofStatementList ).analyze(), state )
+
+	def test_Proof_Sample( self ):
+		proofStatementList = [
+		'-> ALICE',
+		'-> BOB',
+		'ALICE BOB -> CARL'
+		]
+		self.assertEqual( Proof( proofStatementList ).analyze(), 'correct' )
+
+		proofStatementList = [ 'A -> B' ]
+		self.assertEqual( Proof( proofStatementList ).analyze(), '1' )
+
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+################################################################################
+################################################################################
+# VirginiaTechHighSchoolProgrammingContest_2017 - Problem A : Shiritori
+################################################################################
+
+class Shiritori:
+	@staticmethod
+	def analyze( wordList ):
+		lastLetter = None
+		usedWords = set()
+		for i, word in enumerate( wordList ):
+			firstLetter, * _ = word
+			if word in usedWords or ( lastLetter is not None and lastLetter != firstLetter ):
+				playerNumber = ( i % 2 ) + 1
+				return 'Player {} lost'.format( playerNumber )
+			usedWords.add( word )
+			lastLetter = word[ -1 ]
+		return 'Fair Game'
+
+class ShiritoriTest( unittest.TestCase ):
+	def test_Shiritori( self ):
+		for testfile in getTestFileList( tag='shiritori' ):
+			self._verify( testfile )
+
+	def _verify( self, testfile ):
+		with open( 'tests/shiritori/{}.in'.format( testfile ) ) as inputFile, \
+		     open( 'tests/shiritori/{}.ans'.format( testfile ) ) as solutionFile:
+
+			N = readInteger( inputFile )
+			wordList = [ readString( inputFile ) for _ in range( N ) ]
+			state = readString( solutionFile )
+
+			print( 'Testcase {} N = {} state = {}'.format( testfile, N, state ) )
+			self.assertEqual( Shiritori.analyze( wordList ), state )
+
+	def test_Shiritori_Sample( self ):
+		wordList = [ 'apple', 'ear', 'real', 'letters', 'style' ]
+		self.assertEqual( Shiritori.analyze( wordList ), 'Fair Game' )
+
+		wordList = [ 'apple', 'extra', 'apple' ]
+		self.assertEqual( Shiritori.analyze( wordList ), 'Player 1 lost' )
+
+		wordList = [ 'apple', 'neat' ]
+		self.assertEqual( Shiritori.analyze( wordList ), 'Player 2 lost' )
+
+		wordList = [ 'apple', 'east', 'team', 'meat', 'team' ]
+		self.assertEqual( Shiritori.analyze( wordList ), 'Player 1 lost' )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
