@@ -11575,5 +11575,78 @@ class ShiritoriTest( unittest.TestCase ):
 ################################################################################
 ################################################################################
 
+################################################################################
+################################################################################
+################################################################################
+# Croatian_Regional_Competition_in_Informatics_2007.pdf
+################################################################################
+
+class Tetris:
+	def __init__( self, pieceType, heightList ):
+		self.pieceTypeInfoDict = {
+		1 : [ (0,), (0, 0, 0, 0) ],
+		2 : [ (0, 0) ],
+		3 : [ (0, 0, 1), (1, 0) ],
+		4 : [ (1, 0, 0), (0, 1) ],
+		5 : [ (0, 0, 0), (0, 1), (1, 0, 1), (1, 0) ],
+		6 : [ (0, 0, 0), (0, 0), (0, 1, 1), (2, 0) ],
+		7 : [ (0, 0, 0), (0, 0), (1, 1, 0), (0, 2) ]
+		}
+		self.pieceType = pieceType
+		self.heightList = heightList
+
+	def _match( self, pattern, heights ):
+		assert len( pattern ) == len( heights )
+		for i in range( 1, len( pattern ) ):
+			if pattern[ i ] - pattern[ i - 1 ] != heights[ i ] - heights[ i - 1 ]:
+				return False
+		return True
+
+	def _count( self, pattern ):
+		count = 0
+		k = len( pattern )
+		for i in range( len( self.heightList ) - k + 1 ):
+			if self._match( pattern, self.heightList[ i : i + k ] ):
+				count += 1
+		return count
+
+	def place( self ):
+		count = 0
+		# For each orientation, calculate the number of placements, and add it to the count.
+		for pattern in self.pieceTypeInfoDict[ self.pieceType ]:
+			count += self._count( pattern )
+		return count
+
+class TetrisTest( unittest.TestCase ):
+	def test_Tetris( self ):
+		for i in range( 14 ):
+			with open( 'tests/tetris/tetris.in.{}'.format( i + 1 ) ) as inputFile, \
+			     open( 'tests/tetris/tetris.out.{}'.format( i + 1 ) ) as solutionFile:
+
+				heightListLength, pieceType = readIntegers( inputFile )
+				heightList = list( readIntegers( inputFile ) )
+				placements = readInteger( solutionFile )
+
+				formatString = 'Testcase {} pieceType = {} heightListLength = {} placements = {}'
+				print( formatString.format( i + 1, pieceType, heightListLength, placements ) )
+				self.assertEqual( Tetris( pieceType, heightList ).place(), placements )
+
+	def test_Tetris_Sample( self ):
+		pieceType = 5
+		heightList = [ 2, 1, 1, 1, 0, 1 ]
+		self.assertEqual( Tetris( pieceType, heightList ).place(), 5 )
+
+		pieceType = 1
+		heightList = [ 0, 0, 0, 0, 0 ]
+		self.assertEqual( Tetris( pieceType, heightList ).place(), 7 )
+
+		pieceType = 4
+		heightList = [ 4, 3, 5, 4, 6, 5, 7, 6, 6 ]
+		self.assertEqual( Tetris( pieceType, heightList ).place(), 1 )
+
+################################################################################
+################################################################################
+################################################################################
+
 if __name__ == '__main__':
 	unittest.main()
